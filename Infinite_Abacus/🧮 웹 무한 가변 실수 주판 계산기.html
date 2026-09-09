@@ -1,0 +1,502 @@
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧮 웹 무한 가변 실수 주판 계산기</title>
+    <style>
+        :root {
+            --abacus-bg: #8B5A2B;
+            --abacus-frame: #5C3A21;
+            --bead-color: #D4AF37;
+            --bead-active: #FFD700;
+            --rod-color: #A9A9A9;
+            --decimal-line: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            width: 220px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            width: 70px;
+            text-align: center;
+        }
+
+        input:focus {
+            border-color: var(--abacus-bg);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--abacus-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--abacus-frame);
+        }
+
+        button.clear-btn {
+            background-color: #e74c3c;
+        }
+
+        button.clear-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .display-panel {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: #333;
+            color: #fff;
+            padding: 10px 30px;
+            border-radius: 5px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+            font-family: monospace;
+            word-break: break-all;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .abacus-container {
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 10px;
+        }
+
+        .abacus {
+            display: flex;
+            flex-direction: row-reverse; 
+            background-color: var(--abacus-bg);
+            border: 12px solid var(--abacus-frame);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            min-height: 260px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+            position: relative;
+            margin: 0 2px;
+        }
+
+        .rod {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(90deg, #777, var(--rod-color), #777);
+            z-index: 1;
+        }
+
+        .decimal-divider {
+            width: 10px;
+            position: relative;
+            margin: 0 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .decimal-line {
+            position: absolute;
+            top: -10px;
+            bottom: -10px;
+            width: 4px;
+            border-left: 4px dashed var(--decimal-line);
+            z-index: 3;
+        }
+
+        .decimal-dot {
+            font-size: 40px;
+            color: var(--decimal-line);
+            font-weight: bold;
+            z-index: 4;
+            transform: translateY(15px);
+        }
+
+        .bead {
+            width: 46px;
+            height: 22px;
+            background: radial-gradient(ellipse at center, var(--bead-active) 0%, var(--bead-color) 70%, #947217 100%);
+            border-radius: 50% / 50%;
+            z-index: 2;
+            transition: transform 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .upper-deck {
+            height: 50px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .upper-deck .bead {
+            transform: translateY(0px);
+        }
+
+        .upper-deck .bead.active {
+            transform: translateY(24px);
+        }
+
+        .beam {
+            width: 100%;
+            height: 10px;
+            background-color: var(--abacus-frame);
+            z-index: 3;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+        }
+
+        .lower-deck {
+            height: 140px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 2px;
+            padding-top: 5px;
+        }
+
+        .lower-deck .bead.active-0 { transform: translateY(-44px); }
+        .lower-deck .bead.active-1 { transform: translateY(-44px); }
+        .lower-deck .bead.active-2 { transform: translateY(-44px); }
+        .lower-deck .bead.active-3 { transform: translateY(-44px); }
+
+        .digit-label {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+            text-align: center;
+            z-index: 4;
+        }
+        
+        .digit-label.fraction {
+            color: var(--decimal-line);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧮 웹 무한 가변 실수 주판 계산기</h1>
+    <div class="subtitle">원하는 소수점 자릿수를 지정하여 초거대 정밀 연산을 수행할 수 있습니다.</div>
+
+    <div class="controls">
+        <div class="input-group">
+            <label for="decimalDigits">소수점 자릿수:</label>
+            <input type="number" id="decimalDigits" value="4" min="0" max="20" onchange="changeScale()">
+        </div>
+        <div class="input-group">
+            <input type="text" id="numberInput" placeholder="예: 10.1234, *2, -0.5" onkeypress="handleKeyPress(event)">
+        </div>
+        <button onclick="calculate()">연산하기</button>
+        <button class="clear-btn" onclick="resetAbacus()">초기화</button>
+    </div>
+
+    <div class="display-panel">
+        VALUE: <span id="totalValue">0.0000</span>
+    </div>
+
+    <div class="abacus-container">
+        <div class="abacus" id="abacusFrame"></div>
+    </div>
+
+    <script>
+        // 기본 소수점 설정: 4자리 (SCALE = 10000n)
+        let decimalCount = 4;
+        let SCALE = 10000n; 
+        let total = 0n; 
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') calculate();
+        }
+
+        // 사용자가 소수점 자릿수를 변경할 때 호출되는 함수
+        function changeScale() {
+            const newDigits = parseInt(document.getElementById('decimalDigits').value);
+            if (isNaN(newDigits) || newDigits < 0) return;
+            
+            // 기존 값의 배율을 새로운 소수점 배율에 맞게 리스케일링(Re-scaling)
+            const oldScale = SCALE;
+            decimalCount = newDigits;
+            SCALE = BigInt('1' + '0'.repeat(decimalCount));
+
+            if (SCALE > oldScale) {
+                total = total * (SCALE / oldScale);
+            } else if (SCALE < oldScale) {
+                total = total / (oldScale / SCALE);
+            }
+
+            updateAbacus();
+        }
+
+        function resetAbacus() {
+            total = 0n;
+            updateAbacus();
+            document.getElementById('numberInput').value = '';
+            document.getElementById('numberInput').focus();
+        }
+
+        // 설정된 가변 decimalCount에 맞추어 문자열을 BigInt로 안전하게 변환
+        function parseToBigIntScale(str) {
+            if (!str.includes('.')) {
+                return BigInt(str) * SCALE;
+            }
+            const parts = str.split('.');
+            let integerPart = parts[0];
+            let fractionPart = parts[1] || "";
+            
+            if (fractionPart.length > decimalCount) {
+                fractionPart = fractionPart.slice(0, decimalCount); // 지정 자릿수 초과 시 버림
+            } else {
+                while (fractionPart.length < decimalCount) {
+                    fractionPart += '0'; // 부족 시 0 채움
+                }
+            }
+            return BigInt(integerPart + fractionPart);
+        }
+
+        function formatBigIntString(str) {
+            if (!str) return "0";
+            let res = "";
+            let count = 0;
+            for (let i = str.length - 1; i >= 0; i--) {
+                res = str[i] + res;
+                count++;
+                if (count % 3 === 0 && i !== 0) {
+                    res = "," + res;
+                }
+            }
+            return res;
+        }
+
+        function calculate() {
+            const inputEl = document.getElementById('numberInput');
+            let inputStr = inputEl.value.trim().replace(/,/g, '');
+            
+            if (!inputStr) return;
+
+            let operator = '+';
+            let valueStr = '';
+
+            if (['+', '-', '*', '/'].includes(inputStr[0])) {
+
+                operator = inputStr[0];
+                valueStr = inputStr.slice(1);
+            } else {
+                valueStr = inputStr; // 부호가 없으면 기본 덧셈
+            }
+
+            try {
+                if (operator === '*' || operator === '/') {
+                    // 곱셈과 나눗셈은 비율 연산이므로 인자값도 설정된 자릿수(SCALE)만큼 정수로 변환하여 연산합니다.
+                    let multiplierScaled = parseToBigIntScale(valueStr);
+                    if (multiplierScaled < 0n) throw new Error();
+
+                    if (operator === '*') {
+                        // (기존값 * SCALE) * (인자값 * SCALE) / SCALE = 결과값 * SCALE (배율 유지)
+                        total = (total * multiplierScaled) / SCALE;
+                    } else if (operator === '/') {
+                        if (multiplierScaled === 0n) {
+                            alert("❌ 0으로 나눌 수 없습니다!");
+                            return;
+                        }
+                        // (기존값 * SCALE) * SCALE / (인자값 * SCALE) = 결과값 * SCALE (배율 유지)
+                        total = (total * SCALE) / multiplierScaled;
+                    }
+                } else {
+                    // 덧셈과 뺄셈 처리
+                    let inputValueScaled = parseToBigIntScale(valueStr);
+                    if (inputValueScaled < 0n) throw new Error();
+
+                    if (operator === '+') {
+                        total += inputValueScaled;
+                    } else if (operator === '-') {
+                        if (total - inputValueScaled < 0n) {
+                            alert("❌ 주판은 음수를 표현할 수 없습니다!");
+                            return;
+                        }
+                        total -= inputValueScaled;
+                    }
+                }
+            } catch (e) {
+                alert("❌ 올바른 형식의 숫자를 입력해주세요. (예: +5.123, *1.5)");
+                return;
+            }
+
+            // 계산을 마친 후 화면과 주판 구슬을 실시간으로 업데이트
+            updateAbacus();
+            inputEl.value = '';
+            inputEl.focus();
+        }
+
+        function updateAbacus() {
+            let totalStr = total.toString();
+            
+            // 자릿수가 소수점 설정값보다 짧을 때 앞에 0을 채워주는 패딩 처리
+            if (totalStr.length <= decimalCount) {
+                totalStr = totalStr.padStart(decimalCount + 1, '0');
+            }
+            
+            let integerPartStr = decimalCount === 0 ? totalStr : totalStr.slice(0, -decimalCount);
+            let fractionPartStr = decimalCount === 0 ? "" : totalStr.slice(-decimalCount);
+            
+            if (!integerPartStr) integerPartStr = "0";
+            
+            // 화면 상단 텍스트 디스플레이에 3자리 콤마 포맷팅 출력
+            const formattedDisplay = formatBigIntString(integerPartStr) + (decimalCount > 0 ? '.' + fractionPartStr : '');
+            document.getElementById('totalValue').innerText = formattedDisplay;
+
+            const abacusFrame = document.getElementById('abacusFrame');
+            abacusFrame.innerHTML = ''; // 기존 주판 열을 전부 지우고 새로 빌드
+
+            let abacusStr = totalStr;
+
+            for (let i = 0; i < abacusStr.length; i++) {
+                const digit = parseInt(abacusStr[i]);
+                // 현재 그리는 숫자가 소수점 아래 영역인지 판별
+                const isFractionDigit = decimalCount > 0 && (abacusStr.length - i) <= decimalCount; 
+
+                // 설정된 소수점 경계 위치에 도달 시 빨간색 분할 장대선 삽입
+                if (decimalCount > 0 && abacusStr.length - i === decimalCount) {
+                    const divider = document.createElement('div');
+                    divider.className = 'decimal-divider';
+                    
+                    const line = document.createElement('div');
+                    line.className = 'decimal-line';
+                    
+                    const dot = document.createElement('div');
+                    dot.className = 'decimal-dot';
+                    dot.innerHTML = '·';
+                    
+                    divider.appendChild(line);
+                    divider.appendChild(dot);
+                    abacusFrame.appendChild(divider);
+                }
+
+                // 1. 주판 열(Column) 구조 생성
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'column';
+
+                // 2. 세로 꿸대 추가
+                const rodDiv = document.createElement('div');
+                rodDiv.className = 'rod';
+                columnDiv.appendChild(rodDiv);
+
+                // 3. 윗알 영역 (Upper Deck) 빌드
+                const upperDeck = document.createElement('div');
+                upperDeck.className = 'upper-deck';
+                const upperBead = document.createElement('div');
+                upperBead.className = 'bead';
+                if (digit >= 5) upperBead.classList.add('active'); // 5 이상이면 가름대 쪽으로 하강
+                upperDeck.appendChild(upperBead);
+                columnDiv.appendChild(upperDeck);
+
+                // 4. 가름대 (Beam) 추가
+                const beam = document.createElement('div');
+                beam.className = 'beam';
+                columnDiv.appendChild(beam);
+
+                // 5. 아래알 영역 (Lower Deck) 빌드
+                const lowerDeck = document.createElement('div');
+                lowerDeck.className = 'lower-deck';
+                const activeLowerCount = digit % 5; // 활성화되어야 하는 아래알 개수 (0~4)
+
+                for (let b = 0; b < 4; b++) {
+                    const lowerBead = document.createElement('div');
+                    lowerBead.className = 'bead';
+                    if (b < activeLowerCount) lowerBead.classList.add(`active-${b}`); // 개수만큼 가름대 쪽으로 상승
+                    lowerDeck.appendChild(lowerBead);
+                }
+                columnDiv.appendChild(lowerDeck);
+
+                // 6. 하단 숫자 레이블 추가
+                const label = document.createElement('div');
+                label.className = 'digit-label';
+                if (isFractionDigit) label.classList.add('fraction'); // 소수점 자리는 빨간색 텍스트
+                label.innerText = digit;
+                columnDiv.appendChild(label);
+
+                // 최종 완성된 자릿수 열을 주판틀에 결합
+                abacusFrame.appendChild(columnDiv);
+            }
+        }
+
+        // 초기 화면 구동 (0.0000 상태 표시)
+        updateAbacus();
+    </script>
+</body>
+</html>
