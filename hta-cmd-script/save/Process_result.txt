@@ -1,0 +1,15 @@
+
+Name              CPU   Id
+----              ---   --
+msedge      520.96875 2392
+msedge     164.796875 9044
+msedge       69.90625 3924
+msedge      32.953125  660
+explorer      24.9375 3176
+msedge      11.890625 2068
+msedge        7.90625 6648
+mshta        6.234375 7912
+powershell        4.5 4324
+UTCk         3.203125 7592
+
+

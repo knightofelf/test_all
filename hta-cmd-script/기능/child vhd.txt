@@ -1,0 +1,7 @@
+
+
+diskpart
+create vdisk file="C:\child.vhd" parent="\\shint-pc\Steam Note E\Win 11x.vhd"
+select vdisk file="C:\child.vhd"
+attach vdisk
+

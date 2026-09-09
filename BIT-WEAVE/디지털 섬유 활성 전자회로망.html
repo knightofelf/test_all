@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>디지털 섬유: 활성 전자회로망</title>
+    <style>
+        body {
+            background-color: #050510;
+            color: #00ffcc;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #00ffcc;
+            letter-spacing: 2px;
+        }
+        .controls {
+            margin-bottom: 15px;
+            background: #0b0b1e;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #1f1f45;
+        }
+        input[type="file"] {
+            color: #00ffcc;
+            background: #12122d;
+            border: 1px solid #00ffcc;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        canvas {
+            border: 1px solid #1f1f45;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+            background-color: #060614;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #555577;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ LIVE CIRCUIT: DIGITAL WEAVING MATRIX</h1>
+    
+    <div class="controls">
+        <label>회로도 스캔용 이미지 업로드: </label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+
+    <canvas id="circuitCanvas" width="800" height="600"></canvas>
+    <div class="status">SYSTEM STATUS: ACTIVE // CURRENT PULSE RUNNING</div>
+
+    <script>
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+
+        const tileSize = 10; // 회로의 세밀도
+        let circuitLines = []; // 생성된 모든 회로 선 데이터를 저장할 배열
+        let animationFrameId;
+        let pulseOffset = 0; // 전류 흐름 애니메이션을 위한 오프셋
+
+        // 초기 화면용 기본 회로 데이터 생성 (업로드 전 공백 방지)
+        function createDefaultCircuit() {
+            circuitLines = [];
+            const cols = canvas.width / tileSize;
+            const rows = canvas.height / tileSize;
+            
+            for (let y = 2; y < rows - 2; y += 3) {
+                let currentX = canvas.width - (tileSize * 4);
+                let currentY = y * tileSize;
+
+                for (let x = 0; x < cols; x++) {
+                    // 기본 규칙: 의사 랜덤 비트 생성
+                    const bit = (Math.sin(x * 0.5) + Math.cos(y * 0.3) > 0) ? 1 : 0;
+                    const startX = currentX;
+                    const startY = currentY;
+
+                    if (bit === 1) {
+                        currentX -= tileSize;
+                    } else {
+                        currentY += tileSize;
+                    }
+
+                    circuitLines.push({
+                        x1: startX, y1: startY,
+                        x2: currentX, y2: currentY,
+                        bit: bit
+                    });
+                }
+            }
+        }
+
+        // 이미지 업로드 시 처리
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    processImageToCircuit(img);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function processImageToCircuit(img) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            const cols = Math.floor(canvas.width / tileSize);
+            const rows = Math.floor(canvas.height / tileSize);
+            
+            tempCanvas.width = cols;
+            tempCanvas.height = rows;
+            tempCtx.drawImage(img, 0, 0, cols, rows);
+            const imgData = tempCtx.getImageData(0, 0, cols, rows).data;
+
+            circuitLines = []; // 기존 회로 초기화
+
+            for (let y = 0; y < rows; y++) {
+                let currentX = canvas.width - (tileSize * 2);
+                let currentY = y * tileSize;
+
+                for (let x = 0; x < cols; x++) {
+                    const idx = (y * cols + x) * 4;
+                    const brightness = (imgData[idx] + imgData[idx+1] + imgData[idx+2]) / 3;
+                    const bit = brightness > 120 ? 1 : 0;
+
+                    const startX = currentX;
+                    const startY = currentY;
+
+                    if (bit === 1) {
+                        currentX -= tileSize;
+                    } else {
+                        currentY += tileSize;
+                    }
+
+                    // 안전 경계선 내부의 회로선만 추출하여 격자망 구성
+                    if(startX < canvas.width && currentY < canvas.height && startX > 0 && currentY > 0) {
+                        circuitLines.push({
+                            x1: startX, y1: startY,
+                            x2: currentX, y2: currentY,
+                            bit: bit
+                        });
+                    }
+                }
+            }
+        }
+
+        // 메인 미디어 아트 애니메이션 루프
+        function animate() {
+            // 잔상 효과를 주어 전류가 지나간 자리에 빛의 꼬리가 남도록 설정
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.2)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 미세 배경 그리드 라인
+            ctx.strokeStyle = '#101026';
+            ctx.lineWidth = 0.5;
+            for(let i=0; i<canvas.width; i+=tileSize*2) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            pulseOffset += 0.2; // 전류 이동 속도 제어
+
+            // 회로 기판의 구리 도선(기저선) 그리기
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 0;
+            circuitLines.forEach((line) => {
+                ctx.beginPath();
+                ctx.moveTo(line.x1, line.y1);
+                ctx.lineTo(line.x2, line.y2);
+                ctx.strokeStyle = line.bit === 1 ? '#113333' : '#331122'; // 보이지 않는 전류 통로
+                ctx.stroke();
+            });
+
+            // 회로 위를 타고 흐르는 실제 전류 고속 펄스(Neon Pulse) 그리기
+            ctx.lineWidth = 2.5;
+            circuitLines.forEach((line, index) => {
+                // 각 선마다 고유한 주기를 주어 불규칙하게 전류가 치도록 계산
+                if (Math.floor(index + pulseOffset) % 15 === 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(line.x1, line.y1);
+                    ctx.lineTo(line.x2, line.y2);
+                    
+                    if (line.bit === 1) {
+                        ctx.strokeStyle = '#00ffcc'; // 1비트 연산망: 하이퍼 민트 전류
+                        ctx.shadowColor = '#00ffcc';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.strokeStyle = '#ff0077'; // 0비트 분기망: 네온 핫핑크 전류
+                        ctx.shadowColor = '#ff0077';
+                        ctx.shadowBlur = 8;
+                    }
+                    ctx.stroke();
+                }
+            });
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // 구동 시작
+        createDefaultCircuit();
+        animate();
+    </script>
+</body>
+</html>

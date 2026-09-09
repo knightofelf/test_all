@@ -1,0 +1,761 @@
+﻿<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
+<LINK id="icon_link" rel="shortcut icon" href="http://www.sayheart.com/ico/sayheart.ico">
+<LINK id="css_link" rel="stylesheet" type="text/css" href="./css/sayheart.css">
+
+
+
+
+
+<script language="JavaScript">
+document.oncontextmenu = function (e)
+{
+	return false;
+}
+document.ondragstart = new Function('return false');     // 드래그 방지
+document.onselectstart = new Function('return false');   // 선택 방지
+</script>
+
+
+
+<script language="JavaScript">
+<!--
+//Cascading Style Sheets
+//http://msdn.microsoft.com/en-us/library/ms531205(vs.85).aspx
+
+//http://blog.naver.com/rmc841/60108724030
+var browser_w = document.documentElement.clientWidth;	//
+var browser_h = document.documentElement.clientHeight; 
+var desktop_w = window.screen.availWidth;				//
+var desktop_h = window.screen.availHeight;
+var desktop_w = window.screen.Width;					//
+var desktop_h = window.screen.Height;
+
+function fn_mousedown_event(e)
+{
+	//e.type	: mousedown
+	//e.which	: 1 == leftdown/ 2 == middledown/ 3 == rightdown
+	//e.pageX Y : 브라우저 상대좌표
+	//e.screenX : 모니터 절대좌표
+	//document.write("fn_mousedown_event<BR>");
+	return true;
+}
+document.onmousedown = fn_mousedown_event;
+
+function fn_mousemove_event(e)
+{
+	return true;
+}
+document.onmousemove = fn_mousemove_event;
+
+function fn_mouseup_event(e)
+{
+	return true;
+}
+document.onmouseup = fn_mouseup_event;
+
+//funtion clickEvent(e)
+//{
+//	document.f.t.value="document의 이벤트 캡쳐";
+//}
+//document.captureEvents(Event.CLICK);
+//document.onclick = clickEvent;
+
+
+
+//진입속도: click. mouseout, mouseover, mousemove. mousedown. mouseup
+function fn_tip(e)
+{
+	if(e.type == "click")
+	{
+//		document.write("click<BR>");
+	}
+	if(e.type == "mouseout")
+	{
+//		document.write("mouseout<BR>");
+		this.m_out = 1;
+	}
+	if(e.type == "mouseover")
+	{
+//		document.write("mouseover<BR>");
+	}
+	if(e.type == "mousemove")
+	{
+//		document.write("mousemove<BR>");
+		if(this.m_drag == 1)
+		{
+			this.left = 500;
+		}
+	}
+	if(e.type == "mousedown")
+	{
+//		document.write("mousedown<BR>");
+		this.m_drag = 1;
+	}
+	if(e.type == "mouseup")
+	{
+//		document.write("mouseup<BR>");
+		this.m_drag = 0;
+	}
+//안됨.
+//	if(e.type == "mouseenter")
+//	{
+//		document.write("mouseenter<BR>");
+//	}
+//	if(e.type == "mouseleave")
+//	{
+//		document.write("mouseleave<BR>");
+//	}
+}
+
+//http://cafe.naver.com/woosongbitcafe.cafe?iframe_url=/ArticleRead.nhn%3Farticleid=96
+/*==============================================================================
+  Function : javaScript Map
+  Return   :
+  examples : 
+           : get(key), getKey(value), put(key, value), size(), remove(key),
+             clear(), keys(), values(), containsKey(key), containsValue(value),
+             isEmpty(), putAll(map), toString(separator)
+==============================================================================*/
+function Map(Delimitor) {
+  this.Delimitor = (Delimitor == null ? "||" : Delimitor);
+  this._MapClass = new ActiveXObject("Scripting.Dictionary");
+  this.get = function(key) { return this._MapClass.exists(key) ? this._MapClass.item(key) : null; }
+  this.getKey = function (value) {
+    var keys = this.keys();
+    var values = this.values();
+    for (var i in values) {
+       if (value == values[i]) return keys[i];
+     }
+    return "";
+  }
+  this.put = function(key, value) {
+      var oldValue = this._MapClass.item(key);
+      this._MapClass.item(key) = value;
+      return value;
+  }
+  this.size = function() { return this._MapClass.count; }
+  this.remove = function(key) {
+    var value = this._MapClass.item(key);
+    this._MapClass.remove(key);
+    return value;
+  }
+  this.clear = function() {
+    this._MapClass.removeAll();
+  }
+  this.keys = function() {
+    return this._MapClass.keys().toArray();
+  }
+  this.values = function() {
+    return this._MapClass.items().toArray();
+  }
+  this.containsKey = function(key) {
+    return this._MapClass.exists(key);
+  }
+  this.containsValue = function(value) {
+    var values = this.values();
+    for (var i in values) {
+      if (value == values[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+  this.isEmpty = function() { return this.size() <= 0;}
+  this.putAll = function(map) {
+    if (!(map instanceof Map)) {
+      throw new Error(0, "Map.putAll(Map) method?? Map type?? parameter?? ??????????.");
+    }
+    var keys = map.keys();
+    for (var i in keys) {
+      this.put(keys[i], map.get(keys[i]));
+    }
+    return this;
+  }
+  this.toString = function(separator) {
+    var keys = this.keys();
+    var result = "";
+    separator = separator == null ? "&" : separator;
+    for (var i in keys) {
+      result += (keys[i] + this.Delimitor + this._MapClass.item(keys[i]));
+      if (i < this.size() - 1) {
+        result += separator;
+      }
+    }
+    return result;
+  }
+}
+
+//function dblclick()
+//{
+//}
+//
+//if(document.layers)
+//{ 
+//	document.captureEvents(Event.ONDBLCLICK); 
+//} 
+//document.ondblclick=dblclick; 
+
+function fn_get_pos()
+{
+	this.x	= event.clientX + document.body.scrollLeft;
+	this.y	= event.clientY + document.body.scrollTop;
+	if (this.x < 0){this.x = 0;}
+	if (this.y < 0){this.y = 0;}
+//	var elm = event.srcElement.parentElement;
+//	var i = parseInt(elm.parentElement.offsetHeight,10);
+//	var j = parseInt(elm.offsetHeight,10);
+	return this;
+}
+
+
+var main_index = 10000;
+var ar_div = new Array();
+
+function fn_dbclick(div_name)
+{
+	var div = document.getElementById(div_name);
+	if (div.m_mode == "MODE_EDITOR")
+	{
+		for (var i = 0; i < ar_div.length; i++)
+		{
+			ar_div[i].style.zIndex = 0;
+		}
+		div.m_drag = 0;
+	}
+
+	for(var i=0; i<ar_div.length; i++)
+	{
+		if(ar_div[i].id == div.id)
+		{
+			delete ar_div[i];
+			ar_div[i] = null;
+			ar_div.splice(i,1);
+			document.getElementById(div.id).parentNode.removeChild(div);
+//			log.innerHTML = ar_div+"<BR>";
+			
+				
+			//
+			var div_menu = document.getElementById("menu_id");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_zIndex");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_left");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_top");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_width");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_height");
+			div_menu.value = "";
+		
+			var div_menu = document.getElementById("menu_backgroundColor");
+			div_menu.value = "";
+
+			var div_menu = document.getElementById("menu_innerText");
+			div_menu.value = "";
+			
+			var div_menu = document.getElementById("menu_cssText");
+			div_menu.value = "";		
+			return ;
+		} 
+	}
+}
+
+function fn_hit_test_div(div, x_, y_)
+{
+	if(	(parseInt(div.style.left) < parseInt(x_)) &&
+		(parseInt(div.style.top) < parseInt(y_)) &&
+		(parseInt(div.style.left)+parseInt(div.style.width) > parseInt(x_)) &&
+		(parseInt(div.style.top)+parseInt(div.style.height) > parseInt(y_))
+	)
+	{	return 1;	}else{	return 0;	}
+}
+
+function fn_hit_test(rc, x_, y_)
+{
+	if(	(parseInt(rc.left) < parseInt(x_)) &&
+		(parseInt(rc.top) < parseInt(y_)) &&
+		(parseInt(rc.left)+parseInt(rc.width) > parseInt(x_)) &&
+		(parseInt(rc.top)+parseInt(rc.height) > parseInt(y_))
+	)
+	{	return 1;	}else{	return 0;	}
+}
+
+
+function fn_drag_start(div_name)
+{
+	var div = document.getElementById(div_name);
+	if (div.m_mode == "MODE_EDITOR")
+	{
+		div.m_drag	= 1;
+
+		var pos = fn_get_pos();
+		div.m_sel_pos_x = pos.x;
+		div.m_sel_pos_y = pos.y;
+		Map[div_name] = div;
+
+		var rect	= new Object();
+		rect.left	= parseInt(div.style.left) + parseInt(div.style.width) - 30;
+		rect.top	= parseInt(div.style.top) + parseInt(div.style.height) - 30;
+		rect.width 	= 30;
+		rect.height	= 30;
+		if(fn_hit_test(rect, pos.x, pos.y) == 1)
+		{
+			div.m_mode = "MODE_RESIZE";
+//			log.innerHTML += "test" + "<BR>";
+		}
+		delete rect;
+		
+		//
+		var div_menu = document.getElementById("menu_id");
+		div_menu.value = div.id;
+	
+		var div_menu = document.getElementById("menu_zIndex");
+		div_menu.value = div.style.zIndex;
+	
+		var div_menu = document.getElementById("menu_left");
+		div_menu.value = div.style.left;
+	
+		var div_menu = document.getElementById("menu_top");
+		div_menu.value = div.style.top;
+	
+		var div_menu = document.getElementById("menu_width");
+		div_menu.value = div.style.width;
+	
+		var div_menu = document.getElementById("menu_height");
+		div_menu.value = div.style.height;
+	
+		var div_menu = document.getElementById("menu_backgroundColor");
+		div_menu.value = div.style.backgroundColor;
+		
+		var div_menu = document.getElementById("menu_innerText");
+		div_menu.value = div.innerText;	
+		
+		var div_menu = document.getElementById("menu_cssText");
+		div_menu.value = div.style.cssText;		
+		return ;
+	}
+
+	if(div.m_mode == "MODE_TAB")
+	{
+		for(var i=0; i<ar_div.length; i++)
+		{
+			ar_div[i].style.zIndex = 0;
+		}
+		if(div_name == "editor")
+		{
+			div = fn_set_div(div_name, 100, 100, 300, 300, "2a2a2a", "2a2a2a", main_index);
+		}
+		if(div_name == "editor3")
+		{
+			div = fn_set_div(div_name, 200, 100, 300, 300, "2a2a2a", "red", main_index);
+		}
+		div.m_mode	= "MODE_EDITOR";
+		div.m_drag	= 0;
+		return ;
+	}
+	return ;
+}
+
+
+function fn_drag_move(div_name)
+{
+	var div = document.getElementById(div_name);
+	if(div.m_mode == "MODE_RESIZE" && div.m_drag == 1)
+	{
+		var pos = fn_get_pos();
+		var div_left	= parseInt(div.style.left);
+		var div_top	= parseInt(div.style.top);
+		for(var i=0; i<ar_div.length; i++)
+		{
+			ar_div[i].style.zIndex = 0;
+		}
+		div.style.width		= pos.x-div_left+20;
+		div.style.height	= pos.y-div_top+20;
+		div.style.zIndex	= main_index;
+	}
+
+	if(div.m_mode == "MODE_EDITOR" && div.m_drag == 1)
+	{
+		var pos = fn_get_pos();
+		var gap_x	= pos.x - (div.m_sel_pos_x - parseInt(div.style.left));
+		var gap_y	= pos.y - (div.m_sel_pos_y - parseInt(div.style.top));
+		for(var i=0; i<ar_div.length; i++)
+		{
+			ar_div[i].style.zIndex = 0;
+		}
+		div.style.left		= gap_x;
+		div.style.top		= gap_y;
+		div.style.zIndex	= main_index;
+		div.m_sel_pos_x		= pos.x;
+		div.m_sel_pos_y		= pos.y;
+		return ;
+	}
+}
+
+function fn_drag_end(div_name)
+{
+	var div = document.getElementById(div_name);
+	div.m_drag	= 0;
+	if (div.m_mode == "MODE_RESIZE")
+	{
+		div.m_mode = "MODE_EDITOR"
+	}
+
+}
+
+
+function fn_set_menu(menu_mode)
+{
+	var div_menu_id	= document.getElementById("menu_id");			//메뉴상에 선택한 id
+	var div_select	= document.getElementById(div_menu_id.value);	//선택한 넘 div 얻기
+	var div_menu	= document.getElementById(menu_mode);
+
+	if (menu_mode == "menu_id")					{	div_select.id						= div_menu.value;	}
+	if (menu_mode == "menu_left")				{	div_select.style.left				= div_menu.value;	}
+	if (menu_mode == "menu_top")				{	div_select.style.top				= div_menu.value;	}
+	if (menu_mode == "menu_zIndex")				{	div_select.style.zIndex				= div_menu.value;	}
+	if (menu_mode == "menu_width")				{	div_select.style.width				= div_menu.value;	}
+	if (menu_mode == "menu_height")				{	div_select.style.height				= div_menu.value;	}
+	if (menu_mode == "menu_backgroundColor")	{	div_select.style.backgroundColor	= div_menu.value;	}
+	if (menu_mode == "menu_innerText")			{	div_select.innerText				= div_menu.value;	}
+}
+
+				
+var total_div_count = 0;
+function fn_new_div()
+{
+	fn_create_div("div_item"+total_div_count++);
+}
+
+function fn_create_div(div_name)
+{
+	var div = document.createElement(div_name);
+	main.appendChild(div);
+	div.innerHTML
+	= "<div id='"+div_name+"' class='div_item' style='background-color:2a2a2a; color:black; width:50px; height:20px; border:solid; border-width:1;	\
+								position:absolute; left:0px; top:60px; z-index:-1;'	\
+								onmousedown=javascript:fn_drag_start('"+div_name+"');	\
+						onmousemove=javascript:fn_drag_move('"+div_name+"');	\
+						onmouseup=javascript:fn_drag_end('"+div_name+"');		\
+						onmouseout=javascript:fn_drag_end('"+div_name+"');		\
+						ondblclick=javascript:fn_dbclick('"+div_name+"');		\
+								>	\
+		<table id='"+div_name+"' class='div_item' width=100%; height=100%; border=0>	\
+			<tr>	\
+				<td align='center' valign='middle'	\
+						>editor	\
+				</td>	\
+			</tr>	\
+		</table >	\
+		</div>";
+	//
+	var pos_x = Math.floor(Math.random() * 300) + 1;
+	var pos_y = Math.floor(Math.random() * 300) + 1;
+//	var main_color = Math.floor((Math.random()*254)+1).toString(16)+Math.floor((Math.random()*254)+1).toString(16)+Math.floor((Math.random()*254)+1).toString(16);	//Math.floor(Math.random()*16777215).toString(16);
+//	var bg_color = Math.floor((Math.random()*254)+1).toString(16)+Math.floor((Math.random()*254)+1).toString(16)+Math.floor((Math.random()*254)+1).toString(16);	//Math.floor(Math.random()*16777215).toString(16);
+	var main_color = Math.floor((Math.random()*100)+50).toString(16)+Math.floor((Math.random()*100)+50).toString(16)+Math.floor((Math.random()*100)+50).toString(16);	//Math.floor(Math.random()*16777215).toString(16);
+	var bg_color = Math.floor((Math.random()*100)+50).toString(16)+Math.floor((Math.random()*100)+50).toString(16)+Math.floor((Math.random()*100)+50).toString(16);	//Math.floor(Math.random()*16777215).toString(16);
+
+//	log.innerHTML = main_color+"<BR>";
+	div = fn_set_div(div_name, 100+pos_x, 100+pos_y, 300, 300, main_color, bg_color, main_index);
+	div.m_mode	= "MODE_EDITOR";
+	
+	//
+	ar_div.push(div);
+	return div;
+}
+
+function fn_resize()
+{
+	var div = getElementById("main");
+	div.width = browser_w;
+	div.height = browser_h;
+}
+
+var log;
+function fn_log()
+{
+	log = document.getElementById("log");
+	if (log.style.display == "none")
+	{
+		log.style.display = "block";
+		return;
+	}
+	if (log.style.display == "block")
+	{
+		log.style.display = "none";
+		return;
+	}
+}	
+	
+function fn_load()
+{
+	log = document.getElementById("log");
+	log.style.display = "none";
+}
+
+function fn_test(string)
+{
+//	log.innerText = string;
+}
+function fn_set_div(d_name, d_left, d_top, d_width, d_height, d_color, d_bg_color, d_index)
+{
+	var div = document.getElementById(d_name);
+	div.id						= d_name;
+//	div.width					= 100;
+//	div.height					= 3;
+	div.style.zIndex			= d_index;
+	div.style.left				= d_left;
+	div.style.top				= d_top;
+	div.style.width				= d_width;
+	div.style.height			= d_height;
+	div.style.display			= "block";
+	div.style.borderWidth		= 1;
+	div.style.borderStyle		= "solid";
+	div.style.borderColor		= d_bg_color;
+	div.style.backgroundColor	= d_bg_color;
+	div.onclick					= new Function('fn_test(\'hello\')');   // 선택 방지
+//	div.onmousedown				= fn_tip;
+//	div.onmousemove				= fn_tip;
+//	div.onmouseup				= fn_tip;
+//	div.onmouseover				= fn_tip;
+//	div.onmouseout				= fn_tip;
+//	div.onmouseenter			= fn_tip;
+//	div.onmouseleave			= fn_tip;
+	return div;
+}
+//-->
+</script>
+
+
+
+<style type="text/css">
+#editor		{font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;}
+#editor3	{font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;}
+#menu_btn	{font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;}
+#menu		{font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;}
+#menu_btn	{font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;}
+.div_item
+{
+ //http://blog.naver.com/pipecivil?Redirect=Log&logNo=50153790147
+ font-family:Arial, Tahoma,sans-serif; font-size:small background-color:#eab9b2; font-size:12px; color:white;
+ -moz-border-radius: 10px;
+ -webkit-border-radius: 10px;
+ border-radius: 10px; 
+ -khtml-border-radius: 10px;
+}
+</style>
+
+
+<style type="text/css">
+body,div,table {margin:0px; padding:0px;}
+#gradation
+{ 
+	filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0, StartColorStr=#454545, EndColorStr=#898989); 
+}
+#main
+{ 
+	filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0, StartColorStr=#d3d3d3, EndColorStr=#FFFFFF); 
+	background:#EEEEEE -webkit-gradient(linear, 0% 0%, 0% 100%, from(#d3d3d3), to(#ffffff)); /* 크롬, 사파리 browsers */
+	background:#EEEEEE -moz-linear-gradient(top, #d3d3d3, #ffffff); /* 파이어폭스 3.6+ */
+}
+#etc
+{
+	style="filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0, StartColorStr=#f3f3f3, EndColorStr=#c5c5c5);"
+	style="filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=5, OffY=5, Color='gray', Positive='true');"
+	style="filter:progid:DXImageTransform.Microsoft.Gradient(endColorStr=#EEF2FC, startColorStr=#B1C7F9, gradientType=0);"
+	style="filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0, StartColorStr=배경색상, EndColorStr=마무리부분색상);"
+	style="background color:black ; filter:alpha(opacity=50, style=1, finishopacity=0);"
+}
+</style> 
+
+
+
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--
+//http://blog.naver.com/maglitt?Redirect=Log&logNo=60057224092
+function fn_div_motion_start()
+{
+	var div = document.getElementById("menu");
+	if(div.menu_open == null)
+	{
+		div.menu_open = 1;
+		div.interval_id = setInterval("fn_div_motion('menu',0,0)", 10);
+		var div = document.getElementById("menu_btn");
+		div.interval_id = setInterval("fn_div_motion('menu_btn',0,100)", 10);
+		return ;
+	}
+	if(div.menu_open == 1)
+	{
+		div.menu_open = null;
+		div.interval_id = setInterval("fn_div_motion('menu',0,-100)", 10);
+		var div = document.getElementById("menu_btn");
+		div.interval_id = setInterval("fn_div_motion('menu_btn',0,0)", 10);
+		return ;
+	}
+}
+
+function fn_distance(start, end)
+{
+	distance = end - start;
+	if(distance < 500)	{	distance = 50;	}
+	if(distance < 100)	{	distance = 10;	}
+	if(distance < 10)	{	distance = 1;	}
+	return distance;
+}
+function fn_div_motion(div_id, max_x, max_y)
+{
+	var div = document.getElementById(div_id);
+	var d_left = parseInt(div.style.left);
+	var d_top = parseInt(div.style.top);
+	var distance;
+	if(max_x < d_left)
+	{
+		distance = fn_distance(d_left, max_x);
+		div.style.left	= d_left - distance;
+	}
+	if(max_y < d_top)
+	{
+		distance = fn_distance(d_top, max_y);
+		div.style.top	= d_top - distance;
+	}
+	if(max_x > d_left)
+	{
+		distance = fn_distance(max_x, d_left);
+		div.style.left	= d_left + distance;
+	}
+	if(max_y > d_top)
+	{
+		distance = fn_distance(max_y, d_top);
+		div.style.top	= d_top + distance;
+	}
+	if(d_left == max_x && d_top == max_y)
+	{
+		clearInterval(div.interval_id);
+	}
+}
+//-->
+</SCRIPT>
+
+
+
+<html>
+	<head>
+		<title>sayheart</title>
+	</head>
+	<body id="main" width="100%" height="100%" onload="fn_load();" onresize="fn_resize();">
+
+	<div id="log"	style='background-color:transparent; color:black; width:300; height:300; border:solid; border-width:1;
+					position:absolute; left:500px; top:50px; z-index:10000;'>
+	</div>
+
+
+	<div id="menu_btn" onclick="fn_div_motion_start()"
+						style='background-color:2a2a2a; color:black; width:50; height:20; border:solid; border-width:1;
+						position:absolute; left:0px; top:0px; z-index:80000;'
+	>
+		<table id='menu_btn' width=100%; height=100%; border=0>
+			<tr>
+				<td align='center' valign='middle'>
+					menu
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div id="menu"	style='background-color:2a2a2a; color:black; width:100%; height:100; border:solid; border-width:1;
+					position:absolute; left:0px; top:-100px; z-index:80000;'
+	>
+		<table id="menu" border=0>
+			<tr>
+				<td onclick="javascript:fn_new_div();">
+					new
+				</td>
+				<td onclick="javascript:fn_log();">
+					log
+				</td>
+				<td onclick="fn_set_menu('menu_id')">
+					id					<input id="menu_id"					type="text" size="8">
+				</td>
+				<td onclick="fn_set_menu('menu_zIndex')">
+					zIndex				<input id="menu_zIndex"				type="text" size="5">
+				</td>
+				<td onclick="fn_set_menu('menu_left')">
+					left				<input id="menu_left"				type="text" size="5">
+				</td>
+				<td onclick="fn_set_menu('menu_top')">
+					top					<input id="menu_top"				type="text" size="5">
+				</td>
+				<td onclick="fn_set_menu('menu_width')">
+					width				<input id="menu_width"				type="text" size="5">
+				</td>
+				<td onclick="fn_set_menu('menu_height')">
+					height				<input id="menu_height"				type="text" size="5">
+				</td>
+				<td onclick="fn_set_menu('menu_backgroundColor')">
+					backgroundColor		<input id="menu_backgroundColor"	type="text" size="12">
+				</td>
+			</tr>
+		</table>
+		<table id="menu" border=0>
+			<tr>
+				<td onclick="fn_set_menu('menu_innerText')">
+					innerText			<input id="menu_innerText"			type="text" size="150">
+				</td>
+			</tr>
+		</table>
+		<table id="menu" border=0>
+			<tr>
+				<td onclick="fn_set_menu('menu_cssText')">
+					cssText			<input id="menu_cssText"				type="text" size="150">
+				</td>
+			</tr>
+		</table>
+	</div>
+
+<!--
+	 
+	<div id="main_bg" width="100%" height="100%"
+					style='background-color:transparent; color:black; width:100%; height:100%; border:solid; border-width:1;
+					position:absolute; left:0px; top:0px; z-index:10000;'>
+	= "<div id='"+div_name+"' class='div_item' style='background-color:2a2a2a; color:black; width:50px; height:20px; border:solid; border-width:1;	\
+								position:absolute; left:0px; top:60px; z-index:-1;'>	\
+		<table id='"+div_name+"' class='div_item' width=100%; height=100%; border=0>	\
+			<tr>	\
+				<td valign='middle'	\
+						onmousedown=javascript:fn_drag_start('"+div_name+"');	\
+						onmousemove=javascript:fn_drag_move('"+div_name+"');	\
+						onmouseup=javascript:fn_drag_end('"+div_name+"');		\
+						onmouseout=javascript:fn_drag_end('"+div_name+"');		\
+						ondblclick=javascript:fn_dbclick('"+div_name+"');		\
+						>editor	\
+				</td>	\
+			</tr>	\
+	<form name="f">
+		<input type="button" name="button1" value="first" onClick="document.bgColor='blue';">
+		<input type="text" name="t">
+http://blog.naver.com/smille12/110095776728
+//-->
+	</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>디지털 섬유 벡터 아트</title>
+    <style>
+        body {
+            background-color: #0d0d1a;
+            color: #00ffcc;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffcc;
+        }
+        canvas {
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 20px #00ffcc;
+            background-color: #121225;
+        }
+        .info {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #8888aa;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧵 DIGITAL WEAVING: BIT LINE ART</h1>
+    <canvas id="weavingCanvas" width="600" height="600"></canvas>
+    <div class="info">작품을 클릭하면 새로운 무작위 비트 선이 직조됩니다.</div>
+
+    <script>
+        const canvas = document.getElementById('weavingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // [우회 적용] 필터링 오류를 막기 위해 문자열을 배열로 파싱하여 데이터를 확실하게 고정했습니다.
+        const bitString = "111100110";
+        const bitPattern = bitString.split("").map(Number);
+        
+        const tileSize = 20; 
+        let currentX = canvas.width / 2; 
+        let currentY = 50;               
+
+        function drawBitWeaving(pattern) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 격자 배경 그리기
+            ctx.strokeStyle = '#1a1a3a';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=tileSize) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // 시작 위치 설정 (우측 상단)
+            currentX = canvas.width - 100; 
+            currentY = 60;
+            
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 8;
+
+            // 패턴을 무한 반복하여 디지털 섬유 직조
+            for (let loop = 0; loop < 15; loop++) {
+                pattern.forEach((bit) => {
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+
+                    if (bit === 1) {
+                        ctx.strokeStyle = '#00ffcc'; // 네온 민트 실
+                        ctx.shadowColor = '#00ffcc';
+                        currentX -= tileSize; // 1이면 왼쪽으로 이동
+                        ctx.lineTo(currentX, currentY);
+                    } else {
+                        ctx.strokeStyle = '#ff0055'; // 꺾임 강조 핑크 실
+                        ctx.shadowColor = '#ff0055';
+                        currentY += tileSize; // 0이면 아래로 이동
+                        ctx.lineTo(currentX, currentY);
+                    }
+                    ctx.stroke();
+                });
+            }
+        }
+
+        // 초기화 실행
+        drawBitWeaving(bitPattern);
+
+        // 클릭 시 무작위 비트 생성 코드
+        canvas.addEventListener('click', () => {
+            const randomPattern = Array.from({length: 12}, () => Math.round(Math.random()));
+            drawBitWeaving(randomPattern);
+        });
+    </script>
+</body>
+</html>

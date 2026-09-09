@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>오프라인 PDF 메뉴 뷰어</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
+
+  <script src="./pdf.min.js"></script>
+</head>
+<body>
+  <!-- 1. 오프라인 보안 우회를 위해 파일 선택 버튼 추가 -->
+  <div style="margin-bottom: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+    <strong style="color: red;">[오프라인 실행]</strong> sample.pdf 파일을 선택해주세요: 
+    <input type="file" id="file-input" accept=".pdf">
+  </div>
+
+  <ul id="pdf-menu" style="display: none;">
+    <li data-page="1" style="cursor:pointer; color:blue; margin-bottom:5px;">1페이지</li>
+    <li data-page="2" style="cursor:pointer; color:blue;">2페이지</li>
+  </ul>
+  <div id="pdf-viewer" style="margin-top: 20px;"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.js';
+
+    // 파일 선택 이벤트 감지
+    document.getElementById('file-input').addEventListener('change', function(e) {
+      let file = e.target.files[0];
+      if (!file) return;
+
+      // 로컬 파일을 데이터 형태로 변환하여 CORS 우회
+      let fileReader = new FileReader();
+      fileReader.onload = function() {
+        let typedarray = new Uint8Array(this.result);
+        
+        // PDF 로딩 시작
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+          // 파일이 정상 로드되면 메뉴 가시화
+          document.getElementById('pdf-menu').style.display = 'block';
+          
+          document.querySelectorAll('#pdf-menu li').forEach(function(item) {
+            // 중복 이벤트 방지를 위해 기존 리스너 교체용 clone 사용
+            let newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+
+            newItem.addEventListener('click', function() {
+              let pageNum = parseInt(this.getAttribute('data-page'));
+              pdf.getPage(pageNum).then(function(page) {
+                let viewport = page.getViewport({ scale: 1.5 });
+                let canvas = document.createElement('canvas');
+                let context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                document.getElementById('pdf-viewer').innerHTML = '';
+                document.getElementById('pdf-viewer').appendChild(canvas);
+                
+                page.render({ canvasContext: context, viewport: viewport });
+              });
+            });
+          });
+        }).catch(function(err) {
+          alert("PDF를 처리하는 중 오류가 발생했습니다: " + err.message);
+        });
+      };
+      fileReader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>

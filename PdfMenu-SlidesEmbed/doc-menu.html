@@ -1,0 +1,19 @@
+<ul id="doc-menu">
+  <li data-section="intro">소개</li>
+  <li data-section="algo">알고리즘</li>
+</ul>
+<div id="doc-viewer"></div>
+<script>
+function loadSection(sectionId) {
+  fetch(`/doc-api?section=${sectionId}`)
+    .then(response => response.text())
+    .then(html => {
+      document.getElementById('doc-viewer').innerHTML = html;
+    });
+}
+document.querySelectorAll('#doc-menu li').forEach(function(item) {
+  item.addEventListener('click', function() {
+    loadSection(this.getAttribute('data-section'));
+  });
+});
+</script>

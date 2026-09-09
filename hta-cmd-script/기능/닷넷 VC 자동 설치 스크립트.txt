@@ -1,0 +1,144 @@
+
+
+
+@echo off
+echo ===== 자동 설치 시작 =====
+
+:: .NET Framework 3.5 설치 (Windows 기능)
+DISM /Online /Enable-Feature /FeatureName:NetFx3 /All /Quiet /NoRestart
+
+:: .NET Framework 4.8.1 설치 (다운로드 받은 설치 파일 사용)
+start /wait dotNetFx481.exe /quiet /norestart
+
+:: Visual C++ Redistributable 설치 (x64 / x86)
+start /wait vcredist_x64.exe /quiet /norestart
+start /wait vcredist_x86.exe /quiet /norestart
+
+echo ===== 설치 완료 =====
+pause
+
+
+
+
+
+
+
+Windows 10/11에서는 .NET Framework 3.5를 제어판 → Windows 기능 켜기/끄기에서 체크하면 자동으로 설치됩니다.
+
+
+DISM /Online /Enable-Feature /FeatureName:NetFx3 /All /Quiet /NoRestart
+
+
+TechPowerUp에서 제공하는 Visual C++ Redistributable Runtime All-in-One 패키지를 이용하면 2005~2022 모든 버전을 한 번에 자동 설치
+
+
+vcredist_x64.exe /quiet /norestart
+vcredist_x86.exe /quiet /norestart
+
+
+
+wmic product where "Name like 'Microsoft Visual C++%'" get Name, Version
+
+
+Name                                                            Version
+Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.44.35211     14.44.35211
+Microsoft Visual C++ 2013 x86 Minimum Runtime - 12.0.21005      12.0.21005
+Microsoft Visual C++ 2013 x86 Additional Runtime - 12.0.21005   12.0.21005
+Microsoft Visual C++ 2022 X86 Additional Runtime - 14.44.35211  14.44.35211
+Microsoft Visual C++ 2013 x64 Minimum Runtime - 12.0.40664      12.0.40664
+Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.44.35211     14.44.35211
+Microsoft Visual C++ 2012 x64 Additional Runtime - 11.0.61030   11.0.61030
+Microsoft Visual C++ 2022 X64 Additional Runtime - 14.44.35211  14.44.35211
+Microsoft Visual C++ 2013 x64 Additional Runtime - 12.0.40664   12.0.40664
+Microsoft Visual C++ 2012 x64 Minimum Runtime - 11.0.61030      11.0.61030
+
+
+
+
+reg query "HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP" /s
+
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\CDF
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\CDF\v4.0
+    HttpNamespaceReservationInstalled    REG_DWORD    0x1
+    NetTcpPortSharingInstalled    REG_DWORD    0x1
+    NonHttpActivationInstalled    REG_DWORD    0x1
+    SMSvcHostPath    REG_SZ    C:\Windows\Microsoft.NET\Framework64\v4.0.30319\
+    WMIInstalled    REG_DWORD    0x1
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    InstallPath    REG_SZ    C:\Windows\Microsoft.NET\Framework64\v4.0.30319\
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client\1033
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client\1042
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    InstallPath    REG_SZ    C:\Windows\Microsoft.NET\Framework64\v4.0.30319\
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\1033
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\1042
+    CBS    REG_DWORD    0x1
+    Install    REG_DWORD    0x1
+    Release    REG_DWORD    0x8234d
+    Servicing    REG_DWORD    0x0
+    TargetVersion    REG_SZ    4.0.0
+    Version    REG_SZ    4.8.09037
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4.0
+    (기본값)    REG_SZ    deprecated
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4.0\Client
+    Install    REG_DWORD    0x1
+    Version    REG_SZ    4.0.0.0
+
+
+
+
+
+Get-ChildItem "HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP" -Recurse |
+  Get-ItemProperty -Name Version, Release -ErrorAction SilentlyContinue |
+  Where { $_.PSChildName -match '^(?!S)\p{L}'} |
+  Select PSChildName, Version, Release
+
+
+PSChildName Version   Release
+----------- -------   -------
+Client      4.8.09037  533325
+Full        4.8.09037  533325
+Client      4.0.0.0
+

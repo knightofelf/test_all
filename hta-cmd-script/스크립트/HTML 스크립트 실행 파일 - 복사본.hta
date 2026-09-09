@@ -1,0 +1,1170 @@
+
+<html>
+<meta charset="utf-8">
+<head>
+  <title>HTA 예제</title>
+  <HTA:APPLICATION ID="app" BORDER="thin" SCROLL="no" SINGLEINSTANCE="yes" />
+</head>
+
+
+  <script language="VBScript" src="script.vbs"></script>
+
+
+<script language="VBScript">
+Sub runTEST
+
+Dim fso, file, code
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set file = fso.OpenTextFile("myScript.vbs", 1)
+code = file.ReadAll
+file.Close
+ExecuteGlobal code
+
+End Sub
+</script>
+
+<script language="VBScript">
+Sub runNOTEPAD
+  Dim shell
+  Set shell = CreateObject("WScript.Shell")
+  shell.Run "notepad.exe"
+  Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+<script language="VBScript">
+Sub runSTART
+'  Dim shell
+'  Set shell = CreateObject("WScript.Shell")
+'  shell.Run "powershell -Command ""Start-Process 'start.bat' -Verb RunAs""", 1, True
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "start.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+<script language="JavaScript">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+</script>
+
+
+
+
+<script language="VBScript">
+Sub runDEEPCLEAN
+'  Dim shell
+'  Set shell = CreateObject("WScript.Shell")
+'  shell.Run "powershell -Command ""Start-Process 'deepclean.bat' -Verb RunAs""", 1, True
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "deepclean.bat", "", "", "runas", 1
+Set shell = Nothing
+
+//  shell.Run "runas /user:test 'cmd /c deepclean.bat'"
+//  shell.Run "runas /savecred /user:test 'cmd /c deepclean.bat'"
+// shell.Run "runas /savecred /user:Administrator \"cmd /c C:\Scripts\deepclean.bat\""
+//    Set shell = CreateObject("Shell.Application")
+//    shell.ShellExecute "cmd.exe", "/c your_script.bat", "", "runas", 1
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+
+<script language="VBScript">
+Sub runPS_ICS
+
+
+Set shell = CreateObject("Shell.Application")
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+' 현재 VBScript 경로 기준으로 PowerShell 스크립트 경로 설정
+psScript = fso.GetAbsolutePathName(".") & "\ps_ics.ps1"
+
+' 관리자 권한으로 PowerShell 실행
+shell.ShellExecute "powershell", " -ExecutionPolicy Bypass -File """ & psScript & """", "", "runas", 1
+
+Set shell = Nothing
+
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+
+
+
+<script language="VBScript">
+Sub runICS
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "ics_enable.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+<script language="VBScript">
+Sub runICS_ON
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "ics_on.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+<script language="VBScript">
+Sub runICS_OFF
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "ics_off.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+<script language="VBScript">
+Sub runTASKKILL
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "taskkill.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+<script language="VBScript">
+Sub runSCRCPY
+  Dim shell
+  Set shell = CreateObject("WScript.Shell")
+  shell.Run "scrcpy-noconsole"
+  Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+<script language="VBScript">
+Sub runHIBER
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "hiber.bat", "", "", "runas", 1
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+
+<script language="VBScript">
+Sub runHIBER_A
+
+Set objShell = CreateObject("WScript.Shell")
+Set objExec = objShell.Exec("powercfg.exe /a")
+
+Do While Not objExec.StdOut.AtEndOfStream
+    strLine = objExec.StdOut.ReadLine()
+'    WScript.Echo strLine
+Loop
+
+
+Set shell = Nothing
+
+Set objShell = Nothing
+Set objFSO = Nothing
+
+End Sub
+</script>
+
+
+
+  <script type="text/javascript">
+    function runPowerCfg() {
+      try {
+        var shell = new ActiveXObject("WScript.Shell");
+        var exec = shell.Exec("powercfg.exe /a");
+        var output = "";
+
+        while (!exec.StdOut.AtEndOfStream) {
+          var line = exec.StdOut.ReadLine();
+          output += line + "<br>";
+        }
+
+        document.getElementById("result").innerHTML = output;
+      } catch (e) {
+        alert("실행 오류: " + e.message);
+      }
+    }
+  </script>
+
+  <button onclick="runPowerCfg()">절전 확인</button>
+  <div id="result" style="margin-top:10px; font-family:monospace;"></div>
+
+
+
+<!--
+
+' cscript yourscript.vbs
+
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "powercfg.exe", "/a", "", "", 1
+
+    Do Until shell.AtEndOfStream
+      line = shell.ReadLine
+      content = content & line & "<br>"
+    Loop
+    shell.Close
+
+//-->
+
+
+
+<script language="VBScript">
+Sub runProgram
+  Dim shell
+  Set shell = CreateObject("WScript.Shell")
+  shell.Run "msedge.exe"
+  Set shell = Nothing
+
+End Sub
+</script>
+
+<button onclick="runProgram">엣지 실행</button>
+
+
+
+
+
+
+
+<body>
+  <input type="button" value="메모장 실행" onclick="runNOTEPAD">
+</body>
+
+
+<script language="VBScript">
+Sub btnClick
+  MsgBox "버튼 클릭됨!"
+End Sub
+</script>
+
+
+<!-- HTML 파일 -->
+<button onclick="runCMD()">CMD 실행</button>
+
+<script language="JavaScript">
+function runCMD2() {
+    window.location.href = "file:///C:/Windows/System32/notepad.exe";
+}
+
+function runCMD() {
+    window.location.href = "file:///%USERPROFILE%\\Desktop\\ics_enable - 바로 가기.lnk";
+}
+</script>
+
+
+
+
+<script language="javascript">
+window.onunload = function() {
+    // 창이 닫힐 때 실행할 코드
+//s    alert("HTA 창이 닫힙니다. 리소스를 정리합니다.");
+window.close()
+    // 예: 객체 해제, 로그 저장 등
+};
+</script>
+
+
+
+<script language="javascript">
+/*
+window.onbeforeunload = function() {
+    return "정말로 종료하시겠습니까?";
+};
+*/
+</script>
+
+
+
+
+
+
+
+<script language="javascript">
+//onunload는 창이 닫히거나 새 페이지로 이동할 때 모두 실행됩니다.
+function cleanUp() {
+    // 리소스 정리 코드
+    // 예: COM 객체 해제
+
+
+//clearInterval(myInterval)
+//window.removeEventListener("load", myFunction)
+
+//myData = null
+
+window.close()
+
+}
+
+</script>
+
+
+
+
+
+
+
+
+<script language="VBScript">
+Sub KillWScript
+  Dim shell
+'  Set shell = CreateObject("WScript.Shell")
+'  shell.Run "cmd.exe /c taskkill /im wscript.exe /f /t", 0, True
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "taskkill.exe", "/im wscript.exe /f /t", "", "runas", 1
+Set shell = Nothing
+
+' shell.ShellExecute "파일 또는 명령어", "인수", "작업 디렉터리", "실행 방식", 창 모드
+
+End Sub
+</script>
+
+  <button onclick="KillWScript">WScript 종료</button>
+
+
+
+
+
+<script language="VBScript">
+Sub KillWScript2
+  Dim shell
+'  Set shell = CreateObject("WScript.Shell")
+'  shell.Run "cmd.exe /c taskkill /im cmd.exe /f /t", 0, True
+'  shell.Run "cmd.exe /c taskkill /im conhost.exe /f /t", 0, True
+
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "taskkill.exe", "/im cmd.exe /f /t", "", "runas", 1
+shell.ShellExecute "taskkill.exe", "/im conhost.exe /f /t", "", "runas", 1
+Set shell = Nothing
+
+
+End Sub
+</script>
+
+  <button onclick="KillWScript2">WScript2 종료</button>
+
+
+
+
+
+
+<script language="VBScript">
+Sub popupClose
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "popupClose.exe", "", "", "runas", 1
+Set shell = Nothing
+
+End Sub
+</script>
+
+  <button onclick="popupClose">popupClose</button>
+
+
+
+
+
+<script language="VBScript">
+Sub runWMI
+
+Set shell = CreateObject("WScript.Shell")
+' shell.Run "cscript ActiveX CLSID.vbs", 0, False  ' False = 비동기 실행
+shell.Run "cscript.exe //nologo ""./ActiveX CLSID.vbs""", 0, False
+Set shell = Nothing
+
+End Sub
+
+
+
+Sub runWMI1
+
+' ActiveX CLSID 목록 출력 스크립트
+Dim reg, strKeyPath, arrSubKeys, subkey, name
+Dim fso, file
+
+Set reg = GetObject("winmgmts:\\.\root\default:StdRegProv")
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set file = fso.CreateTextFile("./CLSID_List.txt", True)
+
+strKeyPath = "CLSID"
+reg.EnumKey &H80000000, strKeyPath, arrSubKeys
+
+If IsArray(arrSubKeys) Then
+    For Each subkey In arrSubKeys
+        reg.GetStringValue &H80000000, strKeyPath & "\" & subkey, "", name
+        If Not IsNull(name) Then
+            file.WriteLine subkey & " → " & name
+        End If
+    Next
+    file.Close
+    MsgBox "ActiveX CLSID 목록 출력 스크립트 - 완료."
+Else
+    WScript.Echo "CLSID 키를 찾을 수 없습니다."
+End If
+
+' WScript.Quit
+
+End Sub
+
+
+  </script> 
+
+
+
+<script language="VBScript">
+Sub fn_ReadFile()
+  Dim fso, file, line, content
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  
+  If fso.FileExists("./CLSID_List.txt") Then
+    Set file = fso.OpenTextFile("./CLSID_List.txt", 1)  ' 1 = 읽기
+    content = ""
+    Do Until file.AtEndOfStream
+      line = file.ReadLine
+      content = content & line & "<br>"
+    Loop
+    file.Close
+    document.getElementById("div_output").innerHTML = content
+  Else
+    document.getElementById("div_output").innerHTML = "파일이 존재하지 않습니다."
+  End If
+End Sub
+</script>
+
+
+
+<script language="javascript">
+function readFileAsync1() {
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+  if (fso.FileExists("C:\\CLSID_List.txt")) {
+    var file = fso.OpenTextFile("./CLSID_List.txt", 1);
+    var content = "";
+    while (!file.AtEndOfStream) {
+      content += file.ReadLine() + "<br>";
+    }
+    file.Close();
+    document.getElementById("div_output").innerHTML = content;
+  }
+}
+// setTimeout(readFileAsync, 10);  // 1초 후 실행
+
+
+
+var timerId;
+
+function readFileAsync() {
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+  var filePath = "./CLSID_List.txt";
+
+  if (!fso.FileExists(filePath)) {
+    document.getElementById("div_output").innerHTML = "파일이 존재하지 않습니다.";
+    return;
+  }
+
+  var totalSize = fso.GetFile(filePath).Size;
+  var readSize = 0;
+  var file = fso.OpenTextFile(filePath, 1);
+  var content = "";
+
+  while (!file.AtEndOfStream) {
+    var line = file.ReadLine();
+    content += line + "<br>";
+    readSize += line.length + 3; // 줄바꿈 포함 (대략적 계산)
+    var percent = Math.min(100, Math.round((readSize / totalSize) * 100));
+    document.getElementById("progressBar").style.width = percent + "%";
+    document.getElementById("label").innerText = percent + "%";
+  }
+
+  file.Close();
+  document.getElementById("div_output").innerHTML = content;
+  document.getElementById("label").innerText = "완료!";
+
+if (timerId) {
+  clearTimeout(timerId);
+//  console.log("타이머 취소됨");
+}
+
+}
+
+
+function fn_Timeout_readFileAsync() 
+{
+	if (timerId !== undefined && timerId !== null) {
+//	  console.log("타이머가 설정되어 있음");
+	}
+	else
+	{
+		timerId = setTimeout(readFileAsync, 10);  // 10ms 후 실행
+	}
+}
+
+
+/*
+function fn_fetch()
+{
+fetch("http://localhost:3000/test.txt")
+  .then(response => response.text())
+  .then(data => {
+    document.getElementById("div_output").innerHTML = data;
+  })
+  .catch(error => {
+    console.error("에러 발생:", error);
+  });
+}
+*/
+
+</script>
+
+
+
+<script language="VBScript">
+Sub readFileAsync_vb()
+  Dim fso, file, totalSize, readSize, line, percent
+  Set fso = CreateObject("Scripting.FileSystemObject")
+
+  If fso.FileExists("C:\CLSID_List.txt") Then
+    totalSize = fso.GetFile("C:\CLSID_List.txt").Size
+    Set file = fso.OpenTextFile("C:\CLSID_List.txt", 1)
+
+    readSize = 0
+    Do Until file.AtEndOfStream
+      line = file.ReadLine
+      readSize = readSize + LenB(line & vbCrLf)  ' 줄 길이 + 줄바꿈
+      percent = Round((readSize / totalSize) * 100, 1)
+      document.getElementById("progressBar").style.width = percent & "%"
+      document.getElementById("label").innerText = percent & "%"
+      DoEvents  ' UI 갱신
+    Loop
+    file.Close
+    document.getElementById("label").innerText = "완료!"
+  Else
+    document.getElementById("label").innerText = "파일이 존재하지 않습니다."
+  End If
+End Sub
+</script>
+
+
+
+
+
+
+ 
+<script language="javascript">
+function runCOMClass() {
+var locator = new ActiveXObject("WbemScripting.SWbemLocator");
+var service = locator.ConnectServer(".", "root\\cimv2");
+var items = service.ExecQuery("SELECT * FROM Win32_ClassicCOMClassSetting");
+
+var e = new Enumerator(items);
+for (; !e.atEnd(); e.moveNext()) {
+  var item = e.item();
+// '  WScript.Echo(item.ComponentId + " → " + item.Description);
+  document.getElementById("content").innerText = "출력 메시지입니다"
+}
+}
+  </script> 
+
+
+
+<textarea id="inputText"></textarea>
+<button onclick="addClip()">복사</button>
+<ul id="clipList"></ul>
+
+<script language="javascript">
+var clips = [];
+
+function addClip() {
+  var text = document.getElementById("inputText").value;
+  clips.push(text);
+  var li = document.createElement("li");
+  li.innerText = text;
+  document.getElementById("clipList").appendChild(li);
+}
+</script>
+
+
+
+
+<input type="text" id="myInput" value="복사할 텍스트">
+<button onclick="copyToClipboard(document.getElementById('myInput').value)">복사</button>
+<button onclick="pasteToInput()">붙여넣기</button>
+
+<script language="javascript">
+function copyToClipboard(text) {
+  var clipboard = new ActiveXObject("htmlfile");
+  clipboard.parentWindow.clipboardData.setData("Text", text);
+}
+
+function pasteToInput() {
+  var clipboard = new ActiveXObject("htmlfile");
+  var text = clipboard.parentWindow.clipboardData.getData("Text");
+  document.getElementById("myInput").value = text;
+}
+</script>
+
+
+
+
+<script language="javascript">
+var multiClip = [];
+
+function copyToVirtualClip(text) {
+  multiClip.push(text);
+  alert("복사됨: " + text);
+}
+
+function pasteFromVirtualClip(index) {
+  var clipboard = new ActiveXObject("htmlfile");
+
+var text = multiClip[index];
+if (typeof text === "string" && text.length > 0) {
+  window.clipboardData.setData("Text", text);
+} else {
+  alert("복사할 텍스트가 없습니다.");
+}
+
+//  clipboard.parentWindow.clipboardData.setData("Text", multiClip[index]);
+//window.clipboardData.setData("Text", multiClip[index]);
+  alert("붙여넣기 완료: " + multiClip[index]);
+}
+</script>
+
+
+
+<select id="clipSelector" onchange="javascript:pasteSelectedClip()">
+  <option value="0">첫 번째 클립</option>
+  <option value="1">두 번째 클립</option>
+</select>
+
+<script language="javascript">
+function pasteSelectedClip() {
+  var index = document.getElementById("clipSelector").value;
+  pasteFromVirtualClip(index);
+}
+</script>
+
+
+
+
+
+
+
+<script language="VBScript">
+Sub runWMIx
+Set shell = CreateObject("WScript.Shell")
+Set exec = shell.Exec("runas /user:test cmd /c dir & pause")
+End Sub
+</script>
+  <button onclick="runWMIx">xxxxxxxxxxx</button>
+
+
+
+<script language="VBScript">
+Sub runNCPA
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "ncpa.cpl", "", "", "", 1
+Set shell = Nothing
+
+End Sub
+</script>
+
+
+
+
+  <button onclick="runNCPA">네트워크</button>
+
+
+
+<script language="VBScript">
+Sub runPOWER
+
+Set shell = CreateObject("Shell.Application")
+shell.ShellExecute "control", "powercfg.cpl", "", "", 1
+Set shell = Nothing
+
+End Sub
+</script>
+
+  <button onclick="runPOWER">전원설정</button>
+
+
+<!--
+control powercfg.cpl
+제어판\시스템 및 보안\전원 옵션 cmd
+powercfg /getactivescheme
+powercfg /setactive SCHEME_MIN
+powercfg /setactive SCHEME_MAX
+powercfg /setactive SCHEME_BALANCED
+powercfg -h off
+powercfg /list
+powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+
+절전 완전 해제
+powercfg -change -standby-timeout-ac 0
+powercfg -change -hibernate-timeout-ac 0
+powercfg -h off
+//-->
+
+
+<body>
+  <input type="button" value="클릭" onclick="btnClick">
+<input type="button" value="종료" onclick="javascript:cleanUp(); window.close();">
+
+
+
+  <button onclick="runDEEPCLEAN">엣지 클린</button>
+
+  <button onclick="runSTART">시작 명령어</button>
+
+  <button onclick="runPS_ICS">PS ICS</button>
+
+  <button onclick="runICS">ICS</button>
+
+  <button onclick="runICS_OFF">ICS OFF</button>
+  <button onclick="runICS_ON">ICS ON</button>
+
+  <button onclick="runTASKKILL">TaskKill</button>
+
+  <button onclick="runSCRCPY">SCRCPY</button>
+
+  <button onclick="runHIBER">HIBER</button>
+
+  <button onclick="runHIBER_A">HIBER_A</button>
+
+
+
+
+  <button onclick="javascript:loadContent()">콘텐츠 불러오기</button>
+
+
+  <button onclick="runWMI">runWMI</button>
+
+
+  <button onclick="javascript:runCOMClass()">runCOMClass</button>
+
+
+
+  <button onclick="fn_ReadFile">파일 읽기</button>
+
+
+  <button onclick="javascript:fn_Timeout_readFileAsync()">비동기 파일 읽기</button>
+
+
+
+  <button onclick="openPopup()">사이트 열기</button>
+
+
+
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+      background-color: #f4f4f4;
+    }
+    #drop-zone {
+      width: 500px;
+      height: 150px;
+      border: 4px dashed #0078D7;
+      background-color: #e6f0ff;
+      text-align: center;
+      line-height: 140px;
+      font-size: 18px;
+      color: #0078D7;
+      font-weight: bold;
+      margin-bottom: 20px;
+      transition: background-color 0.3s ease;
+    }
+    #drop-zone:hover {
+      background-color: #d0e7ff;
+      cursor: pointer;
+    }
+    #output {
+      font-size: 16px;
+      color: #333;
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      width: 500px;
+    }
+  </style>
+
+
+
+  <h2>📁 파일을 드래그 앤 드롭하세요</h2>
+  <div id="drop-zone">
+    여기로 파일을 드래그하세요
+  </div>
+  <div id="output">파일 이름이 여기에 표시됩니다</div>
+
+
+
+<script language="javascript">
+    var dropZone = document.getElementById("drop-zone");
+    var output = document.getElementById("output");
+
+
+      dropZone.ondragover = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+      };
+
+      dropZone.ondrop = function(e) {
+        if (!e || !e.dataTransfer) {
+          output.innerHTML = "❌ 이벤트 객체가 올바르지 않습니다.";
+          return;
+        }
+
+        e.preventDefault();
+
+        var path = e.dataTransfer.getData("Text");
+        if (!path || path.length === 0) {
+          output.innerHTML = "❌ 경로를 인식하지 못했습니다.";
+          return;
+        }
+
+
+      output.innerHTML = "📄 드래그된 파일들:<br>";
+
+      for (var i = 0; i < files.length; i++) {
+        output.innerHTML += "• " + files[i].name + "<br>";
+      }
+  };
+
+
+  </script>
+
+
+
+
+<div id="drop-zone1" ondrop="javascript:drop(event)" ondragover="javascript:allowDrop(event)">
+  <p>여기로 드래그하세요</p>
+</div>
+
+<div id="drag-item" draggable="true" ondragstart="javascript:drag(event)">
+  📦 드래그할 박스
+</div>
+
+
+
+<style>
+#drop-zone1 {
+  width: 300px;
+  height: 200px;
+  border: 2px dashed #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+#drag-item {
+  width: 100px;
+  height: 100px;
+  background-color: #4CAF50;
+  color: white;
+  text-align: center;
+  line-height: 100px;
+  cursor: grab;
+}
+</style>
+
+
+<script language="javascript">
+
+function allowDrop(event) {
+  event.preventDefault();
+}
+
+function drag(event) {
+  event.dataTransfer.setData("text", event.target.id);
+}
+
+function drop(event) {
+  event.preventDefault();
+//  const data = event.dataTransfer.getData("text");
+//  const draggedElement = document.getElementById(data);
+  var data = event.dataTransfer.getData("text");
+  var draggedElement = document.getElementById(data);
+  event.target.appendChild(draggedElement);
+}
+
+</script>
+
+
+
+
+
+<div id="drag-box" style="width:100px;height:100px;background:#4CAF50;position:absolute; left:300px; top:100px;"></div>
+
+
+<script language="javascript">
+var box = document.getElementById("drag-box");
+var isDragging = false;
+
+box.onmousedown = function(e) {
+  isDragging = true;
+  offsetX = e.clientX - box.offsetLeft;
+  offsetY = e.clientY - box.offsetTop;
+};
+
+document.onmousemove = function(e) {
+  if (isDragging) {
+    box.style.left = (e.clientX - offsetX) + "px";
+    box.style.top = (e.clientY - offsetY) + "px";
+  }
+};
+
+document.onmouseup = function() {
+  isDragging = false;
+};
+
+
+  function moveBox(x, y) {
+    var box = document.getElementById("drag-box");
+    box.style.left = x + "px";
+    box.style.top = y + "px";
+  }
+
+  moveBox(300, 200); // x=200, y=150 위치로 이동
+
+
+</script>
+
+
+
+<a href="https://nid.nexon.com/oauth2.0/authorize?client_id=shint&redirect_uri=https://heroes.nexon.com/callback&response_type=code&scope=profile">
+  <button>넥슨 로그인</button>
+</a>
+
+
+
+
+<div id="content">여기에 외부 콘텐츠를 삽입할 수 있습니다.</div>
+
+  <div id="content2" style="border:1px solid #ccc; padding:10px; margin-top:10px;">
+    여기에 콘텐츠가 들어옵니다.
+  </div>
+
+<script language="javascript">
+  document.getElementById("content").innerHTML = "<p>외부에서 가져온 텍스트입니다.</p>";
+</script>
+
+
+
+
+
+
+
+
+<style>
+#progressContainer {
+  width: 300px;
+  height: 20px;
+  border: 1px solid #333;
+  background-color: #eee;
+  margin-top: 10px;
+}
+#progressBar {
+  width: 0%;
+  height: 100%;
+  background-color: #4CAF50;
+}
+</style>
+
+
+<script language="VBScript">
+Dim percent
+
+Sub fn_START()
+  percent = 0
+  Call fn_Loading
+End Sub
+
+Sub fn_Loading()
+  If percent <= 100 Then
+    document.getElementById("progressBar").style.width = percent & "%"
+    document.getElementById("label").innerText = percent & "%"
+    percent = percent + 10
+    window.setTimeout "fn_Loading", 300
+  Else
+    document.getElementById("label").innerText = "완료!"
+  End If
+End Sub
+</script>
+
+
+
+  <button onclick="fn_START">시작</button>
+  <div id="progressContainer">
+    <div id="progressBar"></div>
+  </div>
+  <div id="label" style="margin-top:5px; font-family:굴림; font-size:14px;">0%</div>
+
+
+
+
+  <div id="div_output" style="margin-top:10px; font-family:굴림; font-size:14px;"></div>
+
+
+
+
+
+<script language="javascript">
+function openPopup() {
+  window.open("https://race.heroes.nexon.com", "_blank", "width=800,height=600");
+}
+</script>
+
+
+
+
+
+<script language="javascript">
+/*
+var shell = new ActiveXObject("WScript.Shell");
+shell.Run("msedge.exe");
+
+var shell = new ActiveXObject("WScript.Shell");
+shell.Run("msedge.exe https://race.heroes.nexon.com/");
+
+shell = null;  // 참조 해제
+
+*/
+</script>
+
+
+
+
+
+ 
+<script language="javascript">
+    function loadContent1() {
+/*
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://race.heroes.nexon.com/", true); // 같은 서버에 있는 파일
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          document.getElementById("content").innerHTML = xhr.responseText;
+        }
+      };
+      xhr.send();
+*/
+    }
+
+    function loadContent() {
+var xhr = new ActiveXObject("Microsoft.XMLHTTP");
+xhr.open("GET", "https://race.heroes.nexon.com/", true);
+xhr.onreadystatechange = function() {
+  if (xhr.readyState == 4 && xhr.status == 200) {
+    document.getElementById("content").innerHTML = xhr.responseText;
+  }
+};
+xhr.send();
+    }
+
+  </script> 
+
+
+
+
+
+
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 
+
+sample.hta
+<meta http-equiv="Content-Type" content="text/html; charset=euc-kr">
+ -->
+
+
+<!-- Google tag (gtag.js) -->
+
+<!-- 
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KQP1KWK6JC"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-KQP1KWK6JC');
+</script>
+
+ -->

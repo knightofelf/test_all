@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>디지털 섬유 이미지 변환기</title>
+    <style>
+        body {
+            background-color: #0d0d1a;
+            color: #00ffcc;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #00ffcc;
+        }
+        .controls {
+            margin-bottom: 15px;
+            background: #121225;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #333355;
+        }
+        input[type="file"] {
+            color: #00ffcc;
+        }
+        canvas {
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 20px #00ffcc;
+            background-color: #121225;
+        }
+        .info {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #8888aa;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧵 IMAGE TO DIGITAL WEAVING</h1>
+    
+    <div class="controls">
+        <label>내 이미지 업로드: </label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+
+    <canvas id="weavingCanvas" width="700" height="700"></canvas>
+    
+    <div class="info">
+        이미지를 업로드하면 픽셀을 분석해 비트 선(0과 1)으로 직조합니다.<br>
+        (흑백 대비가 뚜렷하거나 단순한 그래픽, 로고 파일이 가장 예쁘게 나옵니다)
+    </div>
+
+    <script>
+        const canvas = document.getElementById('weavingCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+
+        const tileSize = 7; // 비트 선 세밀도 (낮을수록 정교함)
+
+        // 파일 업로드 이벤트 리스너
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    processImageToWeaving(img);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 이미지를 픽셀 비트로 변환하고 직조하는 핵심 함수
+        function processImageToWeaving(img) {
+            // 1. 임시 캔버스를 만들어 이미지를 작게 축소해 그리며 픽셀 데이터 추출
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 캔버스 크기에 맞춰 픽셀 그리드 수 계산
+            const cols = Math.floor(canvas.width / tileSize);
+            const rows = Math.floor(canvas.height / tileSize);
+            
+            tempCanvas.width = cols;
+            tempCanvas.height = rows;
+            
+            // 축소하여 그리기 (픽셀 단순화)
+            tempCtx.drawImage(img, 0, 0, cols, rows);
+            const imgData = tempCtx.getImageData(0, 0, cols, rows).data;
+
+            // 2. 메인 캔버스 초기화 및 배경 격자 그리기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#161630';
+            ctx.lineWidth = 0.5;
+            for(let i=0; i<canvas.width; i+=tileSize) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // 3. 픽셀 밝기 분석 후 비트 선으로 드로잉
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 4;
+
+            for (let y = 0; y < rows; y++) {
+                // 한 줄의 시작점 세팅 (좌우 반전 흐름을 위해 우측에서 좌측으로)
+                let currentX = canvas.width - (tileSize * 2);
+                let currentY = y * tileSize;
+
+                for (let x = 0; x < cols; x++) {
+                    // RGBA 픽셀 인덱스 계산
+                    const idx = (y * cols + x) * 4;
+                    const r = imgData[idx];
+                    const g = imgData[idx+1];
+                    const b = imgData[idx+2];
+                    
+                    // 평균 밝기 계산 (0 ~ 255)
+                    const brightness = (r + g + b) / 3;
+                    
+                    // 임계값(128)을 기준으로 1(밝음)과 0(어두움)으로 이진화
+                    const bit = brightness > 127 ? 1 : 0;
+
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+
+                    if (bit === 1) {
+                        // 1일 때: 좌측 방향으로 비트 선 연결 (민트색 실)
+                        ctx.strokeStyle = '#00ffcc';
+                        ctx.shadowColor = '#00ffcc';
+                        currentX -= tileSize;
+                        ctx.lineTo(currentX, currentY);
+                    } else {
+                        // 0일 때: 아래 방향으로 방향 전환 (핑크색 실)
+                        ctx.strokeStyle = '#ff0055';
+                        ctx.shadowColor = '#ff0055';
+                        currentY += tileSize;
+                        ctx.lineTo(currentX, currentY);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

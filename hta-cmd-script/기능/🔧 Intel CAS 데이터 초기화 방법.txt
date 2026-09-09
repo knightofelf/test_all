@@ -1,0 +1,44 @@
+**요약:** Intel CAS(캐시 가속 소프트웨어)에서 캐시 데이터를 초기화하려면 `casadm` 명령어를 사용합니다. 대표적으로 `casadm -T <캐시ID> -C` 또는 `casadm --stop-cache --cache-id <ID>` 같은 명령으로 캐시를 정지·초기화할 수 있습니다.  
+
+---
+
+### 🔧 Intel CAS 데이터 초기화 방법
+Intel CAS(이전 이름: Intel Cache Acceleration Software)는 SSD를 캐시로 활용해 HDD 성능을 높이는 솔루션입니다. 데이터 초기화는 캐시 영역을 비우고 새로 시작할 때 필요합니다.
+
+#### 1. 캐시 상태 확인
+```bash
+casadm -L
+```
+- 현재 활성화된 캐시와 볼륨 목록을 확인합니다.  
+- 캐시 ID(`cache id`)와 코어 ID(`core id`)를 기록해 둡니다.
+
+#### 2. 캐시 정지 및 초기화
+```bash
+casadm -T <cache_id> -C
+```
+- 특정 캐시 ID의 데이터를 초기화합니다.  
+- `-C` 옵션은 캐시를 **클리어(clear)** 하는 명령입니다.  
+
+또는 전체 캐시를 정지 후 초기화하려면:
+```bash
+casadm --stop-cache --cache-id <cache_id>
+casadm --remove-cache --cache-id <cache_id>
+```
+
+#### 3. 코어 제거 후 캐시 삭제
+```bash
+casadm --remove-core --cache-id <cache_id> --core-id <core_id>
+casadm --remove-cache --cache-id <cache_id>
+```
+- 코어를 제거한 뒤 캐시 자체를 삭제하면 완전 초기화됩니다.  
+
+---
+
+### ⚠️ 주의사항
+- **데이터 손실**: 캐시 초기화 시 SSD 캐시 영역의 데이터는 모두 삭제됩니다.  
+- **운영 중인 볼륨 영향**: 캐시가 연결된 HDD/볼륨의 성능이 일시적으로 저하될 수 있습니다.  
+- **관리자 권한 필요**: 모든 명령은 root 또는 관리자 권한으로 실행해야 합니다.  
+
+---
+
+👉 혹시 원하시는 게 **캐시만 비우는 초기화**인지, 아니면 **캐시와 코어까지 완전히 제거하는 초기화**인지 알려주시면 더 정확한 명령어를 정리해 드릴 수 있습니다.

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>드래그 앤 드롭 파일 이름 출력</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+      background-color: #f4f4f4;
+    }
+    #drop-zone {
+      width: 500px;
+      height: 150px;
+      border: 4px dashed #0078D7;
+      background-color: #e6f0ff;
+      text-align: center;
+      line-height: 140px;
+      font-size: 18px;
+      color: #0078D7;
+      font-weight: bold;
+      margin-bottom: 20px;
+      transition: background-color 0.3s ease;
+    }
+    #drop-zone:hover {
+      background-color: #d0e7ff;
+      cursor: pointer;
+    }
+    #output {
+      font-size: 16px;
+      color: #333;
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      width: 500px;
+    }
+  </style>
+</head>
+
+
+<body style="position: absolute; margin-top:10px; font-family:monospace;">
+  <h2>📁 파일을 드래그 앤 드롭하세요</h2>
+  <div id="drop-zone">
+    여기로 파일을 드래그하세요
+  </div>
+  <div id="output">파일 이름이 여기에 표시됩니다</div>
+
+
+<input type="button" value="위치 이동" onclick="javascript:fn_MoveWindow()">
+
+
+
+  <script language="VBScript">
+    Sub ShowWindowPosition()
+      Dim x, y
+
+window.moveTo 200, 150   ' 화면의 (200, 150) 위치로 이동
+window.resizeTo 800, 600 ' 창 크기 조절
+
+'      MsgBox "현재 HTA 창 좌표: X=" & x & ", Y=" & y
+    End Sub
+
+ShowWindowPosition()
+
+  </script>
+
+
+
+
+<script language="javascript">
+
+function fn_MoveWindow()
+{
+    window.moveTo(200, 200);
+
+//	fn_load ( );
+//	ShowWindowPosition();
+}
+
+
+// script.js 예시
+window.onload = function() {
+  // 새로고침이 여기 있으면 무한 루프 발생 가능
+  //location.reload();   //← 제거 또는 조건 추가
+
+// fn_load ( );
+
+};
+
+
+
+
+function fn_load ( ) {
+
+
+const params = new URLSearchParams(window.location.search);
+const x = params.get("x");
+const y = params.get("y");
+
+var pos_x = window.screenLeft;
+var pos_y = window.screenTop;
+
+//  alert( '인자=' + x + ' ' + y + ' LT=' + pos_x  + ' ' + pos_y );
+
+x = x + pos_x ;
+y = y + pos_y ;
+
+    window.moveBy(x, y);
+
+//    window.resizeTo(400, 200);
+    window.moveTo(x, y);
+
+}
+
+// setTimeout( fn_load, 1000 ) ;
+
+
+    const dropZone = document.getElementById("drop-zone");
+    const output = document.getElementById("output");
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault(); // 기본 동작 방지
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      output.innerHTML = "";
+
+      const files = e.dataTransfer.files;
+      if (files.length === 0) {
+        output.innerHTML = "❌ 드래그된 파일이 없습니다.";
+        return;
+      }
+
+      output.innerHTML = "📄 드래그된 파일들:<br>";
+      for (let i = 0; i < files.length; i++) {
+        output.innerHTML += "• " + files[i].name + "<br>";
+      }
+    });
+  </script>
+
+
+
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+<!--
+
+
+vbs
+window.moveTo 200, 150   ' 화면의 (200, 150) 위치로 이동
+window.resizeTo 800, 600 ' 창 크기 조절
+
+
+js
+var popup = window.open("https://example.com", "popup", "width=800,height=600");
+popup.moveTo(100, 100); // 팝업 창을 화면의 (100, 100) 위치로 이동
+
+
+
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class WinAPI {
+  [DllImport("user32.dll")]
+  public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+}
+"@
+
+$hwnd = (Get-Process -Name notepad).MainWindowHandle
+[WinAPI]::MoveWindow($hwnd, 300, 200, 800, 600, $true)
+
+//-->
+
+
+
+
+
+
+
+

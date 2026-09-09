@@ -1,0 +1,508 @@
+
+<html>
+<meta charset="utf-8">
+
+<head>
+  <title>HTA 예제</title>
+  <HTA:APPLICATION ID="app" BORDER="thin" SCROLL="no" SINGLEINSTANCE="yes" />
+</head>
+
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script language="VBScript" src="script.vbs"></script>
+  <script language="JavaScript" src="script.js"></script>
+
+
+
+<body id="body" style="text-align: right;">
+
+
+<div class="menu-item">
+<span class="new-badge2">N</span>✅ HTA 예제 <span class="new-badge">N</span>
+</div>
+
+
+<!--
+
+✅ 체크 표시에 어울리는 녹색 색상 코드
+색상 이름	HEX 코드	RGB 코드	설명
+Lime Green	#32CD32	rgb(50, 205, 50)	밝고 선명한 녹색, ✅ 이모지와 유사
+Medium Sea Green	#3CB371	rgb(60, 179, 113)	부드러운 녹색, UI에 자주 사용
+Spring Green	#00FF7F	rgb(0, 255, 127)	형광 느낌의 녹색, 강조용으로 적합
+Green	#008000	rgb(0, 128, 0)	기본 녹색, 안정감 있는 느낌
+Emerald	#50C878	rgb(80, 200, 120)	고급스러운 녹색 톤
+
+//-->
+
+
+<style>
+.check-icon {
+  color: #32CD32; /* Lime Green */
+  font-size: 24px;
+}
+
+.new-badge2 {
+  background-color: #32CD32;
+  color: white;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10%;
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+.new-badge {
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10%;
+  font-size: 12px;
+  margin-left: 5px;
+}
+</style>
+
+
+
+<script language="VBScript">
+</script>
+
+
+<script language="JavaScript">   
+
+
+var codeLine = window.location.pathname;
+var drive = codeLine.split("\\")[0];
+
+var root = drive+"\\main\\스크립트\\";
+var doc = drive+"\\main\\문서\\";
+var save = drive+"\\main\\save\\";
+
+
+
+/*
+var codeLine = window.location.pathname;
+var dirPath = codeLine.substring(0, codeLine.lastIndexOf("\\") + 1);
+
+var codeLine = window.location.pathname;
+//var pathOnly = codeLine.match(/"(.*)"/)[1];
+var fileName = codeLine.split("\\").pop();
+
+var nameOnly = fileName.split(".")[0];
+alert(nameOnly); // "test"
+
+
+alert (__filename);
+alert (__dirname);  
+alert (window.location.pathname); 
+
+console.log(__filename); // 현재 파일 전체 경로
+console.log(__dirname);  // 현재 파일이 위치한 디렉토리 경로
+
+console.log("전체 URL:", window.location.href);
+console.log("경로:", window.location.pathname);
+console.log("호스트:", window.location.hostname);
+console.log("쿼리:", window.location.search);
+console.log("해시:", window.location.hash);
+*/
+
+</script>
+
+
+
+  <button onclick="runDEV">USB 장치 목록 및 재설치</button>
+  <button onclick="runPS_ICS">PS ICS</button>
+  <button onclick="runICS">ICS</button>
+  <button onclick="runICS_OFF">ICS OFF</button>
+  <button onclick="runICS_ON">ICS ON</button>
+  <button onclick="runSTART">시작 명령어</button>
+  <button onclick="runHIBER">절전 종료</button>
+  <button onclick="runSCHTASKS">작업스케쥴러 실행</button>
+<br>
+  <button onclick="runTIMEsync()">시간 동기화</button>
+<button onclick="KillWScript">WScript 종료</button>
+<button onclick="popupClose">popupClose</button>
+  <button onclick="runTASKKILL">TaskKill</button>
+  <button onclick="Disk_Fix">Disk Fix</button>
+  <button onclick="runDEEPCLEAN">엣지 클린</button>
+  <button onclick="runClipBoard()">클립보드 클린</button>
+  <button onclick="runDefrag">조각 모음</button>
+<br>
+  <button onclick="runNCPA">네트워크 연결</button>
+  <button onclick="runPOWER">전원 옵션</button>
+  <button onclick="runVBS 'devmgmt.msc' ">장치 관리자</button>
+  <button onclick="runVBS 'taskmgr' ">작업 관리자</button>
+  <button onclick="runPowerMAX()">전원 MAX</button>
+  <button onclick="runPowerBALANCED()">전원 BALANCED</button>
+  <button onclick="runPowerMIN()">전원 MIN</button>
+<br>
+
+
+
+<button onclick="fn_DragDrop">드래그 드롭</button>
+
+
+<input type="button" value="script.js" onclick="runNOTEPAD './script.js' ">
+<input type="button" value="script.vbs" onclick="runNOTEPAD './script.vbs' ">
+<input type="button" value="style.css" onclick="runNOTEPAD './style.css' ">
+
+<input type="button" value="hta" onclick="runNOTEPAD './HTML 스크립트 실행 파일.hta' ">
+<br>
+  <button onclick="runPowerCfg()">절전 상태</button>
+  <button onclick="runPowerList()">전원 리스트</button>
+
+  <button onclick="runProcess()">프로세스 상태</button>
+
+  <button onclick="runSCRCPY">USB ADB</button>
+<br>
+  <button onclick="location.reload()">🔄 새로고침</button>
+<input type="button" value="닫기" onclick="javascript:cleanUp(); window.close();">
+<br>
+
+<br>
+
+
+
+
+
+
+
+<!-- 
+공통 메뉴
+
+<button id="btnA">버튼 A</button>
+<button id="btnB">버튼 B</button>
+
+document.getElementById('btnA').onmouseenter = function() {
+  // 버튼 A용 메뉴
+};
+
+document.getElementById('btnB').onmouseenter = function() {
+  // 버튼 B용 메뉴
+};
+
+
+<div id="dynamicMenu1"></div>
+<div id="dynamicMenu2"></div>
+
+var menu1 = document.getElementById('dynamicMenu1');
+var menu2 = document.getElementById('dynamicMenu2');
+
+<div class="menu"></div>
+<div class="menu"></div>
+
+var divs = document.getElementsByTagName('div');
+for (var i = 0; i < divs.length; i++) {
+  if (divs[i].className === 'menu') {
+    // 원하는 작업 수행
+  }
+}
+
+var allDivs = document.getElementsByTagName('div');
+for (var i = 0; i < allDivs.length; i++) {
+  if (allDivs[i].id === 'dynamicMenu') {
+    alert('중복된 dynamicMenu ID 발견: ' + i);
+  }
+}
+
+//-->
+
+
+
+
+
+
+
+
+
+
+
+<!--
+<div id="container" style="position: relative; background: lightblue; padding: 50px;">
+  기존 영역
+</div>
+
+<script language="JavaScript"> 
+  var container = document.getElementById('container');
+  var newDiv = document.createElement('div');
+  newDiv.innerText = '새로 생성된 div';
+  newDiv.style.position = 'absolute';
+  newDiv.style.top = '0px';
+  newDiv.style.left = '0px';
+  newDiv.style.background = 'orange';
+  newDiv.style.padding = '10px';
+  newDiv.style.zIndex = '10';
+
+  container.appendChild(newDiv);
+</script>
+
+<input type="button" value="생각 노트" onclick="runNOTEPAD 'J:\heroes\생각 낙서 노트.txt' ">
+//-->
+
+
+
+
+<div class="dropdown" id="drop-zonex" style="position: absolute; margin-top:10px; font-family:monospace;">
+  <button class="main-button">노트</button>
+</div>
+
+<div id="dynamicMenu" class="menu">
+    <button onclick="runNOTEPAD(doc + '문서.txt')">문서</button>
+    <button onclick="runNOTEPAD(doc + '생각 낙서 노트.txt') ">생각 낙서 노트</button>
+    <button onclick="runNOTEPAD(doc + '오늘의 지출.txt') ">오늘의 지출</button>
+    <button onclick="runNOTEPAD(doc + '아이디어 사업화 노트.txt') ">아이디어 사업화</button>
+    <button onclick="runNOTEPAD(doc + '생활 정보.txt') ">생활 정보</button>
+    <button onclick="runNOTEPAD(doc + '압축 알고리즘 정리.txt') ">압축 알고리즘 정리</button>
+</div>
+
+
+
+
+
+
+<script language="JavaScript">  
+var menu1_open = false;
+var menu2_open = false;
+
+
+  var dropZone = document.getElementById('drop-zonex');
+//  var submenu = dropZone.getElementsByTagName('div')[0]; // 첫 번째 <div>가 submenu라고 가정
+  var dynamicMenu = document.getElementById('dynamicMenu');
+//  var submenu2 = document.getElementById('submenu2');
+  var body = document.getElementById('body');
+ 
+
+      dropZone.style.left = 50 + 'px';
+      dropZone.style.top = 10 + 'px';
+
+
+
+
+  // 버튼 OVER
+  dropZone.attachEvent ? dropZone.attachEvent('onmouseover', function() {
+
+      var rect = dropZone.getBoundingClientRect();
+      var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+
+
+      // 해당 버튼 위에 메뉴 위치
+      dynamicMenu.style.left = rect.left + 'px';
+      dynamicMenu.style.top = rect.top + scrollTop + 35 + 'px'; //(rect.top + scrollTop - dynamicMenu.offsetHeight - 5) + 'px';
+
+    //
+    menu1_open = true;
+    dynamicMenu.style.display = 'block';
+
+//        document.getElementById("result").innerHTML += " 버튼 OVER   ";
+
+
+  // 버튼 ENTER
+  }) : dropZone.addEventListener('mouseenter', function() {
+    dynamicMenu.style.display = 'block';
+  });
+
+
+  // 버튼 OUT
+  dropZone.attachEvent ? dropZone.attachEvent('onmouseout', function() {
+
+    menu1_open = false;
+    setTimeout( fn_menu_close , 200 );
+
+  // 버튼 LEAVE
+  }) : dropZone.addEventListener('mouseleave', function() {
+
+    menu1_open = false;
+    setTimeout( fn_menu_close , 200 );
+
+  });
+
+
+
+
+// 메뉴 ENTER
+dynamicMenu.onmouseenter = function() {
+    menu2_open = true;
+
+
+};
+
+// 메뉴 OUT : 내부 버튼도 OUT 으로 적용됨
+dynamicMenu.onmouseout = function() {
+
+};
+
+// 메뉴 LEAVE
+dynamicMenu.onmouseleave = function() {
+    menu2_open = false;
+    dynamicMenu.style.display = 'none';
+
+
+//    setTimeout( fn_menu_close , 3000 );
+};
+
+
+function fn_menu_close ( )
+{
+    if( menu1_open == true )
+    {
+	return ;
+    }
+    if( menu2_open == true )
+    {
+	return ;
+    }
+    menu1_open = false;
+    menu2_open = false;
+    dynamicMenu.style.display = 'none';
+}
+
+// setTimeout( fn_menu_close , 3000 );
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  <script language="javascript">
+
+
+function saveText() 
+{
+    var text = document.getElementById("textArea").value;
+ 
+var len = text.length;
+if (len <= 0) 
+{
+   document.getElementById("result").innerHTML = "  저장 안됨 - 입력 글자수 : " + len;
+    return;
+}
+
+var path = save+"saved_text.txt";
+    saveAsUTF8(text, path) 
+    return ;
+}
+
+
+
+    function loadText() 
+    {
+var path = save+"saved_text.txt";
+var text = readUTF8(path);
+if (text !== null) {
+// alert("읽은 내용:\n" + text);
+    document.getElementById("textArea").value = text;
+}
+
+    }
+
+
+    function clearText() 
+    {
+        document.getElementById("textArea").value = "";
+        document.getElementById("result").innerHTML = " TEXTAREA 초기화 ";
+    }
+
+
+  </script>
+
+
+
+
+
+
+
+<table>
+  <tr>
+    <td><button onclick="saveText()">저장</button></td>
+    <td><h3 style="margin: 0;">텍스트 입력</h3></td>
+    <td><button onclick="loadText()">불러오기</button></td>
+    <td><button onclick="clearText()">초기화</button></td>
+  </tr>
+</table>
+
+
+
+
+<script language="javascript">
+
+
+function saveAsUTF8(text, path) {
+  try {
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Type = 2; // 텍스트 모드
+    stream.Charset = "utf-8"; // UTF-8 인코딩
+    stream.Open();
+    stream.WriteText(text);
+    stream.SaveToFile(path, 2); // 2 = 덮어쓰기
+    stream.Close();
+//    alert("UTF-8로 저장 완료!");
+  document.getElementById("result").innerHTML = " UTF-8로 저장 완료! ";
+  } catch (e) {
+    alert("오류 발생: " + e.message);
+  }
+}
+
+
+
+function readUTF8(path) {
+  try {
+    var stream = new ActiveXObject("ADODB.Stream");
+    stream.Type = 2; // 텍스트 모드
+    stream.Charset = "utf-8"; // UTF-8 인코딩
+    stream.Open();
+    stream.LoadFromFile(path);
+    var content = stream.ReadText();
+    stream.Close();
+  document.getElementById("result").innerHTML = " UTF-8로 불러오기 완료! ";
+    return content;
+  } catch (e) {
+    alert("읽기 오류: " + e.message);
+    return null;
+  }
+}
+
+
+</script>
+
+
+  <textarea id="textArea" rows="20" cols="80"  maxlength="100000"></textarea><br><br>
+
+  <div id="result" style="position: absolute; margin-top:10px; font-family:monospace;"></div>
+
+
+
+<script language="javascript">
+  var result = document.getElementById('result');
+  result.style.left = 35;
+  result.style.top = 100;
+
+  loadText();
+
+  document.getElementById("result").innerHTML = "정상 시작";
+
+
+</script>
+
+
+<object id="MediaPlayer" 
+        classid="CLSID:6BF52A52-394A-11d3-B153-00C04F79FAA6" 
+        width="640" height="360">
+  <param name="URL" value="https://www.w3schools.com/html/mov_bbb.mp4">
+  <param name="autoStart" value="true">
+  <param name="uiMode" value="full">
+</object>
+
+
+
+
+</body>
+</html>
+
+

@@ -1,0 +1,46 @@
+<html>
+<head>
+<HTA:APPLICATION ID="testApp" />
+<script language="javascript">
+function callJSFromActiveX() {
+    alert("ActiveX에서 JS 호출 성공!");
+}
+</script>
+</head>
+<body>
+<script language="javascript">
+    // ActiveX 객체 생성
+    var shell = new ActiveXObject("WScript.Shell");
+    // JS 함수 호출
+    callJSFromActiveX();
+</script>
+</body>
+</html>
+
+
+
+
+<html>
+<head>
+<HTA:APPLICATION ID="testApp" />
+<script language="javascript">
+function jsFunctionFromActiveX(msg) {
+    alert("ActiveX에서 전달된 메시지: " + msg);
+}
+</script>
+</head>
+<body>
+<object id="myActiveX" classid="CLSID:XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"></object>
+</body>
+</html>
+
+
+// 예시: IDispatch를 통해 HTA의 JS 호출
+CComPtr<IDispatch> spDisp;
+HRESULT hr = m_spClientSite->GetContainer(&spDisp);
+if (SUCCEEDED(hr)) {
+    // window.external을 통해 jsFunctionFromActiveX 호출 가능
+}
+
+
+
