@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1MB 고속 데이터 생성기</title>
+    <style>
+        body { font-family: sans-serif; padding: 30px; background-color: #f5f5f5; text-align: center; }
+        .container { background: white; padding: 30px; border-radius: 10px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button { background-color: #007bff; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 15px; font-weight: bold; color: #28a745; }
+        .info { font-size: 13px; color: #666; margin-top: 20px; text-align: left; background: #eee; padding: 12px; border-radius: 5px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>1MB G2P 데이터 고속 생성기</h2>
+    <p>버튼을 누르면 복원용 원문이 포함된 <br><strong>총합 1MB 크기</strong>의 데이터 파일 3개가 즉시 다운로드됩니다.</p>
+    
+    <button onclick="generate1MBData()">1MB 데이터 즉시 생성 및 다운로드</button>
+    
+    <div id="status"></div>
+
+    <div class="info">
+        <strong>💡 데이터 복원 설계 구조:</strong>
+        <ul>
+            <li><strong>phone.txt</strong>: 실제 한국어 단어 기반 분리 음소열</li>
+            <li><strong>tone.txt</strong>: 음소와 1:1 매칭되는 성조 정보 (0 평조)</li>
+            <li><strong>word2ph.json</strong>: <span style="color:#d9534f; font-weight:bold;">{"text": "실제단어", "word2ph": [...]}</span> 구조로 완벽 역복원 가능</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// 한글 자소 분리 함수
+function tokenizeKorean(char) {
+    const code = char.charCodeAt(0) - 0xAC00;
+    if (code < 0 || code > 11171) return [char];
+    const cho = [ "ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ" ];
+    const jung = [ "ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ" ];
+    const jong = [ "", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ" ];
+    const choIdx = Math.floor(code / 588);
+    const jungIdx = Math.floor((code % 588) / 28);
+    const jongIdx = code % 28;
+    let result = [cho[choIdx], jung[jungIdx]];
+    if (jong[jongIdx] !== "") result.push(jong[jongIdx]);
+    return result;
+}
+
+function triggerDownload(content, fileName, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const element = document.createElement('a');
+    element.href = URL.createObjectURL(blob);
+    element.download = fileName;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+}
+
+function generate1MBData() {
+    const statusDiv = document.getElementById('status');
+    statusDiv.style.color = '#007bff';
+    statusDiv.innerText = "정확한 1MB 크기 계산 및 파일 생성 중...";
+
+    // 현실적인 복원 데이터 생성을 위한 한국어 단어 풀 (배열 고속 순환)
+    const wordPool = ["국민", "같이", "대한민국", "주권", "권력", "하늘", "바다", "소리", "나무", "자동차", "컴퓨터", "사람", "행복", "미래", "우주"];
+    
+    let phoneLines = [];
+    let toneLines = [];
+    let word2phArray = [];
+    
+    let currentSize = 0;
+    const targetSize = 1024 * 1024; // 정확히 1MB (1,048,576 bytes)
+    let poolIndex = 0;
+
+    // 3개 파일의 문자열 크기 합이 정확히 1MB가 될 때까지 고속 생성 루프 실행
+    while (currentSize < targetSize) {
+        const word = wordPool[poolIndex % wordPool.length];
+        let wordPhones = [];
+        let word2phSegments = [];
+
+        for (let i = 0; i < word.length; i++) {
+            const charPhones = tokenizeKorean(word[i]);
+            wordPhones = wordPhones.concat(charPhones);
+            word2phSegments.push(charPhones.length);
+        }
+
+        phoneLines.push(wordPhones.join(" "));
+        toneLines.push(Array(wordPhones.length).fill(0).join(" "));
+        word2phArray.push({ "text": word, "word2ph": word2phSegments });
+
+        // Blob 인코딩 기준 실시간 바이트 정밀 체크
+        let tempPhone = phoneLines.join("\n");
+        let tempTone = toneLines.join("\n");
+        let tempJson = JSON.stringify(word2phArray);
+        currentSize = new Blob([tempPhone]).size + new Blob([tempTone]).size + new Blob([tempJson]).size;
+        
+        poolIndex++;
+    }
+
+    // 파일별 다운로드 실행
+    triggerDownload(phoneLines.join("\n"), "phone.txt", "text/plain;charset=utf-8");
+    triggerDownload(toneLines.join("\n"), "tone.txt", "text/plain;charset=utf-8");
+    triggerDownload(JSON.stringify(word2phArray), "word2ph.json", "application/json;charset=utf-8");
+
+    statusDiv.style.color = '#28a745';
+    statusDiv.innerText = "완료! 1MB 규격 파일 3개 즉시 다운로드 됨.";
+}
+</script>
+
+</body>
+</html>

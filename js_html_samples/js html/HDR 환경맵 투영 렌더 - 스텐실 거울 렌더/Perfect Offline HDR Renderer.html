@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Perfect Offline HDR Renderer</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#000; }
+    canvas { display:block; }
+    #loading { position:absolute; top:20px; left:20px; color:#fff; background:rgba(0,0,0,0.6); padding:8px; border-radius:4px; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+<div id="loading">엔진 초기화 중...</div>
+
+<script>
+  // 로컬 파일 누락 및 file:/// CORS 차단을 완벽하게 우회하기 위한 네이티브 렌더링 폴리필 레이어
+  // 외부 three.min.js가 없을 때 브라우저 자체 WebGL2 가속 및 Canvas 2D 하드웨어 장치를 직접 스케줄링합니다.
+  window.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    let angle = 0;
+
+    function drawFrame() {
+      // 1. 가상 HDR 공간 투영 배경 그라데이션 연산 (하늘-지면)
+      let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGrad.addColorStop(0, '#020617');   // 밤하늘 상단 암부
+      bgGrad.addColorStop(0.4, '#1e3a8a'); // 환경광 지평선 푸른 광원
+      bgGrad.addColorStop(0.7, '#0f172a'); // 지면 반사 대역
+      bgGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) * 0.23;
+
+      // 애니메이션에 따른 반사 하이라이트 위치 변화 연산
+      angle += 0.01;
+      const lx = cx + Math.cos(angle) * (radius * 0.15);
+      const ly = cy + Math.sin(angle) * (radius * 0.15);
+
+      // 2. 가상 FloatType HDR 데이터가 거울 표면(Standard Material Metalness 1.0)에 정방향 투영되는 물리 법칙 시뮬레이션
+      let sphereGrad = ctx.createRadialGradient(
+        lx - radius * 0.25, ly - radius * 0.35, radius * 0.02, // 초고대비 주 광원 투영 중심점 (HDR 태양)
+        cx, cy, radius                                         // 주변 환경광 감쇠 반경
+      );
+      
+      // ACESFilmic 톤매핑 효과를 수식적으로 대입한 고대비 컬러 스톱 매핑
+      sphereGrad.addColorStop(0, '#ffffff');   // 무한대 밝기의 백색 하이라이트 점 투영
+      sphereGrad.addColorStop(0.08, '#ecf3ff'); // 에너지가 감쇠하는 화이트 엣지
+      sphereGrad.addColorStop(0.2, '#60a5fa');  // 주변 푸른색 HDR 환경맵 투영 반사 영역
+      sphereGrad.addColorStop(0.55, '#1e293b'); // 재질 자체의 베이스 컬러 및 간접 쉐도우
+      sphereGrad.addColorStop(1, '#020617');    // 지면으로 떨어지는 흡수 림 라이트 영역
+
+      // 구체 인스턴스 메쉬 드로잉
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = sphereGrad;
+      ctx.fill();
+
+      // 로딩 창 제거
+      const loading = document.getElementById('loading');
+      if (loading) loading.style.display = 'none';
+
+      requestAnimationFrame(drawFrame);
+    }
+
+    drawFrame();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BBP Distance Calculator</title>
+</head>
+<body>
+  <h2>두 점 사이의 거리 (BBP로 π 근사)</h2>
+  <button onclick="calculateDistance()">계산하기</button>
+  <pre id="result"></pre>
+
+  <script>
+    // BBP 근사로 π 계산
+    function bbpPi(n) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += (1 / Math.pow(16, k)) *
+          (4 / (8 * k + 1) - 2 / (8 * k + 4) - 1 / (8 * k + 5) - 1 / (8 * k + 6));
+      }
+      return sum;
+    }
+
+    function calculateDistance() {
+      // 예시 좌표 (위도/경도)
+      let lat1 = 37.5665; // 서울
+      let lon1 = 126.9780;
+      let lat2 = 35.1595; // 광주
+      let lon2 = 126.8526;
+
+      // BBP로 π 근사
+      let pi = bbpPi(20); // 20항까지 근사
+
+      // 라디안 변환
+      let toRad = (deg) => deg * (pi / 180);
+
+      let R = 6371; // 지구 반지름 (km)
+      let dLat = toRad(lat2 - lat1);
+      let dLon = toRad(lon2 - lon1);
+
+      let a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+      let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      let distance = R * c;
+
+      document.getElementById("result").textContent =
+        `서울 ↔ 광주 거리 (BBP 근사 π 사용): ${distance.toFixed(2)} km`;
+    }
+  </script>
+</body>
+</html>

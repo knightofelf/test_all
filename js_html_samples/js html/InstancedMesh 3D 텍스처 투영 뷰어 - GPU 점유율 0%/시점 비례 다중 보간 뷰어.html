@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시점 비례 3D 텍스처 투영 및 보간 시스템 - Page 1</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #020205; color: #fff; font-family: sans-serif; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
+        canvas:active { cursor: grabbing; }
+        #control-panel {
+            position: absolute; top: 15px; left: 15px; z-index: 100;
+            background: rgba(5, 5, 12, 0.94); padding: 18px; border-radius: 8px;
+            border: 1px solid rgba(0, 255, 170, 0.3); max-width: 360px; pointer-events: none;
+        }
+        h2 { margin: 0 0 10px 0; font-size: 15px; color: #00ffaa; text-transform: uppercase; letter-spacing: 0.5px; }
+        p { margin: 0 0 6px 0; font-size: 12px; color: #ccc; line-height: 1.4; }
+        .tag { display: inline-block; background: #ff0055; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="control-panel">
+        <h2>시점 비례 다중 보간 뷰어</h2>
+        <p><span class="tag">PAGE 1 : STRUCT</span> 360도 원근 트랙볼 카메라 및 WebGL2 드라이버 가동</p>
+        <p><span class="tag" style="background:#0077ff;">PAGE 2 : GRAPHICS</span> shader5.js 소스로부터 가상 텍스처 및 원근 보간 알고리즘 로드</p>
+    </div>
+
+    <!-- 💡 [수정됨] 연결 파일명을 shader5.js 경로로 직접 매핑했습니다 -->
+    <script src="./shader5.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // shader5.js 연결 상태 최종 예외 안전장치 검증
+            if (typeof GL_TEXTURE_VIEWER_SHADERS === 'undefined') {
+                document.body.innerHTML = "<h2 style='padding:20px; color:#fff;'>⚠️ shader5.js 로드 실패<br><span style='font-size:14px; color:#ccc;'>index.html과 동일한 폴더에 shader5.js 파일이 존재하는지 확인해 주세요. 파일 확장자가 .js인지도 꼭 확인해야 합니다.</span></h2>";
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            document.body.appendChild(canvas);
+            const gl = canvas.getContext('webgl2');
+            
+            if (!gl) {
+                document.body.innerHTML = "<h2 style='padding:20px;'>WebGL2를 지원하지 않는 브라우저입니다.</h2>";
+                return;
+            }
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function compileShader(src, type) {
+                const s = gl.createShader(type);
+                gl.shaderSource(s, src);
+                gl.compileShader(s);
+                return s;
+            }
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, compileShader(GL_TEXTURE_VIEWER_SHADERS.vertex, gl.VERTEX_SHADER));
+            gl.attachShader(program, compileShader(GL_TEXTURE_VIEWER_SHADERS.fragment, gl.FRAGMENT_SHADER));
+            gl.linkProgram(program);
+            gl.useProgram(program);
+
+            const vertices = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            
+            const pLoc = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(pLoc);
+            gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
+
+            const resLoc = gl.getUniformLocation(program, "uResolution");
+            const timeLoc = gl.getUniformLocation(program, "uTime");
+            const camRotLoc = gl.getUniformLocation(program, "uCameraRot");
+
+            let isDragging = false;
+            let rotX = 0.6, rotY = 0.3;
+            let targetRotX = 0.6, targetRotY = 0.3;
+            let prevX = 0, prevY = 0;
+
+            window.addEventListener('mousedown', (e) => {
+                isDragging = true; prevX = e.clientX; prevY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dX = e.clientX - prevX;
+                const dY = e.clientY - prevY;
+                targetRotX += dX * 0.005;
+                targetRotY += dY * 0.005;
+                targetRotY = Math.max(-1.4, Math.min(1.4, targetRotY));
+                prevX = e.clientX; prevY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            function loop(now) {
+                rotX += (targetRotX - rotX) * 0.15;
+                rotY += (targetRotY - rotY) * 0.15;
+
+                gl.uniform2f(resLoc, canvas.width, canvas.height);
+                gl.uniform1f(timeLoc, now * 0.001);
+                gl.uniform2f(camRotLoc, rotX, rotY); 
+
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        });
+    </script>
+</body>
+</html>

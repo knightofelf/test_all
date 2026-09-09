@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>비닐하우스 재해 시뮬레이터</title>
+  <style>
+    canvas { background: #eef; display:block; margin:auto; }
+  </style>
+</head>
+<body>
+  <h2>비닐하우스 재해 시뮬레이터</h2>
+  <label>바람 세기: <input type="range" id="wind" min="0" max="100"></label>
+  <canvas id="sim" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+    const windInput = document.getElementById("wind");
+
+    function drawHouse(wind) {
+      ctx.clearRect(0,0,600,400);
+      ctx.fillStyle = "green";
+      ctx.fillRect(200,200,200,100); // 본체
+      ctx.beginPath();
+      ctx.moveTo(200,200);
+      ctx.lineTo(300+wind/5,150); // 바람에 따라 지붕 흔들림
+      ctx.lineTo(400,200);
+      ctx.closePath();
+      ctx.fillStyle = "lightgray";
+      ctx.fill();
+    }
+
+    function animate() {
+      let wind = windInput.value;
+      drawHouse(wind);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

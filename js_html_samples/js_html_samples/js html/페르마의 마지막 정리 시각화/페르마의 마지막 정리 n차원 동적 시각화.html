@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>페르마의 마지막 정리 n차원 동적 시각화</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 10px; color: #0f172a; }
+        .formula {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 15px 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .control-panel {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        label { font-weight: 600; font-size: 16px; display: block; margin-bottom: 8px; }
+        input[type="range"] { width: 80%; max-width: 300px; cursor: pointer; }
+        .status-text { font-size: 15px; font-weight: 500; margin: 10px 0; color: #475569; }
+        .solution-status { font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+        .possible { background-color: #dcfce7; color: #166534; }
+        .impossible { background-color: #fee2e2; color: #991b1b; }
+        canvas {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background-color: #fafafa;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>페7르마의 마지막 정리 동적 시각화</h1>
+        <p style="color: #64748b; margin-top: 0;">슬라이더를 움직여 지수 n의 변화에 따른 공간의 형태를 확인하세요.</p>
+        
+        <div class="control-panel">
+            <label for="nSlider">차원 지수 (n) = <span id="nValue" style="color:#2563eb; font-size:20px;">2</span></label>
+            <input type="range" id="nSlider" min="1" max="5" step="1" value="2">
+        </div>
+
+        <div class="formula" id="formulaText">x² + y² = z²</div>
+        <div class="status-text" id="statusText">정수해 상태: <span class="solution-status possible">존재함</span></div>
+
+        <canvas id="renderCanvas" width="500" height="400"></canvas>
+    </div>
+
+    <script>
+        const slider = document.getElementById('nSlider');
+        const nValueSpan = document.getElementById('nValue');
+        const formulaText = document.getElementById('formulaText');
+        const statusText = document.getElementById('statusText');
+        const canvas = document.getElementById('renderCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 슬라이더 이벤트 리스너
+        slider.addEventListener('input', (e) => {
+            const n = parseInt(e.target.value);
+            nValueSpan.textContent = n;
+            updateUI(n);
+            drawGeometry(n);
+        });
+
+        // UI 텍스트 업데이트
+        function updateUI(n) {
+            // 수식 변경
+            if (n === 1) {
+                formulaText.innerHTML = "x¹ + y¹ = z¹";
+                statusText.innerHTML = '정수해 상태: <span class="solution-status possible">존재 (선형 결합: 무수히 많음)</span>';
+            } else if (n === 2) {
+                formulaText.innerHTML = "x² + y² = z²";
+                statusText.innerHTML = '정수해 상태: <span class="solution-status possible">존재 (피타고라스 수: 3²+4²=5² 등)</span>';
+            } else {
+                const superScript = ['³', '⁴', '⁵'][n-3] || '^' + n;
+                formulaText.innerHTML = `x${superScript} + y${superScript} = z${superScript}`;
+                statusText.innerHTML = `정수해 상태: <span class="solution-status impossible">존재하지 않음 (페르마의 정리 증명됨)</span>`;
+            }
+        }
+
+        // 3D 등각 투영 (n=3 이상용)
+        function project(x, y, z, sizeScale = 1) {
+            const isoX = (x - y) * Math.cos(Math.PI / 6) * sizeScale;
+            const isoY = (x + y) * Math.sin(Math.PI / 6) * sizeScale - z * sizeScale;
+            return { x: isoX, y: isoY };
+        }
+
+        // 메인 그리기 함수
+        function drawGeometry(n) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            if (n === 1) {
+                // --- 1차원: 선형 길이 합 ---
+                ctx.strokeStyle = '#2563eb'; // X
+                ctx.beginPath(); ctx.moveTo(50, cy); ctx.lineTo(200, cy); ctx.stroke();
+                
+                ctx.strokeStyle = '#dc2626'; // Y
+                ctx.beginPath(); ctx.moveTo(200, cy); ctx.lineTo(400, cy); ctx.stroke();
+
+                ctx.strokeStyle = '#16a34a'; // Z
+                ctx.beginPath(); ctx.moveTo(50, cy + 40); ctx.lineTo(400, cy + 40); ctx.stroke();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '14px sans-serif';
+                ctx.fillText("x 길이 (3)", 100, cy - 10);
+                ctx.fillText("y 길이 (4)", 280, cy - 10);
+                ctx.fillText("z = x + y (7) 격자가 완벽히 일치함", 140, cy + 70);
+
+            } else if (n === 2) {
+                // --- 2차원: 면적 (정사각형 격자) ---
+                const scale = 20;
+                const ox = cx - 40, oy = cy + 40;
+
+                // x^2 사각형 (파랑)
+                ctx.fillStyle = 'rgba(37, 99, 235, 0.4)';
+                ctx.strokeStyle = '#2563eb';
+                ctx.fillRect(ox, oy, 3*scale, 3*scale);
+                ctx.strokeRect(ox, oy, 3*scale, 3*scale);
+
+                // y^2 사각형 (빨강)
+                ctx.fillStyle = 'rgba(220, 38, 38, 0.4)';
+                ctx.strokeStyle = '#dc2626';
+                ctx.fillRect(ox - 4*scale, oy - 4*scale, 4*scale, 4*scale);
+                ctx.strokeRect(ox - 4*scale, oy - 4*scale, 4*scale, 4*scale);
+
+                // z^2 사각형 (초록 - 기울어짐)
+                ctx.fillStyle = 'rgba(22, 163, 74, 0.3)';
+                ctx.strokeStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.moveTo(ox + 3*scale, oy);
+                ctx.lineTo(ox + 3*scale + 4*scale, oy - 3*scale);
+                ctx.lineTo(ox + 4*scale, oy - 7*scale);
+                ctx.lineTo(ox, oy - 4*scale);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '14px sans-serif';
+                ctx.fillText("x² (9개 격자)", ox + 15, oy + 35);
+                ctx.fillText("y² (16개 격자)", ox - 70, oy - 40);
+                ctx.fillText("z² (25개 격자)", ox + 50, oy - 60);
+
+            } else if (n === 3) {
+                // --- 3차원: 부피 (정육面체 조합) ---
+                drawCubeGrid(cx - 130, cy + 20, 40, 'rgba(37, 99, 235, 0.6)', '#1d4ed8'); // X^3
+                drawCubeGrid(cx + 40, cy + 40, 55, 'rgba(220, 38, 38, 0.6)', '#b91c1c'); // Y^3
+                
+                ctx.fillStyle = '#475569';
+                ctx.font = '14px sans-serif';
+                ctx.fillText("두 정수 부피(x³+y³)를 아무리 재조합해도", cx - 120, cy + 130);
+                ctx.fillText("새로운 정수 변을 가진 정육면체 z³를 채울 수 없음", cx - 140, cy + 150);
+
+            } else {
+                // --- n >= 4: 고차원 초공간 초부피 (개념적 차원 중첩 격자) ---
+                ctx.save();
+                ctx.translate(cx, cy);
+                
+                // 고차원 하이퍼큐브의 그림자/투영을 표현하기 위해 회전 및 중첩 사각형 배치
+                for (let i = 0; i < n * 3; i++) {
+                    ctx.rotate((Math.PI * 2) / (n * 3));
+                    ctx.strokeStyle = `rgba(147, 51, 234, ${0.9 - (i*0.05)})`; // 보라색 테마
+                    ctx.fillStyle = 'rgba(147, 51, 234, 0.02)';
+                    
+                    const size = 120 - (i * 8);
+                    ctx.strokeRect(-size/2, -size/2, size, size);
+                    ctx.fillRect(-size/2, -size/2, size, size);
+                }
+                ctx.restore();
+
+                ctx.fillStyle = '#7c3aed';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.fillText(`${n}차원 공간 분할 (Hyper-space)`, cx - 90, cy + 120);
+                ctx.fillStyle = '#475569';
+                ctx.font = '13px sans-serif';
+                ctx.fillText("고차원 격자점(Grid Points) 간의 거리가 멀어져", cx - 125, cy + 145);
+                ctx.fillText("거듭제곱 합이 정확히 정수점이 될 확률이 0이 됩니다.", cx - 140, cy + 165);
+            }
+        }
+
+        // n=3 정육면체 그리기 헬퍼 함수
+        function drawCubeGrid(bx, by, size, fillColor, strokeColor) {
+            const v = [
+                project(0, 0, 0, size), project(1, 0, 0, size), project(1, 1, 0, size), project(0, 1, 0, size),
+                project(0, 0, 1, size), project(1, 0, 1, size), project(1, 1, 1, size), project(0, 1, 1, size)
+            ];
+            v.forEach(pt => { pt.x += bx; pt.y += by; });
+
+            ctx.strokeStyle = strokeColor;
+            
+            // 왼쪽면
+            ctx.fillStyle = fillColor;
+            ctx.beginPath(); ctx.moveTo(v[0].x, v[0].y); ctx.lineTo(v[3].x, v[3].y); ctx.lineTo(v[7].x, v[7].y); ctx.lineTo(v[4].x, v[4].y); ctx.closePath(); ctx.fill(); ctx.stroke();
+            // 오른쪽면
+            ctx.beginPath(); ctx.moveTo(v[1].x, v[1].y); ctx.lineTo(v[2].x, v[2].y); ctx.lineTo(v[6].x, v[6].y); ctx.lineTo(v[5].x, v[5].y); ctx.closePath(); ctx.fill(); ctx.stroke();
+            // 윗면
+            ctx.beginPath(); ctx.moveTo(v[4].x, v[4].y); ctx.lineTo(v[5].x, v[5].y); ctx.lineTo(v[6].x, v[6].y); ctx.lineTo(v[7].x, v[7].y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+
+        // 초기 화면 렌더링
+        updateUI(2);
+        drawGeometry(2);
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>미니언 목소리 테스트</title>
+</head>
+<body>
+  <h2>미니언 목소리 만들기</h2>
+  <input type="file" id="fileInput" accept="audio/*">
+  <button id="playBtn">재생</button>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const playBtn = document.getElementById('playBtn');
+
+    let audioContext;
+    let source;
+
+    playBtn.addEventListener('click', async () => {
+      if (!fileInput.files[0]) {
+        alert("오디오 파일을 선택하세요!");
+        return;
+      }
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const file = fileInput.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      // 피치와 속도 조절 (미니언 느낌: 빠르고 높게)
+      source.playbackRate.value = 1.5; // 1.0이 기본, 높일수록 빠르고 높음
+
+      source.connect(audioContext.destination);
+      source.start();
+    });
+  </script>
+</body>
+</html>

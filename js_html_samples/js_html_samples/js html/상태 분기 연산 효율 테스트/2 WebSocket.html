@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <button onclick="connect()">WebSocket 연결</button>
+  <button onclick="sendMsg()">메시지 보내기</button>
+  <pre id="output"></pre>
+
+  <script>
+    let socket;
+    function connect() {
+      socket = new WebSocket("ws://localhost:3000"); // 서버 필요
+      socket.onopen = () => document.getElementById("output").innerText = "연결됨";
+      socket.onmessage = (e) => document.getElementById("output").innerText = "서버 응답: " + e.data;
+    }
+    function sendMsg() {
+      socket.send("안녕하세요 서버!");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<h3>공진기-스핀 메모리</h3>
+<select id="spinState">
+  <option>|0⟩</option>
+  <option>|1⟩</option>
+  <option>|+⟩</option>
+  <option>|-⟩</option>
+</select>
+<button onclick="storeSpin()">저장</button>
+<button onclick="readSpin()">읽기</button>
+<p id="spinOutput"></p>
+
+<script>
+  let spinMemory = [];
+
+  function storeSpin() {
+    let state = document.getElementById("spinState").value;
+    spinMemory.push(state);
+    document.getElementById("spinOutput").innerText = "저장됨: " + state;
+  }
+
+  function readSpin() {
+    if (spinMemory.length > 0) {
+      let state = spinMemory.pop(); // LIFO 방식
+      document.getElementById("spinOutput").innerText = "읽음: " + state;
+    } else {
+      document.getElementById("spinOutput").innerText = "메모리 비어있음";
+    }
+  }
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>고해상도 피처 맵</title>
+  <style>
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(16, 20px); /* 16x16 고해상도 */
+      gap: 2px;
+    }
+    .cell {
+      width: 20px;
+      height: 20px;
+      background-color: lightblue;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h2>고해상도 피처 맵 시각화</h2>
+  <div class="grid" id="featureMap"></div>
+
+  <script>
+    const grid = document.getElementById("featureMap");
+    const size = 16 * 16; // 16x16 고해상도 맵
+    for (let i = 0; i < size; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      // 랜덤 색상으로 특징 강조
+      const intensity = Math.floor(Math.random() * 255);
+      cell.style.backgroundColor = `rgb(${intensity}, ${200-intensity}, ${255-intensity})`;
+      grid.appendChild(cell);
+    }
+  </script>
+</body>
+</html>

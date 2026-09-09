@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Inverse Bit 1D 압축 확장 데모</title>
+</head>
+<body>
+  <h2>Inverse Bit 1D 압축 확장 데모</h2>
+  <button onclick="runDemo()">1MB 랜덤 데이터 압축하기</button>
+
+  <h3>결과</h3>
+  <pre id="output"></pre>
+
+  <script>
+    // 랜덤 비트열 생성
+    function generateRandomBits(size) {
+      let bits = "";
+      for (let i = 0; i < size; i++) {
+        bits += Math.random() < 0.5 ? "0" : "1";
+      }
+      return bits;
+    }
+
+    // 인버스 비트 1D 압축
+    function compressBits(bits) {
+      let changes = [];
+      for (let i = 1; i < bits.length; i++) {
+        if (bits[i] !== bits[i-1]) {
+          changes.push(i);
+        }
+      }
+      const lastValue = bits[bits.length-1];
+      const compressedLength = changes.length + 1;
+      const ratio = bits.length / compressedLength;
+      return {changes: changes.length, lastValue, compressedLength, ratio};
+    }
+
+    function runDemo() {
+      const totalSize = 1024 * 1024; // 1MB = 1,048,576 bytes → 여기서는 1MB 비트로 단순화
+      const blockSize = 100 * 8; // 100바이트 = 800비트
+      const blocks = totalSize / blockSize;
+
+      let totalRatio = 0;
+      let output = "";
+
+      for (let b = 0; b < blocks; b++) {
+        const bits = generateRandomBits(blockSize);
+        const result = compressBits(bits);
+        totalRatio += result.ratio;
+        output += `블록 ${b+1}: 변화=${result.changes}, 압축길이=${result.compressedLength}, 압축률=${result.ratio.toFixed(2)}배\n`;
+      }
+
+      const avgRatio = totalRatio / blocks;
+      output += `\n전체 평균 압축률: ${avgRatio.toFixed(2)}배`;
+
+      document.getElementById("output").innerText = output;
+    }
+  </script>
+</body>
+</html>

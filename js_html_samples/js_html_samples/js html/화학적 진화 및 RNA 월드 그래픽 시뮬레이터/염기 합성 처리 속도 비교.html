@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>염기 합성 처리 속도 비교</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; }
+    .output { margin-top: 15px; padding: 10px; border: 1px solid #ccc; }
+    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>염기 합성 처리 속도 비교</h1>
+  <p>자연 상태(1000년) vs 효소 촉매(0.01초)</p>
+  <button onclick="calculate()">계산하기</button>
+  <div id="result" class="output"></div>
+
+  <script>
+    function calculate() {
+      // 1000년을 초로 변환
+      const years = 1000;
+      const secondsInYear = 365 * 24 * 60 * 60;
+      const totalSeconds = years * secondsInYear; // 31,536,000,000초
+
+      // 비교 대상: 0.01초
+      const fastProcess = 0.01;
+
+      // 비율 계산
+      const ratio = totalSeconds / fastProcess;
+
+      // 결과 출력
+      document.getElementById("result").innerHTML =
+        "1000년 = " + totalSeconds.toLocaleString() + "초<br>" +
+        "0.01초와 비교 → 약 " + ratio.toExponential(2) + " 배 빠름";
+    }
+  </script>
+</body>
+</html>

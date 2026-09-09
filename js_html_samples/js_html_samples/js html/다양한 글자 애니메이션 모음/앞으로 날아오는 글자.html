@@ -1,0 +1,32 @@
+<style>
+  .fly span {
+    display: inline-block;
+    transform: translateZ(-500px) scale(0.5);
+    opacity: 0;
+    transition: transform 1s ease, opacity 1s ease;
+  }
+  .fly span.show {
+    transform: translateZ(0) scale(1);
+    opacity: 1;
+  }
+</style>
+
+<h1 class="fly">앞으로 날아오는 글자</h1>
+
+<script>
+  const flyText = document.querySelector(".fly");
+  const letters = flyText.textContent.split("");
+  flyText.textContent = "";
+  letters.forEach(l => {
+    const span = document.createElement("span");
+    span.textContent = l;
+    flyText.appendChild(span);
+  });
+
+  let j = 0;
+  setInterval(() => {
+    const span = flyText.querySelectorAll("span")[j];
+    if (span) span.classList.add("show");
+    j++;
+  }, 150);
+</script>

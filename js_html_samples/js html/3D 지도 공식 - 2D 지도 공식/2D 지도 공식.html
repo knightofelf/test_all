@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>2D 거리 계산</title>
+</head>
+<body>
+  <h2>2D 거리 계산기</h2>
+  <label>x1: <input id="x1" type="number"></label>
+  <label>y1: <input id="y1" type="number"></label><br><br>
+  <label>x2: <input id="x2" type="number"></label>
+  <label>y2: <input id="y2" type="number"></label><br><br>
+  <button onclick="calc2D()">계산</button>
+  <p id="result2D"></p>
+
+  <script>
+    function calc2D() {
+      let x1 = parseFloat(document.getElementById("x1").value);
+      let y1 = parseFloat(document.getElementById("y1").value);
+      let x2 = parseFloat(document.getElementById("x2").value);
+      let y2 = parseFloat(document.getElementById("y2").value);
+
+      let d = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+      document.getElementById("result2D").innerText = "2D 거리: " + d.toFixed(2);
+    }
+  </script>
+</body>
+</html>

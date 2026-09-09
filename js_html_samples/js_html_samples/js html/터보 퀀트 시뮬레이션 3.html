@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>TurboQuant Demo</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .box { margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h2>터보퀀트 시뮬레이션 (JS + HTML)</h2>
+  <button onclick="runTurboQuant()">실행하기</button>
+  
+  <div class="box" id="original"></div>
+  <div class="box" id="rotated"></div>
+  <div class="box" id="quantized"></div>
+  <div class="box" id="packed"></div>
+  <div class="box" id="decompressed"></div>
+  <div class="box" id="mse"></div>
+  
+  <script>
+    // 간단한 회전 함수 (랜덤 직교 행렬 대신 임시 변환)
+    function rotate(arr) {
+      return arr.map((v, i) => v * Math.cos(i) - v * Math.sin(i));
+    }
+
+    // 양자화
+    function quantize(arr, bits=3) {
+      const levels = Math.pow(2, bits);
+      const minVal = Math.min(...arr);
+      const maxVal = Math.max(...arr);
+      const compressed = arr.map(v => Math.round(((v - minVal) / (maxVal - minVal)) * (levels - 1)));
+      return { compressed, minVal, maxVal, bits };
+    }
+
+    // 비트 패킹 (간단히 문자열로 표현)
+    function packBits(compressed, bits) {
+      return compressed.map(v => v.toString(2).padStart(bits, "0")).join(" ");
+    }
+
+    // 복원
+    function dequantize(data) {
+      const { compressed, minVal, maxVal, bits } = data;
+      const levels = Math.pow(2, bits);
+      return compressed.map(q => (q / (levels - 1)) * (maxVal - minVal) + minVal);
+    }
+
+    // 평균 제곱 오차
+    function mse(original, decompressed) {
+      let sum = 0;
+      for (let i = 0; i < original.length; i++) {
+        sum += Math.pow(original[i] - decompressed[i], 2);
+      }
+      return (sum / original.length).toFixed(4);
+    }
+
+    function runTurboQuant() {
+      const data = Array.from({length: 10}, () => Math.random() * 100);
+      const rotated = rotate(data);
+      const quantized = quantize(rotated, 3);
+      const packed = packBits(quantized.compressed, 3);
+      const decompressed = dequantize(quantized);
+      const error = mse(rotated, decompressed);
+
+      document.getElementById("original").innerText = "원본 데이터: " + data.map(v => v.toFixed(2)).join(", ");
+      document.getElementById("rotated").innerText = "회전 벡터: " + rotated.map(v => v.toFixed(2)).join(", ");
+      document.getElementById("quantized").innerText = "양자화(3비트): " + quantized.compressed.join(", ");
+      document.getElementById("packed").innerText = "비트 패킹: " + packed;
+      document.getElementById("decompressed").innerText = "복원 데이터: " + decompressed.map(v => v.toFixed(2)).join(", ");
+      document.getElementById("mse").innerText = "평균 제곱 오차(MSE): " + error;
+    }
+  </script>
+</body>
+</html>

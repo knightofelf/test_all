@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>(x+1)/(x-1))^x 시각화</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>( (x+1)/(x-1) )^x 그래프</h2>
+  <canvas id="myChart" width="600" height="400"></canvas>
+
+  <script>
+    const xs = [];
+    const ys = [];
+
+    for (let x = 2; x <= 200; x++) { // x=1은 분모가 0이므로 제외
+      xs.push(x);
+      ys.push(Math.pow((x+1)/(x-1), x));
+    }
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: xs,
+        datasets: [{
+          label: '((x+1)/(x-1))^x',
+          data: ys,
+          borderColor: 'red',
+          fill: false
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

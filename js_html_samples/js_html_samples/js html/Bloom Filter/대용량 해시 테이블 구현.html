@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>대용량 해시 테이블</title>
+</head>
+<body>
+  <h2>대용량 해시 테이블 구현</h2>
+  <button onclick="insertMany()">대량 데이터 삽입</button>
+  <button onclick="checkEfficiency()">효율 확인</button>
+  <pre id="output"></pre>
+
+  <script>
+    class HashTable {
+      constructor(size = 8) {
+        this.table = new Array(size);
+        this.itemCount = 0;
+      }
+
+      hash(key) {
+        let hashValue = 0;
+        for (let char of key) {
+          hashValue = (hashValue * 31 + char.charCodeAt(0)) % this.table.length;
+        }
+        return hashValue;
+      }
+
+      set(key, value) {
+        const index = this.hash(key);
+        if (!this.table[index]) this.table[index] = [];
+        // 중복 키 처리
+        for (let pair of this.table[index]) {
+          if (pair[0] === key) {
+            pair[1] = value;
+            return;
+          }
+        }
+        this.table[index].push([key, value]);
+        this.itemCount++;
+
+        // 로드 팩터가 0.75 이상이면 리사이징
+        if (this.itemCount / this.table.length > 0.75) {
+          this.resize(this.table.length * 2);
+        }
+      }
+
+      get(key) {
+        const index = this.hash(key);
+        const bucket = this.table[index];
+        if (!bucket) return null;
+        for (let [storedKey, storedValue] of bucket) {
+          if (storedKey === key) return storedValue;
+        }
+        return null;
+      }
+
+      resize(newSize) {
+        const oldTable = this.table;
+        this.table = new Array(newSize);
+        this.itemCount = 0;
+        for (let bucket of oldTable) {
+          if (bucket) {
+            for (let [key, value] of bucket) {
+              this.set(key, value);
+            }
+          }
+        }
+      }
+
+      efficiency() {
+        let collisions = 0;
+        let usedBuckets = 0;
+        for (let bucket of this.table) {
+          if (bucket) {
+            usedBuckets++;
+            if (bucket.length > 1) collisions += (bucket.length - 1);
+          }
+        }
+        const loadFactor = this.itemCount / this.table.length;
+        const efficiency = ((this.itemCount - collisions) / this.itemCount) * 100;
+        return { items: this.itemCount, buckets: usedBuckets, collisions, loadFactor, efficiency };
+      }
+    }
+
+    const hashTable = new HashTable();
+
+    function insertMany() {
+      for (let i = 0; i < 10000; i++) {
+        hashTable.set("key" + i, "value" + i);
+      }
+      document.getElementById('output').textContent = "대량 데이터 삽입 완료!";
+    }
+
+    function checkEfficiency() {
+      const stats = hashTable.efficiency();
+      document.getElementById('output').textContent =
+        `총 아이템 수: ${stats.items}\n` +
+        `버킷 수: ${stats.buckets}\n` +
+        `충돌 수: ${stats.collisions}\n` +
+        `로드 팩터: ${stats.loadFactor.toFixed(2)}\n` +
+        `효율: ${stats.efficiency.toFixed(2)}%`;
+    }
+  </script>
+</body>
+</html>

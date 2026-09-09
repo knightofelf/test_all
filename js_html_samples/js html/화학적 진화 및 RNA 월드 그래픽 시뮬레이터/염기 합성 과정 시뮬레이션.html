@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>염기 합성 과정 시뮬레이션</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; }
+    .process { margin: 20px 0; }
+    button { margin: 5px; padding: 8px 12px; cursor: pointer; }
+    .output { margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>염기 합성 과정 시뮬레이션</h1>
+
+  <div class="process">
+    <h2>퓨린 합성</h2>
+    <button onclick="simulatePurine()">과정 출력</button>
+    <div id="purineOutput" class="output"></div>
+  </div>
+
+  <div class="process">
+    <h2>피리미딘 합성</h2>
+    <button onclick="simulatePyrimidine()">과정 출력</button>
+    <div id="pyrimidineOutput" class="output"></div>
+  </div>
+
+  <div class="process">
+    <h2>1000년 vs 0.01초 처리 속도</h2>
+    <button onclick="calculateSpeed()">계산하기</button>
+    <div id="speedOutput" class="output"></div>
+  </div>
+
+  <script>
+    function simulatePurine() {
+      const steps = [
+        "리보스-5-인산 → PRPP",
+        "글루타민 질소 첨가",
+        "글리신 결합",
+        "포름산(THF) 첨가",
+        "아스파르트산 질소 첨가",
+        "고리 형성 → IMP",
+        "IMP → AMP 또는 GMP"
+      ];
+      document.getElementById("purineOutput").innerHTML = steps.join("<br>");
+    }
+
+    function simulatePyrimidine() {
+      const steps = [
+        "글루타민 + CO₂ + ATP → 카바모일 인산",
+        "아스파르트산 결합 → 카바모일 아스파르트산",
+        "고리 닫힘 → 디히드로오로트산",
+        "산화 → 오로트산",
+        "오로트산 + PRPP → OMP",
+        "OMP → UMP",
+        "UMP → CMP, TMP"
+      ];
+      document.getElementById("pyrimidineOutput").innerHTML = steps.join("<br>");
+    }
+
+    function calculateSpeed() {
+      const years = 1000;
+      const secondsInYear = 365 * 24 * 60 * 60;
+      const totalSeconds = years * secondsInYear; // 31,536,000,000초
+      const fastProcess = 0.01;
+      const ratio = totalSeconds / fastProcess;
+
+      document.getElementById("speedOutput").innerHTML =
+        "1000년 = " + totalSeconds.toLocaleString() + "초<br>" +
+        "0.01초와 비교 → 약 " + ratio.toExponential(2) + " 배 빠름";
+    }
+  </script>
+</body>
+</html>

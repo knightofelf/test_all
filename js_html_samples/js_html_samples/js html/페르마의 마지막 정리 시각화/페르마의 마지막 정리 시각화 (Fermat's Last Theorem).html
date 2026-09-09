@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>페르마의 마지막 정리 시각화 (Fermat's Last Theorem)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f6fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .description { color: #7f8c8d; max-width: 800px; text-align: center; margin-bottom: 20px; line-height: 1.6; }
+        .canvas-container {
+            display: flex;
+            gap: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .canvas-box { text-align: center; }
+        canvas { border: 1px solid #e2e8f0; border-radius: 6px; background-color: #fafafa; }
+        h3 { color: #34495e; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>페르마의 마지막 정리 시각화</h1>
+    <p class="description">
+        <b>n=2 (피타고라스 정리)</b>일 때는 제곱(넓이)의 격자가 딱 맞아떨어지는 정수해(3²+4²=5²)가 존재합니다.<br>
+        반면 <b>n=3 (페르마의 정리)</b>일 때는 두 정수 정육면체의 부피(x³+y³)를 합쳐서 완벽한 하나의 정수 정육면체(z³)를 만들 수 없습니다.
+    </p>
+
+    <div class="canvas-container">
+        <!-- n=2 피타고라스 -->
+        <div class="canvas-box">
+            <h3>n = 2 (정수해 존재)</h3>
+            <canvas id="canvas2d" width="400" height="400"></canvas>
+        </div>
+        
+        <!-- n=3 페르마 -->
+        <div class="canvas-box">
+            <h3>n = 3 (정수해 불가능)</h3>
+            <canvas id="canvas3d" width="450" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. n=2 피타고라스 정리 시각화 (2D Canvas)
+        // ==========================================
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx2 = canvas2d.getContext('2d');
+
+        function drawPythagoras() {
+            const scale = 25;
+            const offsetX = 100;
+            const offsetY = 250;
+
+            // 직각삼각형 좌표 (3, 4, 5)
+            const x1 = offsetX, y1 = offsetY;
+            const x2 = offsetX + 3 * scale, y2 = offsetY;
+            const x3 = offsetX, y3 = offsetY - 4 * scale;
+
+            // 1. x^2 정사각형 (아래쪽, 3x3)
+            ctx2.fillStyle = 'rgba(52, 152, 219, 0.6)';
+            ctx2.strokeStyle = '#2980b9';
+            ctx2.lineWidth = 2;
+            ctx2.fillRect(offsetX, offsetY, 3 * scale, 3 * scale);
+            ctx2.strokeRect(offsetX, offsetY, 3 * scale, 3 * scale);
+            
+            // 2. y^2 정사각형 (왼쪽, 4x4)
+            ctx2.fillStyle = 'rgba(231, 76, 60, 0.6)';
+            ctx2.strokeStyle = '#c0392b';
+            ctx2.fillRect(offsetX - 4 * scale, offsetY - 4 * scale, 4 * scale, 4 * scale);
+            ctx2.strokeRect(offsetX - 4 * scale, offsetY - 4 * scale, 4 * scale, 4 * scale);
+
+            // 3. z^2 정사각형 (빗변 위, 5x5 기울어진 사각형)
+            ctx2.fillStyle = 'rgba(46, 204, 113, 0.5)';
+            ctx2.strokeStyle = '#27ae60';
+            ctx2.beginPath();
+            ctx2.moveTo(x2, y2);
+            ctx2.lineTo(x2 + 4 * scale, y2 - 3 * scale);
+            ctx2.lineTo(x3 + 4 * scale, y3 - 3 * scale);
+            ctx2.lineTo(x3, y3);
+            ctx2.closePath();
+            ctx2.fill();
+            ctx2.stroke();
+
+            // 중심 직각삼각형 그리기
+            ctx2.strokeStyle = '#000';
+            ctx2.lineWidth = 3;
+            ctx2.beginPath();
+            ctx2.moveTo(x1, y1);
+            ctx2.lineTo(x2, y2);
+            ctx2.lineTo(x3, y3);
+            ctx2.closePath();
+            ctx2.stroke();
+
+            // 텍스트 라벨링
+            ctx2.fillStyle = '#2c3e50';
+            ctx2.font = 'bold 14px sans-serif';
+            ctx2.fillText('3² = 9', offsetX + 25, offsetY + 45);
+            ctx2.fillText('4² = 16', offsetX - 65, offsetY - 45);
+            ctx2.fillText('5² = 25', offsetX + 60, offsetY - 60);
+            ctx2.fillText('3² + 4² = 5²', 150, 380);
+        }
+
+        // ==========================================
+        // 2. n=3 페르마의 정리 시각화 (Isometric 3D)
+        // ==========================================
+        const canvas3d = document.getElementById('canvas3d');
+        const ctx3 = canvas3d.getContext('2d');
+
+        // 등각 투영 변환 함수 (3D 좌표 -> 2D 화면 좌표)
+        function project(x, y, z) {
+            const isoX = (x - y) * Math.cos(Math.PI / 6);
+            const isoY = (x + y) * Math.sin(Math.PI / 6) - z;
+            return { x: isoX, y: isoY };
+        }
+
+        // 입체 정육면체(Cube) 그리기 함수
+        function drawCube(cx, cy, size, color, label) {
+            const vertices = [
+                project(0, 0, 0), project(size, 0, 0), project(size, size, 0), project(0, size, 0),
+                project(0, 0, size), project(size, 0, size), project(size, size, size), project(0, size, size)
+            ];
+
+            // 좌표에 마진 오프셋 더하기
+            vertices.forEach(v => { v.x += cx; v.y += cy; });
+
+            // 면 색상 정의 (입체감을 위해 명도 조절)
+            const colors = {
+                top: color.top,
+                left: color.left,
+                right: color.right
+            };
+
+            // 1. 왼쪽 면 (0, 3, 7, 4)
+            ctx3.fillStyle = colors.left;
+            ctx3.beginPath();
+            ctx3.moveTo(vertices[0].x, vertices[0].y);
+            ctx3.lineTo(vertices[3].x, vertices[3].y);
+            ctx3.lineTo(vertices[7].x, vertices[7].y);
+            ctx3.lineTo(vertices[4].x, vertices[4].y);
+            ctx3.closePath();
+            ctx3.fill(); ctx3.stroke();
+
+            // 2. 오른쪽 면 (1, 2, 6, 5)
+            ctx3.fillStyle = colors.right;
+            ctx3.beginPath();
+            ctx3.moveTo(vertices[1].x, vertices[1].y);
+            ctx3.lineTo(vertices[2].x, vertices[2].y);
+            ctx3.lineTo(vertices[6].x, vertices[6].y);
+            ctx3.lineTo(vertices[5].x, vertices[5].y);
+            ctx3.closePath();
+            ctx3.fill(); ctx3.stroke();
+
+            // 3. 윗면 (4, 5, 6, 7)
+            ctx3.fillStyle = colors.top;
+            ctx3.beginPath();
+            ctx3.moveTo(vertices[4].x, vertices[4].y);
+            ctx3.lineTo(vertices[5].x, vertices[5].y);
+            ctx3.lineTo(vertices[6].x, vertices[6].y);
+            ctx3.lineTo(vertices[7].x, vertices[7].y);
+            ctx3.closePath();
+            ctx3.fill(); ctx3.stroke();
+
+            // 텍스트 라벨
+            ctx3.fillStyle = '#2c3e50';
+            ctx3.font = 'bold 13px sans-serif';
+            ctx3.textAlign = 'center';
+            ctx3.fillText(label, vertices[6].x, vertices[6].y + size/2 + 15);
+        }
+
+        function drawFermatCubes() {
+            ctx3.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx3.lineWidth = 1;
+
+            // x^3 큐브 (파란색)
+            drawCube(90, 150, 50, {
+                top: '#a0c4ff', left: '#70a1ff', right: '#1e90ff'
+            }, "x³ (부피 정수)");
+
+            // 기호 '+'
+            ctx3.fillStyle = '#2c3e50';
+            ctx3.font = 'bold 24px sans-serif';
+            ctx3.fillText("+", 160, 160);
+
+            // y^3 큐브 (빨간색)
+            drawCube(230, 130, 70, {
+                top: '#ffadad', left: '#ff6b6b', right: '#ee5253'
+            }, "y³ (부피 정수)");
+
+            // 기호 '≠'
+            ctx3.fillStyle = '#2c3e50';
+            ctx3.font = 'bold 24px sans-serif';
+            ctx3.fillText("≠", 310, 160);
+
+            // z^3 큐브 (초록색 점선 느낌의 불가능 큐브)
+            drawCube(380, 170, 83, {
+                top: '#c1f0c8', left: '#a1e3ad', right: '#74d488'
+            }, "z³ (한변이 정수 불가)");
+            
+            ctx3.fillStyle = '#7f8c8d';
+            ctx3.font = '12px sans-serif';
+            ctx3.fillText("정수 두 정육면체를 더해", 225, 340);
+            ctx3.fillText("새로운 정수 정육면체 생성 불가능", 225, 360);
+        }
+
+        // 실행
+        drawPythagoras();
+        drawFermatCubes();
+    </script>
+</body>
+</html>

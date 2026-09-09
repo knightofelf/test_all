@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Syntax Highlight 압축 & 재그룹화 (pako)</title>
+<style>
+  pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  .keyword { color: #007acc; font-weight: bold; }
+  .string { color: #a31515; }
+  .number { color: #098658; }
+</style>
+</head>
+<body>
+<h2>압축 시뮬레이션 (재그룹화 + pako)</h2>
+<pre id="code">
+<span class="keyword">for</span> (let i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) {
+  console.log(<span class="string">'Hello'</span>);
+}
+</pre>
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script>
+// 1️⃣ 랜덤 문자열 1MB 생성
+function randomString(size) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < size; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+let randomData = randomString(1024 * 1024); // 1MB 랜덤 데이터
+console.log("원본 크기:", randomData.length, "bytes");
+
+// 2️⃣ 압축
+let compressed = pako.deflate(randomData, { level: 9 });
+console.log("압축 크기:", compressed.length, "bytes");
+
+// 3️⃣ 복원 검증
+let restored = pako.inflate(compressed, { to: 'string' });
+console.log("복원 성공:", restored === randomData);
+</script>
+
+
+<!-- pako 라이브러리 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script>
+// 1️⃣ 원본 데이터 추출
+const rawHTML = document.getElementById('code').innerHTML;
+
+// 2️⃣ 재그룹화: 토큰별 분류
+const groups = { keyword: [], string: [], number: [], other: [] };
+rawHTML.split(/(<[^>]+>)/g).forEach(token => {
+  if (token.includes('keyword')) groups.keyword.push(token);
+  else if (token.includes('string')) groups.string.push(token);
+  else if (token.includes('number')) groups.number.push(token);
+  else groups.other.push(token);
+});
+
+// 3️⃣ 그룹별 압축 (pako deflate)
+function compressGroup(str) {
+  const compressed = pako.deflate(str, { level: 9 });
+  return compressed.length; // 압축된 크기 반환
+}
+
+const compressedSizes = {
+  keyword: compressGroup(groups.keyword.join('')),
+  string: compressGroup(groups.string.join('')),
+  number: compressGroup(groups.number.join('')),
+  other: compressGroup(groups.other.join(''))
+};
+
+// 4️⃣ 패킷 구성
+const packet = {
+  meta: { version: 1.0, type: 'highlighted-code' },
+  sizes: compressedSizes
+};
+
+console.log("압축 패킷:", packet);
+</script>
+
+
+
+</body>
+</html>

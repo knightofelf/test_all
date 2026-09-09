@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>CPU 게이트 제어 시뮬레이션</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    .cpu {
+      width: 500px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      background: #f9f9f9;
+    }
+    .gate {
+      display: inline-block;
+      width: 80px;
+      height: 40px;
+      margin: 10px;
+      background: #ccc;
+      line-height: 40px;
+      font-weight: bold;
+      border-radius: 5px;
+      transition: background 0.5s;
+    }
+    .on { background: #4CAF50; color: white; }
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    #clock {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #2196F3;
+    }
+  </style>
+</head>
+<body>
+  <h2>CPU 게이트 제어 시뮬레이션</h2>
+  <div class="cpu">
+    <div id="gate1" class="gate">Gate1</div>
+    <div id="gate2" class="gate">Gate2</div>
+    <div id="gate3" class="gate">Gate3</div>
+    <div id="gate4" class="gate">Gate4</div>
+    <div id="clock">Clock: 0</div>
+    <div id="result">연산 결과: 대기중...</div>
+  </div>
+
+  <script>
+    let clock = 0;
+    let interval = setInterval(runCycle, 1000);
+
+    function runCycle() {
+      clock++;
+      document.getElementById("clock").textContent = "Clock: " + clock;
+
+      // 모든 게이트 초기화
+      ["gate1","gate2","gate3","gate4"].forEach(id => {
+        document.getElementById(id).classList.remove("on");
+      });
+
+      // 클럭 단계별 게이트 제어
+      if (clock % 4 === 1) {
+        document.getElementById("gate1").classList.add("on");
+        document.getElementById("result").textContent = "연산 결과: 명령어 Fetch";
+      } else if (clock % 4 === 2) {
+        document.getElementById("gate2").classList.add("on");
+        document.getElementById("result").textContent = "연산 결과: 명령어 Decode";
+      } else if (clock % 4 === 3) {
+        document.getElementById("gate3").classList.add("on");
+        document.getElementById("result").textContent = "연산 결과: Execute (연산 수행)";
+      } else {
+        document.getElementById("gate4").classList.add("on");
+        document.getElementById("result").textContent = "연산 결과: Write Back (결과 저장)";
+      }
+    }
+  </script>
+</body>
+</html>

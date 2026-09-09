@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>RGB 변형/복원 검증</title>
+  <style>
+    .logo {
+      display: grid;
+      grid-template-columns: 100px 100px;
+      grid-template-rows: 100px 100px;
+      gap: 5px;
+    }
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h3>BigInt → RGB 변형/복원 검증</h3>
+  <input id="bigVal" type="text" 
+         value="587439857094370597203475092374509843750943" 
+         size="80">
+  <button onclick="applyTransform()">변형 적용</button>
+  <button onclick="restoreTransform()">복원</button>
+
+  <div class="logo">
+    <div id="cell1" class="cell">xyY</div>
+    <div id="cell2" class="cell">Lab</div>
+    <div id="cell3" class="cell">Luv</div>
+    <div id="cell4" class="cell">HSV</div>
+  </div>
+
+  <script>
+    let extractedRGB = null; // 변형 시 추출한 원래 r,g,b 저장
+
+    function applyTransform() {
+      const val = BigInt(document.getElementById("bigVal").value);
+
+      // BigInt에서 r,g,b 추출
+      const r = Number(val % 256n);
+      const g = Number((val / 256n) % 256n);
+      const b = Number((val / 65536n) % 256n);
+
+      extractedRGB = [r,g,b]; // 저장
+
+      // 변형된 색상 계산
+      const c1 = [r,g,b];
+      const c2 = [g,b,r];
+      const c3 = [b,r,g];
+      const c4 = [(r+g)%256,(g+b)%256,(b+r)%256];
+
+      // 화면 적용
+      document.getElementById("cell1").style.background = `rgb(${c1.join(",")})`;
+      document.getElementById("cell2").style.background = `rgb(${c2.join(",")})`;
+      document.getElementById("cell3").style.background = `rgb(${c3.join(",")})`;
+      document.getElementById("cell4").style.background = `rgb(${c4.join(",")})`;
+
+      console.log("변형 적용 시 추출된 RGB:", extractedRGB);
+    }
+
+    function restoreTransform() {
+      if (!extractedRGB) {
+        console.log("먼저 변형을 적용하세요.");
+        return;
+      }
+
+      const [r,g,b] = extractedRGB;
+
+      // 복원: 원래 r,g,b를 다시 적용
+      document.getElementById("cell1").style.background = `rgb(${r},${g},${b})`;
+      document.getElementById("cell2").style.background = `rgb(${g},${b},${r})`;
+      document.getElementById("cell3").style.background = `rgb(${b},${r},${g})`;
+      document.getElementById("cell4").style.background = `rgb(${(r+g)%256},${(g+b)%256},${(b+r)%256})`;
+
+      console.log("복원된 RGB:", [r,g,b]);
+      console.log("복원 결과가 변형 시 추출한 값과 같은지:", 
+                  JSON.stringify([r,g,b]) === JSON.stringify(extractedRGB));
+    }
+  </script>
+</body>
+</html>

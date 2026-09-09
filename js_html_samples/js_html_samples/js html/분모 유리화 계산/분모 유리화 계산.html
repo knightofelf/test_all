@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>분모 유리화 계산</title>
+</head>
+<body>
+  <h2>수식 계산: 55 / (2(3√9) + 3√3 + 5)</h2>
+  <div id="result"></div>
+
+  <script>
+    // 루트 계산
+    const sqrt9 = Math.sqrt(9);   // √9 = 3
+    const sqrt3 = Math.sqrt(3);   // √3
+
+    // 분모 계산: 2*(3√9) + 3√3 + 5
+    const denominator = 2 * (3 * sqrt9) + 3 * sqrt3 + 5;
+
+    // 전체 식 계산
+    const value = 55 / denominator;
+
+    // 결과 출력
+    document.getElementById("result").innerText =
+      `계산 결과: ${value}`;
+  </script>
+</body>
+</html>

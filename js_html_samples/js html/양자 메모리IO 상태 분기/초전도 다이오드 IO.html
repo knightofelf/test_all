@@ -1,0 +1,22 @@
+<h3>초전도 다이오드 IO</h3>
+<button onclick="setDirection('forward')">Forward</button>
+<button onclick="setDirection('reverse')">Reverse</button>
+<button onclick="readDirection()">읽기</button>
+<p id="diodeOutput"></p>
+
+<script>
+  let diodeState = null;
+
+  function setDirection(dir) {
+    diodeState = dir;
+    document.getElementById("diodeOutput").innerText = "설정됨: " + dir;
+  }
+
+  function readDirection() {
+    if (diodeState) {
+      document.getElementById("diodeOutput").innerText = "현재 방향: " + diodeState;
+    } else {
+      document.getElementById("diodeOutput").innerText = "아직 설정 없음";
+    }
+  }
+</script>

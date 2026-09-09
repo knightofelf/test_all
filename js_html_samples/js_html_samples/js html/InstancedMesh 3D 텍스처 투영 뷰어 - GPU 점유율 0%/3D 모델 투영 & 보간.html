@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 모델 투영 & 보간</title>
+  <style>canvas { display:block; }</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script>
+  // 기본 장면/카메라/렌더러
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // 원 3겹 생성
+  const circles = [];
+  for (let i=1; i<=3; i++) {
+    const geometry = new THREE.CircleGeometry(i*2, 64);
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    const circle = new THREE.Mesh(geometry, material);
+    circle.rotation.x = -Math.PI/2;
+    scene.add(circle);
+    circles.push(circle);
+  }
+
+  // 3D 모델 (예시: 박스)
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(1,1,1),
+    new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+  );
+  scene.add(box);
+
+  camera.position.z = 5;
+
+  // 애니메이션 루프
+  function animate() {
+    requestAnimationFrame(animate);
+    box.rotation.x += 0.01;
+    box.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

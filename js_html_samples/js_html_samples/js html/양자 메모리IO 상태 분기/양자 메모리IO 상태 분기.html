@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quantum Memory & IO State Machine</title>
+</head>
+<body>
+  <h2>양자 메모리/IO 상태 분기</h2>
+
+  <!-- 입력 -->
+  <input type="text" id="inputData" placeholder="데이터 입력">
+  <select id="mode">
+    <option value="qd">양자점 메모리</option>
+    <option value="spin">공진기-스핀 메모리</option>
+    <option value="diode">초전도 다이오드 IO</option>
+  </select>
+  <button onclick="operate('write')">저장</button>
+  <button onclick="operate('read')">읽기</button>
+
+  <p id="output"></p>
+
+  <script>
+    // 각 모델별 메모리/상태
+    let quantumDotMemory = [];
+    let spinMemory = [];
+    let diodeState = null;
+
+    // 상태 분기 함수
+    function operate(action) {
+      let mode = document.getElementById("mode").value;
+      let data = document.getElementById("inputData").value;
+      let result = "";
+
+      switch(mode) {
+        case "qd": // 양자점 메모리
+          if (action === "write") {
+            quantumDotMemory.push(data);
+            result = "QD 저장: " + data;
+          } else {
+            result = quantumDotMemory.length > 0 ? 
+              "QD 읽음: " + quantumDotMemory.shift() : "QD 메모리 비어있음";
+          }
+          break;
+
+        case "spin": // 공진기-스핀 메모리
+          if (action === "write") {
+            spinMemory.push(data || "|0⟩");
+            result = "Spin 저장: " + (data || "|0⟩");
+          } else {
+            result = spinMemory.length > 0 ? 
+              "Spin 읽음: " + spinMemory.pop() : "Spin 메모리 비어있음";
+          }
+          break;
+
+        case "diode": // 초전도 다이오드 IO
+          if (action === "write") {
+            diodeState = data || "forward";
+            result = "Diode 방향 설정: " + diodeState;
+          } else {
+            result = diodeState ? "Diode 방향: " + diodeState : "Diode 상태 없음";
+          }
+          break;
+      }
+
+      document.getElementById("output").innerText = result;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>YUV 색공간 컬러 매핑 생성기</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; }
+        button { padding: 10px 15px; font-weight: bold; cursor: pointer; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; }
+        button:hover { background: #444; }
+        .canvas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
+        .card { background: #222; padding: 10px; border-radius: 6px; text-align: center; }
+        canvas { background: #000; width: 100%; height: auto; border: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+    <h2>🧬 YUV 색공간 시각적 시각화 컴파일러</h2>
+    <p>R, G, B 채널에 고유의 YUV 주파수를 분산 결합하여 서로 다른 입체적 그라데이션 색상을 확인합니다.</p>
+
+    <div>
+        <button onclick="generateYUVColorSpace(1024*1024)">🎲 1MB 랜덤 데이터 기반 컬러 색공간 생성</button>
+    </div>
+
+    <div class="canvas-grid">
+        <div class="card"><h3>🔴 Y 채널 공간 (오직 선형 밝기 전용)</h3><canvas id="cvsY"></canvas></div>
+        <div class="card"><h3>🟢 U 채널 공간 (청색차 위상 동기 파동)</h3><canvas id="cvsU"></canvas></div>
+        <div class="card"><h3>🔵 V 채널 공간 (적색차 위상 동기 파동)</h3><canvas id="cvsV"></canvas></div>
+    </div>
+
+<script>
+    function generateYUVColorSpace(byteSize) {
+        const srcBuf = new Uint8Array(byteSize);
+        for (let i = 0; i < byteSize; i++) srcBuf[i] = Math.floor(Math.random() * 256);
+
+        const totalPixels = Math.ceil(byteSize / 3);
+        const side = Math.ceil(Math.sqrt(totalPixels));
+        
+        const cvsY = document.getElementById('cvsY'), ctxY = cvsY.getContext('2d');
+        const cvsU = document.getElementById('cvsU'), ctxU = cvsU.getContext('2d');
+        const cvsV = document.getElementById('cvsV'), ctxV = cvsV.getContext('2d');
+        
+        cvsY.width = cvsU.width = cvsV.width = side;
+        cvsY.height = cvsU.height = cvsV.height = side;
+
+        const imgY = ctxY.createImageData(side, side), bufY = imgY.data;
+        const imgU = ctxU.createImageData(side, side), bufU = imgU.data;
+        const imgV = ctxV.createImageData(side, side), bufV = imgV.data;
+
+        for (let i = 0; i < totalPixels; i++) {
+            const p = i * 4;
+            const ratio = i / totalPixels;
+            
+            const rData = srcBuf[i * 3] || 0;
+            const gData = srcBuf[i * 3 + 1] || 0;
+            const bData = srcBuf[i * 3 + 2] || 0;
+
+            // 1) 고유 채널별 기하학 수식 베이스 계산
+            const valY = Math.floor(ratio * 255);
+            const valU = (Math.floor(128 + 90 * Math.sin(ratio * Math.PI)) & 0xF0) | (gData & 0x0F);
+            const valV = (Math.floor(128 + 90 * Math.cos(ratio * Math.PI)) & 0xF0) | (bData & 0x0F);
+
+            // 💡 [진짜 차이를 드러내는 컬러 믹싱 수식]
+            // 각 캔버스 채널 고유의 특성이 드러나도록 삼원색 채널에 가중치를 다르게 주입합니다.
+            bufY[p] = valY;     bufY[p+1] = valY * 0.3; bufY[p+2] = 255 - valY; bufY[p+3] = 255; // 어두운 청청에서 주황빛으로
+            bufU[p] = rData & 0x0F; bufU[p+1] = valU;   bufU[p+2] = 255 - valU; bufU[p+3] = 255; // 청록색 위주의 변환 벨트
+            bufV[p] = valV;     bufV[p+1] = 255 - valV; bufV[p+2] = bData & 0x0F; bufV[p+3] = 255; // 자줏빛 위주의 변환 벨트
+        }
+
+        ctxY.putImageData(imgY, 0, 0);
+        ctxU.putImageData(imgU, 0, 0);
+        ctxV.putImageData(imgV, 0, 0);
+    }
+</script>
+</body>
+</html>

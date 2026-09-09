@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>나무 겹치기 구현</title>
+  <style>
+    canvas {
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <h2>나무 두께/넓이 겹치기 예시</h2>
+  <canvas id="woodCanvas" width="400" height="200"></canvas>
+
+  <script>
+    const canvas = document.getElementById("woodCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // 첫 번째 나무 (임의 값)
+    const wood1 = { x: 50, y: 50, width: 120, height: 40, color: "saddlebrown" };
+
+    // 두 번째 나무 (임의 값, 겹치도록 위치 조정)
+    const wood2 = { x: 100, y: 70, width: 140, height: 40, color: "peru" };
+
+    // 나무 그리기 함수
+    function drawWood(wood) {
+      ctx.fillStyle = wood.color;
+      ctx.fillRect(wood.x, wood.y, wood.width, wood.height);
+    }
+
+    // 겹치는 영역 계산
+    function drawOverlap(w1, w2) {
+      const overlapX = Math.max(w1.x, w2.x);
+      const overlapY = Math.max(w1.y, w2.y);
+      const overlapW = Math.min(w1.x + w1.width, w2.x + w2.width) - overlapX;
+      const overlapH = Math.min(w1.y + w1.height, w2.y + w2.height) - overlapY;
+
+      if (overlapW > 0 && overlapH > 0) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.3)"; // 반투명 색으로 표시
+        ctx.fillRect(overlapX, overlapY, overlapW, overlapH);
+      }
+    }
+
+    // 그리기 실행
+    drawWood(wood1);
+    drawWood(wood2);
+    drawOverlap(wood1, wood2);
+  </script>
+</body>
+</html>

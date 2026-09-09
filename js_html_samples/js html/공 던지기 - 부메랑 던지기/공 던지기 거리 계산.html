@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>공 던지기 거리 계산</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    label { display: block; margin-top: 10px; }
+    input { margin-top: 5px; }
+    button { margin-top: 15px; }
+    #result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>공 던지기 거리 계산기</h1>
+  
+  <label>초기 속도 (m/s):
+    <input type="number" id="velocity" value="20">
+  </label>
+  
+  <label>던진 각도 (도):
+    <input type="number" id="angle" value="45">
+  </label>
+  
+  <button onclick="calculate()">계산하기</button>
+  
+  <div id="result"></div>
+  
+  <script>
+    function calculate() {
+      const v0 = parseFloat(document.getElementById('velocity').value);
+      const thetaDeg = parseFloat(document.getElementById('angle').value);
+      const g = 9.8; // 중력가속도
+      
+      // 각도를 라디안으로 변환
+      const theta = thetaDeg * Math.PI / 180;
+      
+      // 사거리 공식 R = v0^2 * sin(2θ) / g
+      const R = (v0 * v0 * Math.sin(2 * theta)) / g;
+      
+      document.getElementById('result').innerText = 
+        `사거리: ${R.toFixed(2)} m (초속도 ${v0} m/s, 각도 ${thetaDeg}°)`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>1^∞ 부정형 시각화</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>(1 + 1/x)^x 그래프</h2>
+  <canvas id="myChart" width="600" height="400"></canvas>
+
+  <script>
+    const xs = [];
+    const ys = [];
+
+    for (let x = 1; x <= 200; x++) {
+      xs.push(x);
+      ys.push(Math.pow(1 + 1/x, x));
+    }
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: xs,
+        datasets: [{
+          label: '(1 + 1/x)^x',
+          data: ys,
+          borderColor: 'blue',
+          fill: false
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

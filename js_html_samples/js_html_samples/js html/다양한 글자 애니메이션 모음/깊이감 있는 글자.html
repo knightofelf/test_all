@@ -1,0 +1,32 @@
+<style>
+  .depth span {
+    display: inline-block;
+    transform: translateZ(-200px);
+    opacity: 0;
+    transition: transform 0.8s ease, opacity 0.8s ease;
+  }
+  .depth span.show {
+    transform: translateZ(0);
+    opacity: 1;
+  }
+</style>
+
+<h1 class="depth">깊이감 있는 글자</h1>
+
+<script>
+  const depthText = document.querySelector(".depth");
+  const chars = depthText.textContent.split("");
+  depthText.textContent = "";
+  chars.forEach(c => {
+    const span = document.createElement("span");
+    span.textContent = c;
+    depthText.appendChild(span);
+  });
+
+  let j = 0;
+  setInterval(() => {
+    const span = depthText.querySelectorAll("span")[j];
+    if (span) span.classList.add("show");
+    j++;
+  }, 150);
+</script>

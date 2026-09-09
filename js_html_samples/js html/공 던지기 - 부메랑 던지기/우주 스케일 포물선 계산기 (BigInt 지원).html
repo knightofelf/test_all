@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우주 스케일 포물선 계산기 (BigInt 지원)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .btn-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 12px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .btn-blue { background-color: #007BFF; }
+        .btn-blue:hover { background-color: #0056b3; }
+        .btn-green { background-color: #28a745; }
+        .btn-green:hover { background-color: #218838; }
+        
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #007bff;
+            font-size: 15px;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🌌 우주 스케일 포물선 계산기</h2>
+    
+    <div class="input-group">
+        <label for="inputDistance">🎯 거리 (m) - 입력/역산용:</label>
+        <input type="text" id="inputDistance" value="3.067567567567555e+21">
+    </div>
+
+    <div class="input-group">
+        <label for="inputVelocity">⚡ 초기 속도 (m/s) - 입력/역산용:</label>
+        <input type="text" id="inputVelocity" value="173468516000">
+    </div>
+
+    <div class="input-group">
+        <label for="inputAngle">📐 던지는 각도 (도, °):</label>
+        <input type="number" id="inputAngle" value="45" min="1" max="89">
+    </div>
+
+    <hr>
+
+    <div class="btn-container">
+        <button class="btn-blue" onclick="calculateDistance()">1. 비행 거리 구하기 (속도 + 각도 기준)</button>
+        <button class="btn-green" onclick="calculateRequiredVelocity()">2. 필요한 속도 구하기 (거리 + 각도 기준)</button>
+        <button class="btn-green" onclick="calculateRequiredAngle()">3. 필요한 각도 구하기 (거리 + 속도 기준)</button>
+    </div>
+
+    <div id="resultBox" class="result-box" style="display:none;"></div>
+
+    <script>
+        const g = 9.81; // 중력 가속도
+
+        // 지수 표기법(e+) 입력을 온전한 정수 형태의 BigInt로 안전하게 변환하는 함수
+        function parseToBigInt(inputValue) {
+            const num = Number(inputValue);
+            if (isNaN(num)) return null;
+            return BigInt(num.toFixed(0));
+        }
+
+        // [추가] 1. 속도와 각도를 가지고 최종 비행 거리를 정수로 계산
+        function calculateDistance() {
+            const velocityInput = document.getElementById('inputVelocity').value;
+            const angleDegrees = parseInt(document.getElementById('inputAngle').value, 10);
+
+            const velocityBig = parseToBigInt(velocityInput);
+            const v = Number(velocityInput);
+
+            if (!velocityBig || isNaN(angleDegrees) || angleDegrees <= 0 || angleDegrees >= 90) {
+                showResult("올바른 속도와 각도를 입력해주세요.");
+                return;
+            }
+
+            const angleRadians = angleDegrees * (Math.PI / 180);
+            
+            // 거리 공식: R = (v^2 * sin(2 * theta)) / g
+            const distance = (Math.pow(v, 2) * Math.sin(2 * angleRadians)) / g;
+            const distanceBig = BigInt(distance.toFixed(0));
+
+            showResult(`📢 <b>${velocityBig.toString()} m/s</b> 속도와 <b>${angleDegrees}°</b> 각도로 던지면:<br>➡️ 날아간 거리: 약 <b>${distanceBig.toString()} m</b>`);
+        }
+
+        // 2. 필요한 '초기 속도' 계산
+        function calculateRequiredVelocity() {
+            const distanceInput = document.getElementById('inputDistance').value;
+            const angleDegrees = parseInt(document.getElementById('inputAngle').value, 10);
+
+            const targetDistanceBig = parseToBigInt(distanceInput);
+            const R = Number(distanceInput);
+
+            if (!targetDistanceBig || isNaN(angleDegrees) || angleDegrees <= 0 || angleDegrees >= 90) {
+                showResult("올바른 거리와 각도를 입력해주세요.");
+                return;
+            }
+
+            const angleRadians = angleDegrees * (Math.PI / 180);
+            const sin2Theta = Math.sin(2 * angleRadians);
+            
+            const velocity = Math.sqrt((R * g) / sin2Theta);
+            const velocityBig = BigInt(velocity.toFixed(0));
+
+            showResult(`📢 <b>${angleDegrees}°</b> 각도로 <br><b>${targetDistanceBig.toString()}m</b>를 날리려면:<br>➡️ 필요한 초기 속도: 약 <b>${velocityBig.toString()} m/s</b>`);
+        }
+
+        // 3. 필요한 '던지는 각도' 계산
+        function calculateRequiredAngle() {
+            const distanceInput = document.getElementById('inputDistance').value;
+            const velocityInput = document.getElementById('inputVelocity').value;
+
+            const targetDistanceBig = parseToBigInt(distanceInput);
+            const velocityBig = parseToBigInt(velocityInput);
+
+            const R = Number(distanceInput);
+            const v = Number(velocityInput);
+
+            if (!targetDistanceBig || !velocityBig || v <= 0) {
+                showResult("올바른 거리와 속도를 입력해주세요.");
+                return;
+            }
+
+            const sin2Theta = (R * g) / Math.pow(v, 2);
+
+            if (sin2Theta > 1) {
+                const maxDistance = Math.pow(v, 2) / g;
+                const maxDistanceBig = BigInt(maxDistance.toFixed(0));
+                showResult(`❌ 현재 속도(<b>${velocityBig.toString()} m/s</b>)로는 <br>최대 약 <b>${maxDistanceBig.toString()}m</b>까지만 던질 수 있습니다.`);
+                return;
+            }
+
+            const angle2Radians = Math.asin(sin2Theta);
+            const angle1 = (angle2Radians * (180 / Math.PI)) / 2;
+            const angle2 = 90 - angle1;
+
+            const finalAngle1 = Math.round(angle1);
+            const finalAngle2 = Math.round(angle2);
+
+            showResult(`📢 <b>${velocityBig.toString()} m/s</b> 속도로 <br><b>${targetDistanceBig.toString()}m</b>를 날리려면:<br>➡️ 필요한 각도: 약 <b>${finalAngle1}°</b> 또는 <b>${finalAngle2}°</b>`);
+        }
+
+        function showResult(text) {
+            const resultBox = document.getElementById('resultBox');
+            resultBox.style.display = "block";
+            resultBox.innerHTML = text;
+        }
+    </script>
+
+</body>
+</html>

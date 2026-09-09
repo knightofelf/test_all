@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생체 촉매 가속 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #121214;
+            color: #ffffff;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #ff922b; margin-bottom: 5px; }
+        p { color: #adb5bd; margin-top: 0; font-size: 14px; text-align: center; max-width: 600px; line-height: 1.5; }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .panel {
+            background-color: #1e1e24;
+            border: 2px solid #2b2c34;
+            border-radius: 12px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        .panel-enzyme {
+            border-color: #339af0;
+            background-color: #152238;
+        }
+        h2 { margin-top: 0; font-size: 20px; }
+        .time-badge {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background-color: #3b3d46;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .panel-enzyme .time-badge { background-color: #0b7285; color: #e3fafc; }
+        
+        .counter-box {
+            font-size: 42px;
+            font-weight: bold;
+            font-family: monospace;
+            margin: 15px 0;
+            color: #ff922b;
+        }
+        .panel-enzyme .counter-box { color: #339af0; }
+        .text-muted { color: #868e96; font-size: 18px; font-weight: normal; }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #343a40;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #ff922b;
+        }
+        .panel-enzyme .progress-bar { background-color: #339af0; }
+
+        .btn {
+            background-color: #74b816;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .btn:hover { background-color: #66a80f; transform: scale(1.03); }
+        .btn:disabled { background-color: #495057; cursor: not-allowed; transform: none; }
+
+        #speed-info {
+            margin-top: 25px;
+            font-size: 18px;
+            color: #cc5de8;
+            font-weight: bold;
+            display: none;
+            background: rgba(204, 93, 232, 0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #cc5de8;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>78,000,000년 vs 0.018초 체감 시뮬레이터</h1>
+    <p>오로티딘 5-인산 탈탄산효소가 없을 때와 있을 때, 동일한 10,000개의 분자가 생체 대사 반응을 마치는 속도를 시뮬레이션합니다.</p>
+
+    <button id="run-btn" class="btn">대사 반응 가동시작</button>
+    <div id="speed-info">🚀 효소의 주머니 촉매 효과로 인해 속도가 약 1,366억 배(1.36×10¹¹ 배) 빨라졌습니다!</div>
+
+    <div class="container">
+        <!-- 효소가 없는 환경 -->
+        <div class="panel">
+            <h2>❌ 효소 없는 자연 상태</h2>
+            <div class="time-badge">반감기: 78,000,000년</div>
+            <div>처리 완료된 대사 분자</div>
+            <div class="counter-box" id="no-enzyme-count">0 <span class="text-muted">/ 10,000</span></div>
+            <div style="font-size: 13px; color: #ffa8a8; text-align: center; min-height: 40px;">
+                실제 지구가 멸망할 때까지 기다려도<br>단 몇 개의 분자조차 반응하기 힘듭니다.
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="no-enzyme-bar"></div>
+            </div>
+        </div>
+
+        <!-- 효소가 있는 환경 -->
+        <div class="panel panel-enzyme">
+            <h2>🧪 효소가 있는 세포 내부</h2>
+            <div class="time-badge">반응 시간: 0.018초</div>
+            <div>처리 완료된 대사 분자</div>
+            <div class="counter-box" id="enzyme-count">0 <span class="text-muted">/ 10,000</span></div>
+            <div style="font-size: 13px; color: #a5d8ff; text-align: center; min-height: 40px;">
+                단백질 주머니가 A와 B 분자를 강제로 붙잡아<br>0.018초 만에 10,000개 처리를 끝냅니다.
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="enzyme-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('run-btn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerText = "세포 대사 작용 중...";
+
+            const enzymeCountEl = document.getElementById('enzyme-count');
+            const enzymeBar = document.getElementById('enzyme-bar');
+            const noEnzymeCountEl = document.getElementById('no-enzyme-count');
+            const noEnzymeBar = document.getElementById('no-enzyme-bar');
+
+            // 1. 효소 환경 시뮬레이션 (0.018초 = 18밀리초 동안 가속 애니메이션)
+            let currentEnzymeCount = 0;
+            const targetCount = 10000;
+            const duration = 18; // 18ms
+            const startTime = performance.now();
+
+            function animateEnzyme(timestamp) {
+                const elapsed = timestamp - startTime;
+                if (elapsed < duration) {
+                    // 시간에 비례하여 분자 카운트 상승
+                    currentEnzymeCount = Math.floor((elapsed / duration) * targetCount);
+                    enzymeCountEl.innerHTML = `${currentEnzymeCount.toLocaleString()} <span class="text-muted">/ 10,000</span>`;
+                    enzymeBar.style.width = `${(currentEnzymeCount / targetCount) * 100}%`;
+                    requestAnimationFrame(animateEnzyme);
+                } else {
+                    // 18ms 도달 시 즉시 완료
+                    enzymeCountEl.innerHTML = `10,000 <span class="text-muted">/ 10,000</span>`;
+                    enzymeBar.style.width = '100%';
+                    document.getElementById('speed-info').style.display = 'block';
+                    document.getElementById('run-btn').innerText = "생명 유지 성공";
+                }
+            }
+            requestAnimationFrame(animateEnzyme);
+
+            // 2. 효소 없는 환경 시뮬레이션 (인간이 시뮬레이터를 켜둔 동안에는 절대 움직이지 않음을 연출)
+            // 우연에 의해 수만 년에 한 번 일어날 확률을 모사하여 1.5초 뒤 겨우 '1개' 증가하도록 유도
+            setTimeout(() => {
+                noEnzymeCountEl.innerHTML = `1 <span class="text-muted">/ 10,000</span>`;
+                noEnzymeBar.style.width = '0.01%';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

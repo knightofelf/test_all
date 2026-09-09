@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>양끝 정렬 비트맵 매트릭스</title>
+    <style>
+        /* 전체 컨테이너 스타일 */
+        #matrix {
+            background-color: #111;
+            padding: 15px;
+            width: 250px; /* 원하는 전체 가로 폭 지정 */
+            font-family: 'Courier New', monospace; /* 고정폭 글꼴로 안정감 추가 */
+        }
+
+        /* 각 행을 가로로 정렬 */
+        .row {
+            display: flex;
+            justify-content: space-between; /* 왼쪽 '1'과 오른쪽 '0'을 양끝으로 밀어냄 */
+            align-items: center;
+            height: 25px;
+            border-bottom: 1px solid #222; /* 줄 구분을 위한 선 (선택사항) */
+        }
+
+        /* 가운데 x 문자들이 들어갈 공간 */
+        .content-area {
+            flex-grow: 1; /* 남은 중간 공간을 모두 차지 */
+            text-align: center; /* x 문자들을 가운데로 정렬 (원하면 left, right 가능) */
+            color: #ff0055; /* x 문자 색상 */
+            font-weight: bold;
+            letter-spacing: 2px; /* x 문자 사이 간격 */
+        }
+
+        /* 왼쪽 벽 '1' 스타일 */
+        .left-wall {
+            color: #00ff00;
+            font-weight: bold;
+            width: 20px;
+        }
+
+        /* 오른쪽 벽 '0' 스타일 */
+        .right-wall {
+            color: #0088ff;
+            font-weight: bold;
+            width: 20px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 패턴이 출력될 공간 -->
+    <div id="matrix"></div>
+
+    <script>
+        // 요청하신 가변적인 데이터 패턴
+        const rawData = [
+            "1 xxx   0",
+            "1   x    0",
+            "1  xx   0"
+        ];
+
+        const container = document.getElementById('matrix');
+
+        rawData.forEach(line => {
+            // 1. 문자열의 맨 앞('1')과 맨 뒤('0')를 제외한 중간 내용만 추출
+            // 공백을 유지하기 위해 trim()은 선택적으로 적용
+            const leftWall = line.charAt(0);
+            const rightWall = line.charAt(line.length - 1);
+            const middleContent = line.substring(1, line.length - 1).trim(); 
+
+            // 2. 행(Row) 엘리먼트 생성
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('row');
+
+            // 3. 왼쪽 벽 추가
+            const leftSpan = document.createElement('span');
+            leftSpan.classList.add('left-wall');
+            leftSpan.textContent = leftWall;
+
+            // 4. 중간 x 데이터 영역 추가
+            const contentSpan = document.createElement('span');
+            contentSpan.classList.add('content-area');
+            contentSpan.textContent = middleContent;
+
+            // 5. 오른쪽 벽 추가
+            const rightSpan = document.createElement('span');
+            rightSpan.classList.add('right-wall');
+            rightSpan.textContent = rightWall;
+
+            // 6. 구조 조립 및 화면 출력
+            rowDiv.appendChild(leftSpan);
+            rowDiv.appendChild(contentSpan);
+            rowDiv.appendChild(rightSpan);
+            container.appendChild(rowDiv);
+        });
+    </script>
+</body>
+</html>

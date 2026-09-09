@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무제한 랜덤 데이터 그라데이션 시각화 및 복원</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #111; color: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .btn-group { margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-rand { background: #673ab7; color: white; }
+        .btn-vis { background: #00bcd4; color: white; }
+        .btn-res { background: #e91e63; color: white; }
+        .btn-file { background: #ff9800; color: white; }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: #555 !important; color: #aaa; cursor: not-allowed; }
+        
+        .status-box { background: #222; padding: 15px; border-radius: 6px; margin-bottom: 15px; font-family: monospace; line-height: 1.6; }
+        .canvas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #222; padding: 15px; border-radius: 8px; text-align: center; }
+        canvas { background: #000; width: 400px; height: 400px; display: block; margin: 10px auto 0; image-rendering: auto; }
+        .highlight { color: #00bcd4; font-weight: bold; }
+        .success { color: #4caf50; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🌈 무제한 랜덤 데이터 ➔ 그라데이션 매핑 & 복원 시스템</h2>
+    <p>완전 무작위 난수 데이터(Random)를 숨겨둔 <b>부드러운 그라데이션 이미지</b>를 생성하고 픽셀 스캔으로 100% 복원합니다.</p>
+
+    <div class="status-box">
+        <div>• 현재 난수 데이터 크기: <span id="dataSizeStatus" class="highlight">0 개 (대기 중)</span></div>
+        <div>• 캔버스 해상도 밀도: <span id="resolutionStatus" class="highlight">-</span></div>
+        <div>• 픽셀 복원 무결성 검증: <span id="resStatus">-</span></div>
+    </div>
+
+    <!-- 1단계: 완전 무작위 난수 실시간 공급 -->
+    <div class="btn-group">
+        <button class="btn-rand" onclick="injectPureRandomData(1048576)">🎲 1MB 무작위 랜덤 데이터 실시간 주입 (1,048,576개)</button>
+        <button class="btn-rand" onclick="injectPureRandomData(102400)">100KB 랜덤 데이터 주입</button>
+    </div>
+
+    <!-- 2단계: 시각화 및 원본 내보내기 -->
+    <div class="btn-group">
+        <button class="btn-vis" id="btnVis" onclick="visualizeAsGradient()" disabled>2. 랜덤 데이터를 그라데이션으로 시각화 🎨</button>
+        <button class="btn-file" id="btnDownloadOrig" onclick="downloadFile('original')" disabled>➔ 원본 랜덤 난수 파일 받기 (.txt)</button>
+    </div>
+
+    <!-- 3단계: 복원 및 복원 파일 내보내기 -->
+    <div class="btn-group">
+        <button class="btn-res" id="btnRes" onclick="restoreFromGradient()" disabled>3. 그라데이션 픽셀 스캔 복원 🔍</button>
+        <button class="btn-file" id="btnDownloadRestored" onclick="downloadFile('restored')" disabled>➔ 복원된 난수 파일 받기 (.txt)</button>
+    </div>
+
+    <div class="canvas-grid">
+        <div class="card">
+            <h3>그라데이션 인코딩 전광판</h3>
+            <p style="font-size:12px; color:#aaa;">눈에는 부드러운 그라데이션으로 보이지만, 내부 픽셀엔 무작위 난수 데이터가 살아있습니다.</p>
+            <canvas id="gradientCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let originalData = [];  // 실시간 공급된 순수 랜덤 데이터 배열
+    let restoredData = [];  // 그라데이션 픽셀에서 추출한 복원 데이터 배열
+
+    // 1. 완전 무작위 랜덤 데이터 공급 (0 ~ 255 난수)
+    function injectPureRandomData(size) {
+        originalData = [];
+        restoredData = [];
+
+        const buffer = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+            buffer[i] = Math.floor(Math.random() * 256); // 순수 무작위 난수
+        }
+        originalData = Array.from(buffer);
+
+        const side = Math.ceil(Math.sqrt(size));
+        document.getElementById('dataSizeStatus').innerText = `${size.toLocaleString()} 개의 순수 랜덤 난수 장착 완료!`;
+        document.getElementById('resolutionStatus').innerText = `${side}px × ${side}px`;
+        document.getElementById('resStatus').innerText = "-";
+        
+        document.getElementById('btnVis').disabled = false;
+        document.getElementById('btnDownloadOrig').disabled = true;
+        document.getElementById('btnRes').disabled = true;
+        document.getElementById('btnDownloadRestored').disabled = true;
+    }
+
+    // 2. [핵심 트릭] 랜덤 데이터를 유지하되 화면에는 부드러운 그라데이션으로 강제 인코딩
+    function visualizeAsGradient() {
+        if (originalData.length === 0) return;
+
+        const canvas = document.getElementById('gradientCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const side = Math.ceil(Math.sqrt(originalData.length));
+        
+        canvas.width = side;
+        canvas.height = side;
+
+        const imgData = ctx.createImageData(side, side);
+        const dataBuffer = imgData.data;
+        const totalLen = originalData.length;
+
+        for (let i = 0; i < totalLen; i++) {
+            const randVal = originalData[i]; // 원본 랜덤 데이터 (0~255)
+            const pixelIndex = i * 4;
+
+            // 💡 눈으로 볼 그라데이션 흐름용 인덱스 비율 계산 (0.0 ~ 1.0)
+            const ratio = i / totalLen;
+
+            // [다차원 채널 분리 매핑 공식]
+            dataBuffer[pixelIndex]     = randVal;  // 🔴 Red 채널: 훼손 없는 순수 랜덤 데이터 은닉 (복원용 기폭제)
+            dataBuffer[pixelIndex + 1] = Math.floor(ratio * 255); // 🟢 Green 채널: 점진적 증가 (그라데이션 형성)
+            dataBuffer[pixelIndex + 2] = 255 - Math.floor(ratio * 255); // 🔵 Blue 채널: 점진적 감소 (그라데이션 형성)
+            dataBuffer[pixelIndex + 3] = 255; // ⚪ Alpha 채널: 완전 불투명
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        
+        document.getElementById('btnDownloadOrig').disabled = false;
+        document.getElementById('btnRes').disabled = false;
+    }
+
+    // 3. 그라데이션 이미지의 Red 픽셀 채널만 해킹하듯 스캔하여 완전 무작위 데이터 추출
+    function restoreFromGradient() {
+        const canvas = document.getElementById('gradientCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (canvas.width === 0 || originalData.length === 0) return;
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const dataBuffer = imgData.data;
+        restoredData = [];
+
+        const len = originalData.length;
+        for (let i = 0; i < len; i++) {
+            restoredData.push(dataBuffer[i * 4]); // 🔴 오직 Red 채널에 숨어있던 랜덤 값만 복구
+        }
+
+        // 오리지널 무작위 난수와 픽셀 추출본 전수 비교 검증
+        let isPerfect = true;
+        for (let i = 0; i < len; i++) {
+            if (originalData[i] !== restoredData[i]) {
+                isPerfect = false;
+                break;
+            }
+        }
+
+        if (isPerfect) {
+            document.getElementById('resStatus').innerHTML = 
+                `<span class="success">그라데이션 속 랜덤 데이터 100% 복원 성공! ✅</span><br>` +
+                `• 샘플 대조(앞 5개)<br>` +
+                ` - 원본 난수: [${originalData.slice(0, 5).join(', ')}...]<br>` +
+                ` - 복원 난수: [${restoredData.slice(0, 5).join(', ')}...]`;
+            document.getElementById('btnDownloadRestored').disabled = false;
+        } else {
+            document.getElementById('resStatus').innerText = "무결성 검증 오류 발생 ❌";
+        }
+    }
+
+    // 파일 생성 다운로드 유틸리티
+    function downloadFile(type) {
+        const targetArray = (type === 'original') ? originalData : restoredData;
+        const filename = (type === 'original') ? 'pure_random_data.txt' : 'gradient_scanned_random_data.txt';
+        
+        if (targetArray.length === 0) return;
+
+        const textContent = targetArray.join(', ');
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url); 
+    }
+</script>
+
+</body>
+</html>

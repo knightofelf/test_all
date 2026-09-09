@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Color Space Windows Logo Restore</title>
+  <style>
+    .logo {
+      display: grid;
+      grid-template-columns: 100px 100px;
+      grid-template-rows: 100px 100px;
+      gap: 5px;
+    }
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h3>윈도우 로고 색차 좌표계 + 변형/복원</h3>
+  <input id="bigVal" type="text" 
+         value="29611585654853391049518400595376606018797327159746397617688238254136" 
+         size="80">
+  <button onclick="applyTransform()">변형 적용</button>
+  <button onclick="restoreOriginal()">복원</button>
+
+  <div class="logo">
+    <div id="cell1" class="cell">xyY</div>
+    <div id="cell2" class="cell">Lab</div>
+    <div id="cell3" class="cell">Luv</div>
+    <div id="cell4" class="cell">HSV</div>
+  </div>
+
+  <script>
+    let originalColors = [
+      "rgb(255,0,0)",   // xyY
+      "rgb(0,255,0)",   // Lab
+      "rgb(0,0,255)",   // Luv
+      "rgb(255,255,0)"  // HSV
+    ];
+
+    function applyTransform() {
+      const val = BigInt(document.getElementById("bigVal").value);
+
+      const r = Number(val % 256n);
+      const g = Number((val / 256n) % 256n);
+      const b = Number((val / 65536n) % 256n);
+
+      document.getElementById("cell1").style.background = `rgb(${r},${g},${b})`;
+      document.getElementById("cell2").style.background = `rgb(${g},${b},${r})`;
+      document.getElementById("cell3").style.background = `rgb(${b},${r},${g})`;
+      document.getElementById("cell4").style.background = `rgb(${(r+g)%256},${(g+b)%256},${(b+r)%256})`;
+    }
+
+    function restoreOriginal() {
+      document.getElementById("cell1").style.background = originalColors[0];
+      document.getElementById("cell2").style.background = originalColors[1];
+      document.getElementById("cell3").style.background = originalColors[2];
+      document.getElementById("cell4").style.background = originalColors[3];
+    }
+  </script>
+</body>
+</html>

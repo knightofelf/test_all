@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL 하드웨어 픽셀 보간</title>
+    <style>
+        body { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; background: #111; margin: 0; font-family: sans-serif; color: #fff; }
+        .controls { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .row { display: flex; align-items: center; gap: 15px; }
+        input[type="file"] { background: #333; padding: 5px; border-radius: 4px; border: none; color: #fff; cursor: pointer; }
+        canvas { border: 4px solid #fff; max-width: 90vw; max-height: 70vh; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <div class="row">
+        <label for="imageInput">이미지 선택:</label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    <div class="row">
+        <label for="nSlider">다운샘플링 분모 (N):</label>
+        <input type="range" id="nSlider" min="2" max="50" value="10">
+        <span id="nValue">10</span>
+    </div>
+</div>
+
+<!-- WebGL 컨텍스트를 사용할 캔버스 -->
+<canvas id="webglCanvas"></canvas>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const nSlider = document.getElementById('nSlider');
+    const nValue = document.getElementById('nValue');
+    const canvas = document.getElementById('webglCanvas');
+    
+    // WebGL 컨텍스트 초기화 (OpenGL ES 기반)
+    const gl = canvas.getContext('webgl');
+    if (!gl) { alert('브라우저가 WebGL을 지원하지 않습니다.'); }
+
+    let loadedImg = null;
+
+    // 1. 셰이더 소스 정의 (OpenGL Shading Language - GLSL)
+    const vsSource = `
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        varying vec2 v_texCoord;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoord = a_texCoord;
+        }
+    `;
+
+    const fsSource = `
+        precision mediump float;
+        varying vec2 v_texCoord;
+        uniform sampler2D u_texture;
+        void main() {
+            // OpenGL이 텍스처를 샘플링할 때 설정된 필터에 따라 자동으로 보간해줍니다.
+            gl_FragColor = texture2D(u_texture, v_texCoord);
+        }
+    `;
+
+    // 셰이더 컴파일 및 프로그램 링크 헬퍼 함수
+    function initShaderProgram(gl, vs, fs) {
+        const vShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vShader, vs); gl.compileShader(vShader);
+        const fShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fShader, fs); gl.compileShader(fShader);
+        const program = gl.createProgram();
+        gl.attachShader(program, vShader); gl.attachShader(program, fShader);
+        gl.linkProgram(program);
+        return program;
+    }
+
+    const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+    gl.useProgram(shaderProgram);
+
+    // 정점 데이터 버퍼 바인딩 (전체 화면 사각형 그리드 사상)
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,  1, -1, -1,  1,
+        -1,  1,  1, -1,  1,  1,
+    ]), gl.STATIC_DRAW);
+    const aPosition = gl.getAttribLocation(shaderProgram, 'a_position');
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    const texCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        0, 1,  1, 1,  0, 0,
+        0, 0,  1, 1,  1, 0,
+    ]), gl.STATIC_DRAW);
+    const aTexCoord = gl.getAttribLocation(shaderProgram, 'a_texCoord');
+    gl.enableVertexAttribArray(aTexCoord);
+    gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+
+    // 이벤트 리스너 연동
+    nSlider.addEventListener('input', (e) => {
+        nValue.textContent = e.target.value;
+        if (loadedImg) renderWebGL(loadedImg);
+    });
+
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            loadedImg = new Image();
+            loadedImg.src = event.target.result;
+            loadedImg.onload = () => renderWebGL(loadedImg);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function renderWebGL(img) {
+        const N = parseInt(nSlider.value, 10);
+        
+        // 1/N 픽셀 크기 계산
+        const sampleW = Math.max(1, Math.floor(img.width / N));
+        const sampleH = Math.max(1, Math.floor(img.height / N));
+
+        // 메인 출력 화면 해상도는 원본 크기로 유지
+        canvas.width = img.width;
+        canvas.height = img.height;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        // 2. 1/N 크기의 임시 다운샘플링용 캔버스 데이터 추출
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = sampleW;
+        tempCanvas.height = sampleH;
+        const tempCtx = tempCanvas.getContext('2d');
+        // 원본에서 1/N 크기로 드로잉 (이때 하드웨어에 텍스처로 올릴 소스 픽셀만 압축 확보)
+        tempCtx.drawImage(img, 0, 0, sampleW, sampleH);
+
+        // 3. OpenGL 텍스처 생성 및 업로드
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        
+        // 텍스처 업로드 규격 매핑
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
+
+        // 텍스처를 원래 크기로 확대할 때 OpenGL 하드웨어 보간(LINEAR) 지정 ★
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        
+        // 클램핑 설정
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // 4. 화면 드로잉 명령 전달
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+</script>
+
+</body>
+</html>

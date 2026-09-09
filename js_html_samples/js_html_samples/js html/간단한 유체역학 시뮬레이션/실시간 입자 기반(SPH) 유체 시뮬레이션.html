@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>마우스 반응형 실시간 SPH 유체 시뮬레이션</title>
+    <style>
+        body { margin: 0; background: #050508; color: #fff; font-family: sans-serif; text-align: center; overflow: hidden; }
+        canvas { display: block; margin: 20px auto; background: #020204; border: 2px solid #334466; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 150, 255, 0.2); }
+        h1 { margin-top: 20px; font-size: 22px; color: #33aaff; }
+        p { color: #8899aa; font-size: 14px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>마우스 제어가 확실한 SPH 유체 시뮬레이션</h1>
+    <p>마우스를 클릭한 채 드래그하면 커서 주변의 물 입자들이 강력한 힘에 의해 흩어집니다.</p>
+    <canvas id="sphCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('sphCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = 600;
+canvas.height = 500;
+
+//--- 시뮬레이션 물리 파라미터 ---
+const GRAVITY = 0.3;         // 중력 가속도
+const H = 22;                // 평활화 반경 (입자 간 상호작용 거리)
+const H2 = H * H;
+const REST_DENS = 1.0;       // 정지 밀도
+const STIFFNESS = 20;        // 압력 강도 변수 (K)
+const VISCOSITY = 0.5;       // 점성 계수
+const PARTICLE_RADIUS = 4.0; // 입자 시각화 반지름
+
+// 고성능 커널 함수 상수
+const POLY6 = 315 / (64 * Math.PI * Math.pow(H, 9));
+const SPIKY_GRAD = -45 / (Math.PI * Math.pow(H, 6));
+const VISC_LAP = 45 / (Math.PI * Math.pow(H, 6));
+
+// 입자 배열 생성 (안정적인 고속 연산을 위해 350개 배치)
+const particles = [];
+const numParticlesX = 20;
+const numParticlesY = 17;
+
+for (let i = 0; i < numParticlesX; i++) {
+    for (let j = 0; j < numParticlesY; j++) {
+        particles.push({
+            x: 160 + i * 13 + Math.random(),
+            y: 120 + j * 13 + Math.random(),
+            vx: 0, vy: 0,
+            fx: 0, fy: 0,
+            density: 0,
+            pressure: 0
+        });
+    }
+}
+
+// ★ 마우스 물리 상태 제어 변수 확실하게 고정
+let isMouseDown = false;
+let mouseX = -1000;
+let mouseY = -1000;
+const MOUSE_RADIUS = 65; // 마우스 외력이 미치는 절대 반경 (픽셀 단위)
+
+// 1단계: 각 입자의 밀도 및 압력 계산
+function computeDensityPressure() {
+    for (let i = 0; i < particles.length; i++) {
+        let p_i = particles[i];
+        let density_sum = 0;
+
+        for (let j = 0; j < particles.length; j++) {
+            let p_j = particles[j];
+            let dx = p_i.x - p_j.x;
+            let dy = p_i.y - p_j.y;
+            let r2 = dx * dx + dy * dy;
+
+            if (r2 < H2) {
+                density_sum += POLY6 * Math.pow(H2 - r2, 3);
+            }
+        }
+        p_i.density = Math.max(0.1, density_sum);
+        p_i.pressure = STIFFNESS * (p_i.density - REST_DENS);
+    }
+}
+
+// 2단계: 압력, 점성 및 ★마우스 외력(Force) 통합 계산
+function computeForces() {
+    for (let i = 0; i < particles.length; i++) {
+        let p_i = particles[i];
+        let fx = 0, fy = 0;
+
+        for (let j = 0; j < particles.length; j++) {
+            if (i === j) continue;
+            let p_j = particles[j];
+
+            let dx = p_i.x - p_j.x;
+            let dy = p_i.y - p_j.y;
+            let r = Math.sqrt(dx * dx + dy * dy);
+
+            if (r < H && r > 0.01) {
+                // Spiky 커널 압력 그레이디언트
+                let vol = SPIKY_GRAD * Math.pow(H - r, 2);
+                let p_term = (p_i.pressure + p_j.pressure) / (2 * p_i.density * p_j.density);
+                fx += -dx / r * vol * p_term;
+                fy += -dy / r * vol * p_term;
+
+                // 점성 원리 적용
+                let v_lap = VISC_LAP * (H - r);
+                fx += VISCOSITY * (p_j.vx - p_i.vx) / p_j.density * v_lap;
+                fy += VISCOSITY * (p_j.vy - p_i.vy) / p_j.density * v_lap;
+            }
+        }
+
+        // ★ [SPH 마우스 핵심 보완] 클릭 유지 시 커서 위치 벡터 기반 절대 밀어내기 힘 인가
+        if (isMouseDown) {
+            let mdx = p_i.x - mouseX;
+            let mdy = p_i.y - mouseY;
+            let mr2 = mdx * mdx + mdy * mdy;
+
+            if (mr2 < MOUSE_RADIUS * MOUSE_RADIUS) {
+                let mr = Math.sqrt(mr2);
+                if (mr > 0.1) {
+                    // 거리가 커서에 가까울수록 기하급수적으로 폭발적인 척력 부여
+                    let forceFactor = (1.0 - mr / MOUSE_RADIUS) * 6.5;
+                    fx += (mdx / mr) * forceFactor;
+                    fy += (mdy / mr) * forceFactor;
+                }
+            }
+        }
+
+        p_i.fx = fx;
+        p_i.fy = fy;
+    }
+}
+
+// 3단계: 시간 적분 및 경계면 충돌
+function updateParticles() {
+    for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
+
+        let ax = p.fx / p.density;
+        let ay = p.fy / p.density + GRAVITY;
+
+        // 속도 및 위치 갱신
+        p.vx += ax;
+        p.vy += ay;
+
+        // 고속 반응 시 입자 가출을 막기 위한 안전 속도 리미터 설정
+        p.vx = Math.max(-12, Math.min(12, p.vx));
+        p.vy = Math.max(-12, Math.min(12, p.vy));
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // 벽면 충돌 강제 튕김 및 감쇄
+        const DAMPING = -0.4;
+        if (p.x < PARTICLE_RADIUS) { p.x = PARTICLE_RADIUS; p.vx *= DAMPING; }
+        if (p.x > canvas.width - PARTICLE_RADIUS) { p.x = canvas.width - PARTICLE_RADIUS; p.vx *= DAMPING; }
+        if (p.y < PARTICLE_RADIUS) { p.y = PARTICLE_RADIUS; p.vy *= DAMPING; }
+        if (p.y > canvas.height - PARTICLE_RADIUS) { p.y = canvas.height - PARTICLE_RADIUS; p.vy *= DAMPING; }
+    }
+}
+
+// 화면 그리기
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
+        let colorValue = Math.min(255, Math.floor(p.density * 100));
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, PARTICLE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = `rgb(${Math.max(0, colorValue - 60)}, ${Math.min(255, colorValue + 110)}, 255)`;
+        ctx.fill();
+    }
+
+    // 마우스 작동 시 충돌 반경 가이드라인 가시화
+    if (isMouseDown) {
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, MOUSE_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(0, 150, 255, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+// 메인 루프
+function loop() {
+    computeDensityPressure();
+    computeForces();
+    updateParticles();
+    render();
+    requestAnimationFrame(loop);
+}
+
+//--- 마우스 이벤트를 픽셀 물리 좌표계로 정밀 바인딩 ---
+function setMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    isMouseDown = true;
+    setMousePos(e);
+});
+canvas.addEventListener('mousemove', (e) => {
+    if (isMouseDown) {
+        setMousePos(e);
+    }
+});
+window.addEventListener('mouseup', () => {
+    isMouseDown = false;
+    mouseX = -1000;
+    mouseY = -1000;
+});
+
+loop();
+</script>
+</body>
+</html>

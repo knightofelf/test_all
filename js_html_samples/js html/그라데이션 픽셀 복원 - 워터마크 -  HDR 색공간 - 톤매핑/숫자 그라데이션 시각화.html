@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>숫자 그라데이션 시각화</title>
+  <style>
+    canvas { border: 1px solid #ccc; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h2>숫자 그라데이션 시각화</h2>
+  <input id="numInput" type="text" value="348576298759823758723" style="width:400px;">
+  <button onclick="draw()">그리기</button>
+  <div>
+    <canvas id="lineCanvas" width="400" height="50"></canvas>
+    <canvas id="planeCanvas" width="400" height="200"></canvas>
+    <canvas id="cubeCanvas" width="400" height="400"></canvas>
+  </div>
+
+<script>
+function normalizeNumber(num) {
+  // 큰 숫자를 RGB 값으로 매핑
+  let big = BigInt(num);
+  let r = Number(big % 256n);
+  let g = Number((big / 256n) % 256n);
+  let b = Number((big / 65536n) % 256n);
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawLineGradient(ctx, color) {
+  let grad = ctx.createLinearGradient(0,0,400,0);
+  grad.addColorStop(0, "black");
+  grad.addColorStop(1, color);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,400,50);
+}
+
+function drawPlaneGradient(ctx, color) {
+  let grad = ctx.createLinearGradient(0,0,400,200);
+  grad.addColorStop(0, "white");
+  grad.addColorStop(1, color);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,400,200);
+}
+
+function drawCube(canvas, color) {
+  let gl = canvas.getContext("webgl");
+  if (!gl) { alert("WebGL 미지원 브라우저"); return; }
+  gl.clearColor(0.9,0.9,0.9,1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // 간단히 컬러 사각형으로 표현 (실제 3D 큐브 렌더링은 Three.js 권장)
+  let grad = canvas.getContext("2d").createLinearGradient(0,0,400,400);
+  grad.addColorStop(0,"black");
+  grad.addColorStop(1,color);
+  let ctx2d = canvas.getContext("2d");
+  ctx2d.fillStyle = grad;
+  ctx2d.fillRect(0,0,400,400);
+}
+
+function draw() {
+  let num = document.getElementById("numInput").value;
+  let color = normalizeNumber(num);
+
+  let lineCtx = document.getElementById("lineCanvas").getContext("2d");
+  drawLineGradient(lineCtx, color);
+
+  let planeCtx = document.getElementById("planeCanvas").getContext("2d");
+  drawPlaneGradient(planeCtx, color);
+
+  drawCube(document.getElementById("cubeCanvas"), color);
+}
+</script>
+</body>
+</html>

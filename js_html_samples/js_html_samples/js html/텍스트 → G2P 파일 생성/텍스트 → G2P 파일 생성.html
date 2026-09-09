@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>텍스트 → G2P 파일 생성</title>
+</head>
+<body>
+  <h2>텍스트를 G2P 파일로 변환</h2>
+  <textarea id="inputText" rows="6" cols="60" placeholder="여기에 문장을 입력하세요"></textarea><br>
+  <button id="convertBtn">G2P 파일 생성</button>
+
+  <script>
+    // 간단한 예시용 G2P 변환 (실제는 전문 라이브러리 필요)
+    function simpleG2P(text) {
+      // 여기서는 예시로 한글을 자모 단위로 분해
+      // 실제 학습용은 전문 G2P 모델/사전 필요
+      return text
+        .split("")
+        .map(ch => ch.charCodeAt(0).toString(16)) // 유니코드 값으로 변환 예시
+        .join(" ");
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function convertToG2P() {
+      const input = document.getElementById("inputText").value.trim();
+      if (!input) {
+        alert("텍스트를 입력하세요!");
+        return;
+      }
+
+      const lines = input.split("\n");
+      let output = "";
+
+      lines.forEach(line => {
+        const phoneme = simpleG2P(line);
+        output += `${line}\t${phoneme}\n`; // "텍스트 \t 발음" 형식
+      });
+
+      downloadFile(output, "dataset.g2p");
+    }
+
+    document.getElementById("convertBtn").addEventListener("click", convertToG2P);
+  </script>
+</body>
+</html>

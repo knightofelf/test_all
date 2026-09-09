@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 비트맵 간격 시뮬레이션 (블러 적용)</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/shaders/HorizontalBlurShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/shaders/VerticalBlurShader.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x202020);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 50, 100);
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    // 픽셀 크기와 간격
+    const pixelSize = 1;
+    const gap = 1;
+    const rows = 20;
+    const cols = 20;
+
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const geometry = new THREE.BoxGeometry(pixelSize, pixelSize, pixelSize);
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(
+          x * (pixelSize + gap),
+          y * (pixelSize + gap),
+          0
+        );
+        scene.add(cube);
+      }
+    }
+
+    // 포스트 프로세싱 (블러 효과)
+    const composer = new THREE.EffectComposer(renderer);
+    const renderPass = new THREE.RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const hBlur = new THREE.ShaderPass(THREE.HorizontalBlurShader);
+    const vBlur = new THREE.ShaderPass(THREE.VerticalBlurShader);
+    composer.addPass(hBlur);
+    composer.addPass(vBlur);
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // 카메라 거리 기반 블러 강도 조절
+      const distance = camera.position.z;
+      const blurStrength = Math.min(distance / 200, 0.02); // 멀리 갈수록 블러 증가
+      hBlur.uniforms.h.value = blurStrength;
+      vBlur.uniforms.v.value = blurStrength;
+
+      composer.render();
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

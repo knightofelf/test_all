@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>1MB 랜덤 데이터 → G2P 파일</title>
+</head>
+<body>
+  <h2>1MB 랜덤 데이터 → G2P 파일 생성</h2>
+  <button id="generateBtn">생성</button>
+
+  <script>
+    // 랜덤 텍스트 데이터 생성 (영문/숫자)
+    function generateRandomText(size) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let result = "";
+      for (let i = 0; i < size; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // 간단한 의사 G2P 변환 (실제 학습용은 전문 G2P 모델 필요)
+    function pseudoG2P(text) {
+      return text
+        .split("")
+        .map(ch => ch.toLowerCase()) // 단순히 소문자로 변환 예시
+        .join(" ");
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function generateG2PFile() {
+      const totalSize = 1024 * 1024; // 1MB
+      const randomText = generateRandomText(totalSize);
+
+      // 줄 단위로 나누기 (예: 100문자씩 한 줄)
+      const lineLength = 100;
+      let output = "";
+      for (let i = 0; i < randomText.length; i += lineLength) {
+        const chunk = randomText.slice(i, i + lineLength);
+        const phoneme = pseudoG2P(chunk);
+        output += `${chunk}\t${phoneme}\n`; // "텍스트 \t 발음" 형식
+      }
+
+      downloadFile(output, "random_dataset.g2p");
+    }
+
+    document.getElementById("generateBtn").addEventListener("click", generateG2PFile);
+  </script>
+</body>
+</html>

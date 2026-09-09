@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>수건 집기 시뮬레이션</title>
+  <style>
+    canvas { background: #f0f0f0; display:block; margin:20px auto; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let towels = [{x:100, y:100, w:80, h:50, color:"blue"}];
+    let selected = null;
+
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      towels.forEach(t => {
+        ctx.fillStyle = t.color;
+        ctx.fillRect(t.x, t.y, t.w, t.h);
+      });
+      requestAnimationFrame(draw);
+    }
+
+    canvas.addEventListener("mousedown", e => {
+      const mx = e.offsetX, my = e.offsetY;
+      towels.forEach(t => {
+        if(mx > t.x && mx < t.x+t.w && my > t.y && my < t.y+t.h) {
+          selected = t;
+        }
+      });
+    });
+
+    canvas.addEventListener("mousemove", e => {
+      if(selected) {
+        selected.x = e.offsetX - selected.w/2;
+        selected.y = e.offsetY - selected.h/2;
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => { selected = null; });
+
+    draw();
+  </script>
+</body>
+</html>

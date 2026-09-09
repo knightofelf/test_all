@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>CIELab 3D 시각화 (최적화)</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // Lab → RGB 변환 함수
+    function labToRgb(L, a, b) {
+      let y = (L + 16) / 116;
+      let x = a / 500 + y;
+      let z = y - b / 200;
+
+      const refX = 0.95047, refY = 1.00000, refZ = 1.08883;
+      function fInv(t) {
+        return t ** 3 > 0.008856 ? t ** 3 : (t - 16/116) / 7.787;
+      }
+
+      x = refX * fInv(x);
+      y = refY * fInv(y);
+      z = refZ * fInv(z);
+
+      let r = x *  3.2406 + y * -1.5372 + z * -0.4986;
+      let g = x * -0.9689 + y *  1.8758 + z *  0.0415;
+      let bl = x *  0.0557 + y * -0.2040 + z *  1.0570;
+
+      function gammaCorrect(c) {
+        return c <= 0.0031308 ? 12.92 * c : 1.055 * (c ** (1/2.4)) - 0.055;
+      }
+
+      r = Math.min(Math.max(0, gammaCorrect(r)), 1);
+      g = Math.min(Math.max(0, gammaCorrect(g)), 1);
+      bl = Math.min(Math.max(0, gammaCorrect(bl)), 1);
+
+      return new THREE.Color(r, g, bl);
+    }
+
+    // InstancedMesh 생성
+    const count = 500; // 점 개수 (샘플링 최적화)
+    const geometry = new THREE.SphereGeometry(1.2, 6, 6);
+    const material = new THREE.MeshBasicMaterial();
+    const mesh = new THREE.InstancedMesh(geometry, material, count);
+    scene.add(mesh);
+
+    const dummy = new THREE.Object3D();
+    let i = 0;
+    for (let L = 30; L <= 70; L += 20) {
+      for (let a = -80; a <= 80; a += 20) {
+        for (let b = -80; b <= 80; b += 20) {
+          if (i >= count) break;
+          dummy.position.set(a, L, b);
+          dummy.updateMatrix();
+          mesh.setMatrixAt(i, dummy.matrix);
+          mesh.setColorAt(i, labToRgb(L, a, b));
+          i++;
+        }
+      }
+    }
+
+    camera.position.set(0, 100, 200);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

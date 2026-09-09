@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>분모 유리화 - 방식1</title>
+</head>
+<body>
+  <h3>방식 1: 켤레곱을 곱하는 방법</h3>
+  <div id="method1"></div>
+
+  <script>
+    const sqrt3 = Math.sqrt(3);
+    const expr = 1 / (sqrt3 + 2);
+
+    // 켤레곱 (√3 - 2)을 곱해 분모 유리화
+    const conjugate = sqrt3 - 2;
+    const rationalized = (expr * conjugate) / conjugate;
+
+    document.getElementById("method1").innerText =
+      `결과: ${rationalized}`;
+  </script>
+</body>
+</html>

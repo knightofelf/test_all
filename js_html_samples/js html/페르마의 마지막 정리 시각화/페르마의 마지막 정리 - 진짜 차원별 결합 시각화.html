@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르마의 마지막 정리 - 진짜 차원별 결합 시각화</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --primary: #2563eb;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-main);
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 650px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 5px; }
+        .desc { color: var(--text-sub); font-size: 14px; margin-bottom: 25px; }
+        
+        .control-panel {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .radio-label { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        
+        .formula {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .explanation {
+            font-size: 14px;
+            color: var(--text-sub);
+            background: #fdf2f2;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ef4444;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .explanation.success {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+        
+        canvas {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>페르마의 마지막 정리 차원 결합 앱</h1>
+        <p class="desc">ㅇ_ㅇ;; 두 도형을 합쳤을 때 진짜 완벽한 '다음 차원 도형'이 되는지 확인해 봅니다.</p>
+        
+        <div class="control-panel">
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="dimension" value="2" checked> n = 2 (2D 면적 합체)
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="dimension" value="3"> n = 3 (3D 부피 합체)
+                </label>
+            </div>
+        </div>
+
+        <div class="formula" id="formulaText">3² + 4² = 5²</div>
+        <div class="explanation success" id="explainBox">
+            <b>[2차원 결과]</b> 3×3 정사각형과 4×4 정사각형을 쪼개어 합치면 빈틈없이 완벽한 5×5 정사각형(2D)이 완성됩니다! (정수해 존재)
+        </div>
+
+        <canvas id="renderCanvas" width="600" height="400"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('renderCanvas');
+        const ctx = canvas.getContext('2d');
+        const formulaText = document.getElementById('formulaText');
+        const explainBox = document.getElementById('explainBox');
+        const radios = document.querySelectorAll('input[name="dimension"]');
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                draw(parseInt(e.target.value));
+            });
+        });
+
+        // 등각 투영 3D 좌표 변환 헬퍼
+        function project(x, y, z, scale) {
+            return {
+                x: (x - y) * Math.cos(Math.PI / 6) * scale,
+                y: (x + y) * Math.sin(Math.PI / 6) * scale - z * scale
+            };
+        }
+
+        // 3D 면(Face) 그리기 서브 함수
+        function drawFace(bx, by, pts, indices, fillColor, strokeColor) {
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.beginPath();
+            indices.forEach((idx, i) => {
+                const pt = pts[idx];
+                if (i === 0) ctx.moveTo(pt.x + bx, pt.y + by);
+                else ctx.lineTo(pt.x + bx, pt.y + by);
+            });
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // 입체 정육면체(Cube) 렌더링
+        function drawCube(bx, by, w, h, d, scale, topCol, leftCol, rightCol, strokeCol) {
+            const v = [];
+            // 8개의 꼭짓점 생성
+            for(let z=0; z<=d; z+=d) {
+                for(let y=0; y<=h; y+=h) {
+                    for(let x=0; x<=w; x+=w) {
+                        v.push(project(x, y, z, scale));
+                    }
+                }
+            }
+            // 면 그리기 (Back to Front 순서로 렌더링하여 입체감 유지)
+            drawFace(bx, by, v, [0, 4, 6, 2], leftCol, strokeCol);  // 왼쪽 면
+            drawFace(bx, by, v, [1, 3, 7, 5], rightCol, strokeCol); // 오른쪽 면
+            drawFace(bx, by, v, [4, 5, 7, 6], topCol, strokeCol);   // 윗면
+        }
+
+        // 메인 드로잉 마스터
+        function draw(n) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 1.5;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            if (n === 2) {
+                // --- n=2 수식 및 안내 문구 설정 ---
+                formulaText.innerHTML = "3² + 4² = 5²";
+                explainBox.className = "explanation success";
+                explainBox.innerHTML = `<b>[2D 면적 합체 성공]</b> 3×3 블록(9)과 4×4 블록(16)을 녹여 합치면 오차 없이 깨끗한 5×5 정사각형(25) 격자 안에 딱 채워집니다.`;
+
+                // 2D 그래픽 렌더링
+                const u = 25; // 단위 크기
+                
+                // 3x3 정사각형 (파랑)
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.6)'; ctx.strokeStyle = '#2563eb';
+                ctx.fillRect(50, cy - 50, 3*u, 3*u); ctx.strokeRect(50, cy - 50, 3*u, 3*u);
+                ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 14px sans-serif'; ctx.fillText("3×3", 75, cy - 10);
+
+                // 더하기 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("+", 150, cy - 5);
+
+                // 4x4 정사각형 (빨강)
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.6)'; ctx.strokeStyle = '#dc2626';
+                ctx.fillRect(190, cy - 65, 4*u, 4*u); ctx.strokeRect(190, cy - 65, 4*u, 4*u);
+                ctx.fillStyle = '#b91c1c'; ctx.font = 'bold 14px sans-serif'; ctx.fillText("4×4", 225, cy - 10);
+
+                // 등호 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("=", 320, cy - 5);
+
+                // 합쳐진 결합 정사각형 (초록 - 완벽하게 채워진 5x5)
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.5)'; ctx.strokeStyle = '#16a34a';
+                ctx.fillRect(370, cy - 75, 5*u, 5*u); ctx.strokeRect(370, cy - 75, 5*u, 5*u);
+                
+                // 내부 격자 실선 시각화 (진짜 정수 격자가 들어맞는지 증명)
+                ctx.strokeStyle = 'rgba(22, 163, 74, 0.3)';
+                for(let i=1; i<5; i++) {
+                    ctx.beginPath(); ctx.moveTo(370 + i*u, cy - 75); ctx.lineTo(370 + i*u, cy - 75 + 5*u); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(370, cy - 75 + i*u); ctx.lineTo(370 + 5*u, cy - 75 + i*u); ctx.stroke();
+                }
+                ctx.fillStyle = '#15803d'; ctx.font = 'bold 14px sans-serif'; ctx.fillText("완벽한 5×5", 400, cy - 15);
+
+            } else if (n === 3) {
+                // --- n=3 수식 및 안내 문구 설정 ---
+                formulaText.innerHTML = "3³ + 4³ ≠ z³ (정수 불가)";
+                explainBox.className = "explanation";
+                explainBox.innerHTML = `<b>[3D 부피 합체 실패]</b> 3³ 정육면체(부피 27)와 4³ 정육면체(부피 64)의 진흙을 뭉쳐서 합치면 총 부피는 91이 됩니다. 하지만 91로는 모퉁이가 울퉁불퉁해지거나 깨져서, <b>정수 변을 가진 정육면체(예: 4³=64 혹은 5³=125)를 절대 완성할 수 없습니다!</b>`;
+
+                // 3D 그래픽 렌더링 (Isometric)
+                const sc = 10; // 3D 스케일
+
+                // 1. 3^3 큐브 (파랑)
+                drawCube(90, cy + 20, 3, 3, 3, sc, '#93c5fd', '#3b82f6', '#1d4ed8', '#1e40af');
+                ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 13px sans-serif'; ctx.fillText("3³ (부피 27)", 50, cy + 60);
+
+                // 더하기 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("+", 150, cy + 10);
+
+                // 2. 4^3 큐브 (빨강)
+                drawCube(230, cy + 30, 4, 4, 4, sc, '#fca5a5', '#ef4444', '#b91c1c', '#991b1b');
+                ctx.fillStyle = '#b91c1c'; ctx.font = 'bold 13px sans-serif'; ctx.fillText("4³ (부피 64)", 190, cy + 80);
+
+                // 화살표 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("➔", 310, cy + 10);
+
+                // 3. 결합 결과물 (부피 91의 불완전한 모양)
+                // 4x4x4 정육면체 베이스 위에 3x3x3 정육면체의 진흙 부피가 덧붙여진 불완전한 조합 형태를 드로잉
+                const ox = 460, oy = cy + 40;
+                
+                // 베이스가 되는 4x4x4 모양 (약간 흐리게)
+                drawCube(ox, oy, 4, 4, 4, sc, '#fed7aa', '#f97316', '#ea580c', '#c2410c');
+                
+                // 부피 91을 맞추기 위해 그 위에 불완전하게 쌓아 올린 조각들 (모퉁이가 비어 불가능함을 시각화)
+                // 4x4x4(64) 위에 27개의 블록이 불완전하게 추가로 올려진 단층 레이어 투영
+                drawCube(ox - 10, oy - 23, 3, 3, 1, sc, 'rgba(147, 51, 234, 0.4)', 'rgba(147, 51, 234, 0.6)', 'rgba(107, 33, 168, 0.8)', '#581c87');
+
+                ctx.fillStyle = '#7c3aed'; ctx.font = 'bold 13px sans-serif'; ctx.fillText("합쳐진 부피 = 91", 410, cy + 90);
+                ctx.fillStyle = '#ef4444'; ctx.font = '12px sans-serif'; ctx.fillText("(정육면체가 깨짐!)", 410, cy + 110);
+            }
+        }
+
+        // 최초 2D 모드로 실행
+        draw(2);
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<style>
+  .drop span {
+    display: inline-block;
+    transform: translateY(-50px);
+    opacity: 0;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+  }
+  .drop span.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+</style>
+
+<h1 class="drop">글자 애니메이션</h1>
+
+<script>
+  const dropText = document.querySelector(".drop");
+  const letters = dropText.textContent.split("");
+  dropText.textContent = "";
+  letters.forEach(l => {
+    const span = document.createElement("span");
+    span.textContent = l;
+    dropText.appendChild(span);
+  });
+
+  let j = 0;
+  setInterval(() => {
+    const span = dropText.querySelectorAll("span")[j];
+    if (span) span.classList.add("show");
+    j++;
+  }, 150);
+</script>

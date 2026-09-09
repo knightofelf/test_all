@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>3D 수건 집기 시뮬레이션</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+</head>
+<body>
+<script>
+/* === 기본 세팅 === */
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(0, 10, 10);
+scene.add(light);
+
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0);
+
+/* === 재질과 마찰 === */
+const groundMaterial = new CANNON.Material("ground");
+const clothMaterial = new CANNON.Material("cloth");
+world.addContactMaterial(new CANNON.ContactMaterial(groundMaterial, clothMaterial, {
+  friction: 0.5, restitution: 0.1
+}));
+
+/* === 바닥 === */
+const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
+groundBody.addShape(new CANNON.Plane());
+groundBody.quaternion.setFromEuler(-Math.PI/2, 0, 0);
+world.addBody(groundBody);
+
+const groundMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(50, 50),
+  new THREE.MeshPhongMaterial({ color: 0x888888 })
+);
+groundMesh.rotation.x = -Math.PI/2;
+scene.add(groundMesh);
+
+/* === 수건(천) === */
+const particles = [];
+const cols = 12, rows = 8, spacing = 0.5;
+const clothGeometry = new THREE.PlaneGeometry(6, 4, cols-1, rows-1);
+const clothMaterialMesh = new THREE.MeshPhongMaterial({ color: 0x00aaff, side: THREE.DoubleSide, wireframe:true });
+const clothMesh = new THREE.Mesh(clothGeometry, clothMaterialMesh);
+scene.add(clothMesh);
+
+for (let y=0; y<rows; y++) {
+  for (let x=0; x<cols; x++) {
+    const mass = (y===0 && (x===0 || x===cols-1)) ? 0 : 0.1; // 모서리 일부 고정
+    const body = new CANNON.Body({ mass, position: new CANNON.Vec3(x*spacing, 5, y*spacing), material: clothMaterial });
+    body.addShape(new CANNON.Sphere(0.05));
+    body.linearDamping = 0.9;
+    body.angularDamping = 0.9;
+    world.addBody(body);
+    particles.push(body);
+
+    if (x>0) {
+      const left = particles[particles.length-2];
+      world.addConstraint(new CANNON.DistanceConstraint(body, left, spacing, 0.5));
+    }
+    if (y>0) {
+      const up = particles[(y-1)*cols + x];
+      world.addConstraint(new CANNON.DistanceConstraint(body, up, spacing, 0.5));
+    }
+  }
+}
+
+/* === 카메라 위치 === */
+camera.position.set(0, 6, 12);
+camera.lookAt(0,0,0);
+
+/* === 마우스 제약 === */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const mouseBody = new CANNON.Body({ mass: 0 });
+mouseBody.addShape(new CANNON.Sphere(0.01));
+world.addBody(mouseBody);
+let dragConstraint = null;
+
+document.addEventListener("mousedown", e => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObject(clothMesh);
+  if (intersects.length > 0) {
+    const idx = intersects[0].face.a;
+    const body = particles[idx];
+    dragConstraint = new CANNON.DistanceConstraint(body, mouseBody, 0.3);
+    world.addConstraint(dragConstraint);
+  }
+});
+
+document.addEventListener("mousemove", e => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const planeIntersect = raycaster.intersectObject(groundMesh);
+  if (planeIntersect.length > 0) {
+    const point = planeIntersect[0].point;
+    mouseBody.position.set(point.x, point.y+0.5, point.z);
+  }
+});
+
+document.addEventListener("mouseup", () => {
+  if (dragConstraint) {
+    world.removeConstraint(dragConstraint);
+    dragConstraint = null;
+  }
+});
+
+/* === 애니메이션 루프 === */
+function animate() {
+  requestAnimationFrame(animate);
+  world.step(1/60);
+
+  let i=0;
+  for (let y=0; y<rows; y++) {
+    for (let x=0; x<cols; x++) {
+      clothGeometry.attributes.position.setXYZ(i,
+        particles[i].position.x,
+        particles[i].position.y,
+        particles[i].position.z
+      );
+      i++;
+    }
+  }
+  clothGeometry.attributes.position.needsUpdate = true;
+  clothGeometry.computeVertexNormals();
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<style>
+  @keyframes neon {
+    0%, 100% { text-shadow: 0 0 5px #0ff, 0 0 10px #0ff; }
+    50% { text-shadow: 0 0 20px #0ff, 0 0 40px #0ff; }
+  }
+  @keyframes wobble3d {
+    0% { transform: rotateX(0deg) rotateY(0deg); }
+    25% { transform: rotateX(10deg) rotateY(5deg); }
+    50% { transform: rotateX(-10deg) rotateY(-5deg); }
+    75% { transform: rotateX(5deg) rotateY(10deg); }
+    100% { transform: rotateX(0deg) rotateY(0deg); }
+  }
+  .neon3d {
+    display: inline-block;
+    animation: neon 1.5s infinite alternate, wobble3d 2s infinite;
+    font-size: 2em;
+    color: #0ff;
+  }
+</style>
+
+<h1 class="neon3d">네온 3D 글자</h1>

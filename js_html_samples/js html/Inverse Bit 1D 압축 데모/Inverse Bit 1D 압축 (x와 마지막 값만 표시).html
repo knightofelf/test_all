@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>x 위치와 마지막 값 출력</title>
+</head>
+<body>
+  <h2>Inverse Bit 1D 압축 (x와 마지막 값만 표시)</h2>
+  <textarea id="inputBits" rows="4" cols="50">11100110011011</textarea><br>
+  <button onclick="compressDemo()">압축하기</button>
+
+  <h3>단계별 결과</h3>
+  <pre id="steps"></pre>
+
+  <h3>최종 결과</h3>
+  <pre id="output"></pre>
+
+  <script>
+    function compressDemo() {
+      const bits = document.getElementById("inputBits").value.trim();
+      let steps = [];
+      let positions = [];
+      let current = bits.split("");
+      let offset = 0;
+
+      while (current.length > 2) {
+        let line = Array(offset).fill(" ").join(""); // 들여쓰기
+        let left = 0;
+        let right = current.length - 1;
+
+        // 왼쪽 끝 변화 체크
+        if (current[left] !== current[left+1]) {
+          line += "x";
+          positions.push(offset + left);
+        } else {
+          line += " ";
+        }
+
+        // 가운데는 공백으로 채움
+        line += Array(current.length).fill(" ").join("");
+
+        // 오른쪽 끝 변화 체크
+        if (current[right] !== current[right-1]) {
+          line += "x";
+          positions.push(offset + right);
+        }
+
+        steps.push(line);
+        current = current.slice(1, current.length-1); // 양끝 제거
+        offset++;
+      }
+
+      // 맨 아래 마지막 값만 출력
+      steps.push(Array(offset).fill(" ").join("") + current.join(""));
+
+      const lastValue = bits[bits.length-1];
+
+      document.getElementById("steps").innerText = steps.join("\n");
+      document.getElementById("output").innerText =
+        "x 위치: " + positions.join(", ") + "\n" +
+        "마지막 값: " + lastValue;
+    }
+  </script>
+</body>
+</html>

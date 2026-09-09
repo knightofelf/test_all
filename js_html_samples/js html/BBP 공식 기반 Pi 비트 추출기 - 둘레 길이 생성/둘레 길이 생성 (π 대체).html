@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Circumference Generator</title>
+</head>
+<body>
+  <h2>둘레 길이 생성 (π 대체)</h2>
+  <label>반지름 r: </label>
+  <input type="number" id="radius" value="10">
+  <label>대체 숫자열 (예: 12345): </label>
+  <input type="text" id="customPi" value="12345">
+  <button onclick="generateCircumference()">계산하기</button>
+  <pre id="result"></pre>
+
+  <script>
+    function generateCircumference() {
+      const r = parseFloat(document.getElementById("radius").value);
+      const customPiStr = document.getElementById("customPi").value;
+
+      // 문자열을 숫자로 변환 (예: "12345" → 12345)
+      const customPi = parseFloat(customPiStr);
+
+      // 둘레 계산: 2 * customPi * r
+      const circumference = 2 * customPi * r;
+
+      document.getElementById("result").textContent =
+        `반지름 ${r}일 때, π 대신 ${customPiStr}를 사용한 둘레 길이:\n${circumference}`;
+    }
+
+function customCircumference(r, sequence, index, length) {
+  // sequence: 무한 숫자열 (문자열 형태)
+  // index: 시작 위치
+  // length: 잘라낼 길이
+  const slice = sequence.slice(index, index + length);
+  const customPi = parseFloat(slice);
+  return 2 * customPi * r;
+}
+
+// 사용 예시
+const infiniteDigits = "12345678901234567890..."; // 무한히 이어진다고 가정
+console.log(customCircumference(10, infiniteDigits, 5, 6));
+// 반지름 10, 숫자열의 5번째부터 6자리 → 둘레 계산
+
+
+function combinedPi(r1, r2) {
+  // 원 둘레 공식: 2πr
+  // 두 원의 둘레 합 ÷ 평균 지름 → "대체 π"
+  const circumferenceSum = 2 * Math.PI * r1 + 2 * Math.PI * r2;
+  const avgDiameter = (2*r1 + 2*r2) / 2;
+  return circumferenceSum / avgDiameter;
+}
+
+console.log(combinedPi(10, 20)); 
+// 두 원을 결합해 얻은 "대체 π" 값
+
+
+function olympicPi(radii) {
+  // radii: [r1, r2, r3, r4, r5]
+  let circumferenceSum = 0;
+  for (let r of radii) {
+    circumferenceSum += 2 * Math.PI * r;
+  }
+  // 평균 지름으로 나눠 "대체 π" 생성
+  let avgDiameter = radii.reduce((a,b)=>a+b,0) / radii.length * 2;
+  return circumferenceSum / avgDiameter;
+}
+
+console.log(olympicPi([10,10,10,10,10]));
+// 오륜기 모양 원 5개로 만든 "대체 π"
+
+
+  </script>
+</body>
+</html>

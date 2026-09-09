@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>비트 인버스 수렴 오토마타 가속기</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.5rem; text-shadow: 0 0 10px #00ffcc; }
+        .info { color: #8892b0; font-size: 0.85rem; margin-bottom: 25px; }
+        .accelerator-container {
+            background: #111b2d;
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+            width: 650px;
+        }
+        .matrix-display {
+            background: #050811;
+            border: 1px solid #1f2e4d;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 180px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+        }
+        .raw-stream { color: #8892b0; font-weight: bold; border-bottom: 1px dashed #1f2e4d; margin-bottom: 10px; padding-bottom: 5px;}
+        .inverse-step { color: #ff007f; text-shadow: 0 0 3px #ff007f; }
+        .char-x { color: #495670; font-weight: bold; text-shadow: none; }
+        .char-blank { color: transparent; }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Bit Inverse Converging Automata</h1>
+    <div class="info">Operational Mechanism: O(log N) Shell-Stripping Core Extraction Engine</div>
+
+    <div class="accelerator-container">
+        <div class="matrix-display">
+            <div id="rawStream" class="raw-stream"></div>
+            <div id="matrixLines"></div>
+        </div>
+
+        <div class="stats">
+            <div>CONVERGE STATE: <span id="convState" style="color:#ff007f;">STEADY</span></div>
+            <div>AUDIO CORE FREQ: <span id="audioFreq">0Hz</span></div>
+            <div>COMPRESSION RATIO: <span id="compRatio">0%</span></div>
+        </div>
+    </div>
+
+<script>
+    // 1. 하드웨어 스펙 지정 (17비트 원시 버퍼 구조 선점)
+    const BIT_WIDTH = 17;
+    
+    // DOM 캐싱 (HDC 0 고정 메모리 타겟팅)
+    const domRawStream = document.getElementById('rawStream');
+    const domMatrixLines = document.getElementById('matrixLines');
+    const domConvState = document.getElementById('convState');
+    const domAudioFreq = document.getElementById('audioFreq');
+    const domCompRatio = document.getElementById('compRatio');
+
+    // 오디오 가청화 장치 레지스터
+    let audioCtx = null, oscillator = null, gainNode = null;
+
+    // 생명 순환 및 타이밍 오토마타 상태 변수
+    let systemClock = 0;
+    let currentStep = 0; // 0: 원시생성, 1~5: 수렴단계, 6: 버퍼 클리어 홀딩
+    let currentRawBits = new Array();
+
+    // 각 수렴 깊이(Depth) 레이어별 데이터를 미리 확보하는 제로카피 버퍼 구조
+    const layerBuffers = new Array();
+    for(let i=0; i<5; i++) {
+        layerBuffers.push(new Array(BIT_WIDTH).fill(''));
+    }
+
+    // 2. 사운드 블래스터 가청화 엔진 기동 인터페이스
+    window.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            oscillator.type = 'triangle'; // 수렴 진동을 부드럽게 표현하는 삼각파
+            oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+    });
+
+    // 3. 무작위 17비트 껍질+알맹이 스트림 빌더
+    function generate17Bits() {
+        const bits = new Array();
+        // 첫비트와 끝비트는 무조건 1로 고정하여 패턴 인버스 대칭 유도
+        bits.push('1');
+        for(let i=1; i<BIT_WIDTH-1; i++) {
+            bits.push(Math.random() > 0.5 ? '1' : '0');
+        }
+        bits.push('1');
+        return bits;
+    }
+
+    // 4. 비트 인버스 수렴 오토마타 코어 루프 (60Hz V-Sync 동기화)
+    function runInverseAutomata() {
+        systemClock++;
+
+        // 15프레임(약 0.25초)마다 오토마타의 시간 축(currentStep)을 진행시켜 시각적 가시성 확보
+        if ((systemClock % 15) === 0) {
+            
+            if (currentStep === 0) {
+                // [레지스터 초기화 및 원시 비트 생성]
+                currentRawBits = generate17Bits();
+                domRawStream.innerText = currentRawBits.join('');
+                domMatrixLines.innerHTML = '';
+                domConvState.innerText = "LAYER 0: RAW FETCH";
+                domConvState.style.color = "#8892b0";
+                domCompRatio.innerText = "0%";
+                
+                if (audioCtx) {
+                    oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                }
+                currentStep = 1;
+
+            } else if (currentStep >= 1 && currentStep <= 5) {
+                // [핵으로 수렴하는 인버스 단계 연산]
+                const depth = currentStep - 1; // 0, 1, 2, 3, 4
+                const leftXBoundary = depth;
+                const rightXBoundary = BIT_WIDTH - 1 - depth;
+
+                let lineHtml = '';
+                
+                // if문 분기 없이 물리적 인덱스 경계면 검사 루프 계산
+                for(let i=0; i<BIT_WIDTH; i++) {
+                    if (i < leftXBoundary || i > rightXBoundary) {
+                        // 공백 처리 영역 (바깥 껍질)
+                        lineHtml += '<span class="char-blank">.</span>';
+                    } else if (i === leftXBoundary || i === rightXBoundary) {
+                        // 양 끝에 타격된 x 포인터 경계선
+                        lineHtml += '<span class="char-x">x</span>';
+                    } else {
+                        // 안쪽 알맹이 비트의 인버스(반전) 연산 처리 기법
+                        // 문자 부호를 즉각 반전시키는 비트 스와핑 기법
+                        const rawBit = currentRawBits[i];
+                        const invertedBit = rawBit === '1' ? '0' : '1';
+                        lineHtml += invertedBit;
+                    }
+                }
+
+                // 기계어 레이어 적재 투영
+                domMatrixLines.innerHTML += `<div class="inverse-step">${lineHtml}</div>`;
+                domConvState.innerText = `DEPTH ${currentStep}: STRIPPING`;
+                domConvState.style.color = "#ff007f";
+                
+                // 압축 효율 계산: 껍질이 벗겨진 비율 투영
+                const strippedBits = (depth + 1) * 2;
+                const ratio = ((strippedBits / BIT_WIDTH) * 100).toFixed(0);
+                domCompRatio.innerText = `${ratio}%`;
+
+                // 가청화 변조: 안쪽 핵으로 좁혀져 들어갈수록 주파수가 기하급수적으로 옥타브 상승
+                if (audioCtx) {
+                    const nextFreq = 220 * Math.pow(1.5, currentStep);
+                    oscillator.frequency.setValueAtTime(nextFreq, audioCtx.currentTime);
+                    domAudioFreq.innerText = `${nextFreq | 0}Hz`;
+                }
+
+                currentStep++;
+
+            } else {
+                // [생명 순환 대기 레이어] 영점에 수렴 후 잠시 멈춤 후 리셋 준비
+                domConvState.innerText = "✅ CORE EXTRACTED (0ms)";
+                domConvState.style.color = "#00ffcc";
+                if (audioCtx) gainNode.gain.setValueAtTime(0, audioCtx.currentTime); // 무음 회귀
+                
+                currentStep = 0; // 생명 순환에 의해 다시 처음 상태로 리턴
+                systemClock = 1; // 클럭 리셋 타임아웃 지연 유도
+                systemClock = -30; // 30프레임 동안 화면 유지 대기 장벽
+            }
+        }
+
+        requestAnimationFrame(runInverseAutomata);
+    }
+
+    // 오토마타 장치 가동
+    requestAnimationFrame(runInverseAutomata);
+</script>
+</body>
+</html>

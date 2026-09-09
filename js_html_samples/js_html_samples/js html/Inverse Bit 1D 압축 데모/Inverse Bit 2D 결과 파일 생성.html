@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Inverse Bit 2D 결과 파일</title>
+</head>
+<body>
+  <h2>Inverse Bit 2D 결과 파일 생성</h2>
+  <button onclick="run2D()">2D 결과 파일 만들기</button>
+
+  <script>
+    function run2D() {
+      const width = 256, height = 256;
+      let data = Array.from({length: height}, () =>
+        Array.from({length: width}, () => Math.random() < 0.5 ? "0" : "1")
+      );
+
+      let xMap = data.map(row => {
+        let prev = row[0];
+        return row.map(bit => {
+          const mark = bit !== prev ? "x" : " ";
+          prev = bit;
+          return mark;
+        }).join("");
+      });
+
+      const lastValue = data[height - 1][width - 1];
+      const outputData = xMap.join("\n") + "\n\n마지막 값: " + lastValue;
+
+      const blob = new Blob([outputData], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "InverseBit2D_Result.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

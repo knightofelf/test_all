@@ -1,0 +1,116 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>비동기 대용량 데이터 가청화/시각화</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; transition: background 0.1s; }
+        .container { max-width: 600px; margin: 30px auto; background: #222; padding: 25px; border-radius: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .monitor { display: flex; justify-content: space-between; margin: 20px 0; }
+        .box { background: #333; padding: 15px; border-radius: 6px; width: 45%; text-align: center; }
+        .box div { font-size: 28px; font-weight: bold; font-family: monospace; margin-top: 5px; }
+        .log-area { background: #000; padding: 15px; border-radius: 6px; hieght: 180px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 13px; border: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚡ 비동기 스트리밍 가청화 & 시각화</h2>
+    <p style="color: #aaa; font-size: 13px;">AudioWorklet 스레드를 활용하여 대용량 데이터를 끊김과 메모리 누수 없이 실시간으로 소리화합니다.</p>
+    <button id="toggleBtn">시스템 엔진 가동</button>
+    
+    <div class="monitor">
+        <div class="box">
+            <span style="color: #007bff;">현재 CPU</span>
+            <div id="cpuText">0%</div>
+        </div>
+        <div class="box">
+            <span style="color: #dc3545;">에러 상태</span>
+            <div id="errorText" style="color: #28a745;">NORMAL</div>
+        </div>
+    </div>
+
+    <div class="log-area" id="logArea">엔진을 시작해 주세요.</div>
+</div>
+
+<script>
+let audioCtx = null;
+let sonifierNode = null;
+let isRunning = false;
+let dataLoop = null;
+
+document.getElementById('toggleBtn').addEventListener('click', async () => {
+    if (isRunning) {
+        // 엔진 정지
+        clearInterval(dataLoop);
+        if (audioCtx) await audioCtx.suspend();
+        document.body.style.background = "#111";
+        document.getElementById('toggleBtn').innerText = "시스템 엔진 가동";
+        document.getElementById('toggleBtn').style.background = "#007bff";
+        isRunning = false;
+        return;
+    }
+
+    // 1. [비동기 장치 활성화] 오디오 컨텍스트 생성
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        try {
+            // 외부 파일인 processor.js를 오디오 워커 스레드로 비동기 등록
+            await audioCtx.audioWorklet.addModule('processor.js');
+            sonifierNode = new AudioWorkletNode(audioCtx, 'data-sonifier-processor');
+            sonifierNode.connect(audioCtx.destination);
+        } catch (e) {
+            alert('오디오 스레드 로드 실패: 보안을 위해 로컬 파일(file://) 환경 대신 실서버나 Live Server 환경에서 실행해야 합니다.');
+            return;
+        }
+    } else {
+        await audioCtx.resume();
+    }
+
+    isRunning = true;
+    document.getElementById('toggleBtn').innerText = "엔진 정지";
+    document.getElementById('toggleBtn').style.background = "#dc3545";
+
+    // 2. 대용량 실시간 가상 데이터 스트리밍 시작 (0.5초 주기로 빠르게 밀어 넣기)
+    dataLoop = setInterval(streamData, 500);
+});
+
+function streamData() {
+    // 실시간 대용량 원본 트래픽 모사 데이터 생성
+    const cpu = Math.floor(Math.random() * 100);
+    const error = Math.random() < 0.15; // 15% 확률 에러
+
+    // A. [비동기 사운드 데이터 전송] 메인 스레드에서 오디오 연산 스레드로 데이터 패킷만 전송
+    if (sonifierNode) {
+        sonifierNode.port.postMessage({ cpu, error });
+    }
+
+    // B. [시각화 처리] 화면 숫자 및 스타일 업데이트
+    document.getElementById('cpuText').innerText = `${cpu}%`;
+    const errNode = document.getElementById('errorText');
+    const logArea = document.getElementById('logArea');
+    const time = new Date().toLocaleTimeString();
+
+    let logLine = `[${time}] CPU Usage: ${cpu}%`;
+
+    if (error) {
+        document.body.style.background = "#2a0808"; // 화면 빨갛게 깜빡 시각화
+        errNode.innerText = "⚠️ ERROR";
+        errNode.style.color = "#dc3545";
+        logLine += ` <span style="color:#ffc107; font-weight:bold;">[ERR]</span>`;
+    } else {
+        document.body.style.background = "#111";
+        errNode.innerText = "NORMAL";
+        errNode.style.color = "#28a745";
+    }
+
+    logArea.innerHTML = logLine + "<br>" + logArea.innerHTML;
+}
+</script>
+
+</body>
+</html>

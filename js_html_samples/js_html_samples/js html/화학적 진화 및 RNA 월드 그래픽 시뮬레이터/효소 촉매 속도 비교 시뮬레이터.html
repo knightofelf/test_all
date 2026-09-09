@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>효소 촉매 속도 비교 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #121214;
+            color: #ffffff;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #ff922b; margin-bottom: 5px; }
+        p { color: #adb5bd; margin-top: 0; font-size: 14px; text-align: center; }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .panel {
+            background-color: #1e1e24;
+            border: 2px solid #2b2c34;
+            border-radius: 12px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        .panel-enzyme {
+            border-color: #4dabf7;
+            background-color: #152238;
+        }
+        h2 { margin-top: 0; font-size: 20px; }
+        .time-badge {
+            font-size: 14px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: #3b3d46;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .panel-enzyme .time-badge { background-color: #0b7285; color: #e3fafc; }
+        
+        /* 분자 카운터 스타일 */
+        .counter-box {
+            font-size: 36px;
+            font-weight: bold;
+            font-family: monospace;
+            margin: 20px 0;
+        }
+        .text-muted { color: #868e96; font-size: 16px; font-weight: normal; }
+
+        /* 진행 바 */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #343a40;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #ff922b;
+            transition: width 0.1s linear;
+        }
+        .panel-enzyme .progress-bar { background-color: #339af0; }
+
+        .btn {
+            background-color: #ff922b;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn:disabled { background-color: #495057; cursor: not-allowed; transform: none; }
+
+        #speed-info {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #cc5de8;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>7,800만 년 vs 0.018초 생체 촉매 시뮬레이터</h1>
+    <p>우리 몸의 필수 효소인 <strong>'오로티딘 5-인산 탈탄산효소'</strong> 유무에 따른 물질 대사(화학 반응) 속도 차이를 모사합니다.<br>
+    두 환경에서 똑같이 1,000개의 유기물 반응을 처리하는 속도를 비교해 보세요.</p>
+
+    <button id="run-btn" class="btn">분자 반응 실험 시작</button>
+    <div id="speed-info">🚀 효소 촉매 효과로 인해 반응 속도가 약 136,600,000,000배(1,366억 배) 빨라졌습니다!</div>
+
+    <div class="container">
+        <!-- 효소가 없는 환경 -->
+        <div class="panel">
+            <h2>❌ 효소 없는 환경</h2>
+            <div class="time-badge">반응 반감기: 78,000,000년</div>
+            <div>처리된 분자 수</div>
+            <div class="counter-box" id="no-enzyme-count">0 <span class="text-muted">/ 1,000</span></div>
+            <div style="font-size: 13px; color: #ffa8a8; text-align: center;">
+                실제 시간으로 1개의 분자가 반응하는 데만<br>약 78,000년이 필요합니다.
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="no-enzyme-bar"></div>
+            </div>
+        </div>
+
+        <!-- 효소가 있는 환경 -->
+        <div class="panel panel-enzyme">
+            <h2>🧪 효소 있는 환경 (우리의 몸)</h2>
+            <div class="time-badge">반응 완료 시간: 0.018초</div>
+            <div>처리된 분자 수</div>
+            <div class="counter-box" id="enzyme-count">0 <span class="text-muted">/ 1,000</span></div>
+            <div style="font-size: 13px; color: #a5d8ff; text-align: center;">
+                효소 주머니가 분자들을 강제로 결합시켜<br>눈 깜짝할 사이에 반응을 완료합니다.
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="enzyme-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('run-btn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerText = "반응 진행 중...";
+
+            // --- 1. 효소가 있는 환경 시뮬레이션 (0.018초 = 18밀리초) ---
+            const enzymeCountEl = document.getElementById('enzyme-count');
+            const enzymeBar = document.getElementById('enzyme-bar');
+            
+            let startTime = performance.now();
+            
+            // 0.018초 만에 1000개 분자를 단번에 처리하는 연출
+            setTimeout(() => {
+                enzymeCountEl.innerHTML = `1,000 <span class="text-muted">/ 1,000</span>`;
+                enzymeBar.style.width = '100%';
+                
+                let endTime = performance.now();
+                let took = (endTime - startTime) / 1000;
+                console.log(`효소 환경 완료 시간: ${took.toFixed(4)}초`);
+                
+                // 결과창 노출
+                document.getElementById('speed-info').style.display = 'block';
+                this.innerText = "실험 완료 (인간 생명 유지 성공)";
+            }, 18);
+
+            // --- 2. 효소가 없는 환경 시뮬레이션 (정지된 것처럼 1개만 아주 느리게 증가) ---
+            const noEnzymeCountEl = document.getElementById('no-enzyme-count');
+            const noEnzymeBar = document.getElementById('no-enzyme-bar');
+            
+            // 시뮬레이터 상에서 실시간 흐름을 보여주기 위해 1초 뒤 우연히 1개 처리되는 연출
+            setTimeout(() => {
+                noEnzymeCountEl.innerHTML = `1 <span class="text-muted">/ 1,000</span>`;
+                noEnzymeBar.style.width = '0.1%';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

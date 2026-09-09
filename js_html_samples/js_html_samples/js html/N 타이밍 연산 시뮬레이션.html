@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>N 타이밍 연산 데모</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #0f0; }
+    .output { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>N 타이밍 연산 시뮬레이션</h2>
+  <button onclick="runTiming()">실행</button>
+  <div class="output" id="result"></div>
+
+  <script>
+    function runTiming() {
+      const N = 64; // 기본 단위
+      let steps = [];
+      let sum = 0;
+
+      for (let i = 1; i <= 4; i++) {
+        sum += N;
+        steps.push(`64 x ${i} 타이밍 = ${sum} 비트`);
+      }
+
+      document.getElementById("result").innerHTML = steps.join("<br>");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>8비트 연산 확장</title>
+</head>
+<body>
+  <h2>8비트 CPU 순차 처리 시뮬레이션</h2>
+  
+  <label>첫 번째 값 (0~65535): 
+    <input type="number" id="val1" value="30000">
+  </label><br><br>
+  
+  <label>두 번째 값 (0~65535): 
+    <input type="number" id="val2" value="40000">
+  </label><br><br>
+  
+  <button onclick="simulate()">계산하기</button>
+  
+  <h3>결과:</h3>
+  <pre id="output"></pre>
+  
+  <script>
+    function simulate() {
+      let a = parseInt(document.getElementById("val1").value);
+      let b = parseInt(document.getElementById("val2").value);
+
+      // 16비트 값 → 하위 8비트와 상위 8비트로 분리
+      let aLow = a & 0xFF;
+      let aHigh = (a >> 8) & 0xFF;
+      let bLow = b & 0xFF;
+      let bHigh = (b >> 8) & 0xFF;
+
+      // 하위 8비트 덧셈
+      let lowSum = aLow + bLow;
+      let carry = 0;
+      if (lowSum > 0xFF) {
+        carry = 1;
+        lowSum &= 0xFF; // 오버플로우 처리
+      }
+
+      // 상위 8비트 덧셈 + 캐리 반영
+      let highSum = aHigh + bHigh + carry;
+      if (highSum > 0xFF) {
+        highSum &= 0xFF; // 오버플로우 처리
+      }
+
+      // 최종 16비트 결과
+      let result = (highSum << 8) | lowSum;
+
+      document.getElementById("output").textContent =
+        `하위 8비트: ${lowSum}\n상위 8비트: ${highSum}\n최종 결과(16비트): ${result}`;
+    }
+  </script>
+</body>
+</html>

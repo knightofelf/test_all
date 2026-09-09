@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>CIELab 3D 시각화</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script>
+    // 기본 장면, 카메라, 렌더러 설정
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // 좌표축 추가
+    const axesHelper = new THREE.AxesHelper(150);
+    scene.add(axesHelper);
+
+    // Lab → RGB 변환 함수
+    function labToRgb(L, a, b) {
+      let y = (L + 16) / 116;
+      let x = a / 500 + y;
+      let z = y - b / 200;
+
+      const refX = 0.95047, refY = 1.00000, refZ = 1.08883;
+      function fInv(t) {
+        return t ** 3 > 0.008856 ? t ** 3 : (t - 16/116) / 7.787;
+      }
+
+      x = refX * fInv(x);
+      y = refY * fInv(y);
+      z = refZ * fInv(z);
+
+      let r = x *  3.2406 + y * -1.5372 + z * -0.4986;
+      let g = x * -0.9689 + y *  1.8758 + z *  0.0415;
+      let bl = x *  0.0557 + y * -0.2040 + z *  1.0570;
+
+      function gammaCorrect(c) {
+        return c <= 0.0031308 ? 12.92 * c : 1.055 * (c ** (1/2.4)) - 0.055;
+      }
+
+      r = Math.min(Math.max(0, gammaCorrect(r)), 1);
+      g = Math.min(Math.max(0, gammaCorrect(g)), 1);
+      bl = Math.min(Math.max(0, gammaCorrect(bl)), 1);
+
+      return new THREE.Color(r, g, bl);
+    }
+
+    // L*, a*, b* 범위 내 점들을 생성
+    for (let L = 20; L <= 80; L += 20) {
+      for (let a = -100; a <= 100; a += 20) {
+        for (let b = -100; b <= 100; b += 20) {
+          const color = labToRgb(L, a, b);
+          const geometry = new THREE.SphereGeometry(1.5, 8, 8);
+          const material = new THREE.MeshBasicMaterial({ color: color });
+          const sphere = new THREE.Mesh(geometry, material);
+          sphere.position.set(a, L, b); // a → x축, L → y축, b → z축
+          scene.add(sphere);
+        }
+      }
+    }
+
+    camera.position.set(0, 100, 200);
+    camera.lookAt(0, 50, 0);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      scene.rotation.y += 0.002; // 회전 애니메이션
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

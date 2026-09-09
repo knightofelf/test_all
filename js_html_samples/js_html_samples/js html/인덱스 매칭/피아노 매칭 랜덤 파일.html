@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>피아노 매칭 랜덤 파일</title>
+</head>
+<body>
+  <button id="downloadData">랜덤 데이터 파일</button>
+  <button id="downloadIndex">인덱스 매칭 파일</button>
+
+  <script>
+    // 랜덤 데이터 생성 (1MB)
+    function generateRandomData(size) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < size; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // 인덱스 매칭 (피아노 치듯 랜덤 배치)
+    function generateIndexData(files, perFile) {
+      let result = "";
+      for (let f = 1; f <= files; f++) {
+        result += `F${f}\n`;
+        let used = new Set();
+        for (let i = 0; i < perFile; i++) {
+          let val;
+          do {
+            val = Math.floor(Math.random() * 4) + 1; // 1~4
+          } while (used.has(val)); // 같은 위치 겹치지 않게
+          used.add(val);
+          result += " ".repeat(i * 3) + val + "\n"; // 띄워쓰기 적용
+        }
+        result += "\n"; // 파일 간 띄우기
+      }
+      return result;
+    }
+
+    const size = 1024 * 1024; // 1MB
+    const randomData = generateRandomData(size);
+    const indexData = generateIndexData(98, 4); // F1~F98, 각 4개 인덱스
+
+    // 랜덤 데이터 파일 다운로드
+    document.getElementById("downloadData").addEventListener("click", () => {
+      const blob = new Blob([randomData], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "random_1MB_file.txt";
+      link.click();
+    });
+
+    // 인덱스 매칭 파일 다운로드
+    document.getElementById("downloadIndex").addEventListener("click", () => {
+      const blob = new Blob([indexData], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "index_mapping.txt";
+      link.click();
+    });
+  </script>
+</body>
+</html>

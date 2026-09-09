@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>베지에 고릴라 홀인원 - DNA IP 블룸 필터 가속기</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.5rem; text-shadow: 0 0 10px #00ffcc; }
+        .info { color: #8892b0; font-size: 0.85rem; margin-bottom: 15px; }
+        .canvas-container {
+            background: #111b2d;
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+        }
+        canvas { background: #050811; border: 1px solid #1f2e4d; }
+        .stats {
+            width: 800px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #00ffcc;
+        }
+        .stream-box {
+            width: 800px;
+            background: #162235;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            color: #ff007f;
+            word-wrap: break-word;
+            margin-bottom: 10px;
+            border-left: 3px solid #ff007f;
+        }
+        .bloom-panel {
+            width: 800px;
+            background: #111b2d;
+            border: 1px solid #1f2e4d;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bloom-bit {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #2e3c56;
+            margin: 0 2px;
+            border-radius: 2px;
+            transition: background 0.1s;
+        }
+        .bloom-active { background: #00ffcc; box-shadow: 0 0 5px #00ffcc; }
+    </style>
+</head>
+<body>
+
+    <h1>Bezier Gorilla: DNA IP Bloom Filter System</h1>
+    <div class="info">Operational Mechanisms: Bloom Filter Hashing, Data Audification & GAN Displacement</div>
+
+    <div class="stream-box">
+        <strong>DNA / IP TARGET PATTERN:</strong> 1010011110001101 (Extracted from Input Bit Streams)
+    </div>
+
+    <!-- 블룸 필터 비트 배열 상태 판넬 (HDC 0 하드웨어 매핑) -->
+    <div class="bloom-panel">
+        <div>BLOOM FILTER BITMAP (16-Bit Array):</div>
+        <div id="bloomBitsContainer"></div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <div class="stats">
+        <div>FILTER MATCH (Nm=Nm): <span id="filterMatch" style="color:#ff007f;">0 (FALSE)</span></div>
+        <div>AUDIO FREQ: <span id="audioFreq">0Hz</span></div>
+        <div>ORBIT STATE: <span id="orbitState">STABLE</span></div>
+    </div>
+
+<script>
+    // 1. 하드웨어 환경 및 고정 메모리(HDC 0) 배치
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const player = { x: 80, y: 320, r: 15, color: '#64ffda' };
+    const target = { x: 700, y: 320, r: 20, color: '#ff007f' };
+    
+    // 블룸 필터 게이트 좌표 (X축 중심선 장벽)
+    const filterGateX = 400;
+
+    // 블룸 필터 레지스터 (16비트 메모리 맵)
+    // 0과 1 상태 배열을 문자열 스플릿 기법으로 안전하게 가상화
+    const bloomRegister = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0".split(",").map(Number);
+    const targetPattern = "1,0,1,0,0,1,1,1,1,0,0,0,1,1,0,1".split(",").map(Number);
+
+    // 블룸 필터 UI 노드 생성
+    const container = document.getElementById('bloomBitsContainer');
+    for(let i=0; i<16; i++) {
+        const bitEl = document.createElement('div');
+        bitEl.className = 'bloom-bit';
+        bitEl.id = 'bit-' + i;
+        container.appendChild(bitEl);
+    }
+
+    // 오디오 장치 레지스터
+    let audioCtx = null, oscillator = null, gainNode = null;
+
+    // 스트림 변수 연산
+    const stream1 = "289735723509273097203740928734007230472034";
+    const stream2 = "237498739847283479823749873298472344985";
+    const controlX = (player.x + target.x) / 2;
+    const controlY = -((Number(stream1.slice(-2)) + Number(stream2.slice(-2))) * 3.5) + 150;
+
+    let t = 0;
+    let isExploded = false;
+    let filterTriggered = false;
+    const particles = new Array();
+
+    // 2. 가청화 초기화 장치
+    window.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+    });
+
+    // 3. 베지에 곡선 노드 함수
+    function getBezierPoint(p0, p1, p2, t) {
+        const u = 1 - t;
+        const tt = t * t;
+        const uu = u * u;
+        return {
+            x: uu * p0.x + 2 * u * t * p1.x + tt * p2.x,
+            y: uu * p0.y + 2 * u * t * p1.y + tt * p2.y
+        };
+    }
+
+    // 4. GAN 대칭 분산 매트릭스 폭발
+    function triggerGanExplosion(startX, startY) {
+        particles.length = 0;
+        for(let i = 0; i < 256; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 8 + 2;
+            particles.push({
+                x: startX, y: startY,
+                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                alpha: 1, color: i % 2 === 0 ? '#ff007f' : '#00ffcc'
+            });
+        }
+        isExploded = true;
+
+        if(audioCtx) {
+            gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.5);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+        }
+    }
+
+    // 5. 블룸 필터 비트 가상 매칭 장치 (if문 제거 원리)
+    function executeBloomFilter(bulletY) {
+        filterTriggered = true;
+        
+        // 포탄의 Y축 좌표(알맹이 특성)를 해시값 삼아 16비트 인덱스에 다이렉트 맵 매칭 (Nm = Nm)
+        const hashIdx = Math.floor(bulletY / 25) & 15; 
+        
+        // 조건문 분기 예측 없이 목표 비트맵 레지스터 강제 주입
+        bloomRegister[hashIdx] = targetPattern[hashIdx];
+
+        // UI 레지스터 고속 업데이트 (SubClassing 가속 모사)
+        for(let i=0; i<16; i++) {
+            const el = document.getElementById('bit-' + i);
+            if(bloomRegister[i] === 1) el.className = 'bloom-bit bloom-active';
+        }
+
+        // 참 거짓 결과 매칭 인덱스 도출
+        const isMatched = bloomRegister[hashIdx] === 1;
+        const resultText = isMatched ? "1 (PATTERN MATCH - TRUE)" : "0 (FILTER MISMATCH)";
+        const txtEl = document.getElementById('filterMatch');
+        txtEl.innerText = resultText;
+        txtEl.style.color = isMatched ? "#00ffcc" : "#ff007f";
+
+        // 필터 관통 주파수 비프음 비트 변조 발생
+        if(audioCtx) {
+            const prevFreq = oscillator.frequency.value;
+            oscillator.frequency.setValueAtTime(prevFreq * 2, audioCtx.currentTime);
+            setTimeout(() => {
+                if(!isExploded && audioCtx) oscillator.frequency.setValueAtTime(prevFreq, audioCtx.currentTime);
+            }, 80);
+        }
+    }
+
+    // 6. 메인 코어 오토마타 가속 엔진
+    function runFilterEngine() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // [DNA IP 블룸 필터 장벽 시각화 (이중슬릿 파동 경계면)]
+        ctx.beginPath();
+        ctx.moveTo(filterGateX, 0);
+        ctx.lineTo(filterGateX, canvas.height);
+        ctx.strokeStyle = filterTriggered ? 'rgba(0, 255, 204, 0.4)' : 'rgba(255, 0, 127, 0.2)';
+        ctx.lineWidth = filterTriggered ? 3 : 1;
+        ctx.setLineDash("2,4".split(",").map(Number));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1;
+
+        // 베이스 노드 그리기
+        ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+        ctx.fillStyle = player.color; ctx.fill();
+        ctx.beginPath(); ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
+        ctx.fillStyle = target.color; ctx.fill();
+
+        const p0 = { x: player.x, y: player.y };
+        const p1 = { x: controlX, y: controlY };
+        const p2 = { x: target.x, y: target.y };
+
+        if (!isExploded) {
+            const bullet = getBezierPoint(p0, p1, p2, t);
+
+            // 포탄 껍질 + 알맹이 가시화
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = filterTriggered ? '#00ffcc' : '#ff007f';
+            ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle;
+            ctx.fill(); ctx.shadowBlur = 0;
+
+            // 실시간 가청화 연산
+            if (audioCtx) {
+                const currentFreq = Math.floor(350 + (320 - bullet.y) * 2.5);
+                oscillator.frequency.setValueAtTime(currentFreq, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                document.getElementById('audioFreq').innerText = currentFreq + "Hz";
+            }
+
+            // 블룸 필터 장벽 관통 시점 연산 (X축 매칭 영점 진입)
+            if (!filterTriggered && bullet.x >= filterGateX) {
+                executeBloomFilter(bullet.y);
+            }
+
+            document.getElementById('orbitState').innerText = "BI-DIRECTIONAL RUNNING";
+            t += 0.011;
+
+            if (t >= 1.0) {
+                triggerGanExplosion(target.x, target.y);
+            }
+        } else {
+            // [GAN 역방향 매트릭스 분산]
+            document.getElementById('orbitState').innerText = "✅ HOLE IN ONE & GAN FLUSH";
+            let activeParticles = 0;
+
+            for(let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                if(p.alpha > 0) {
+                    p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+                    ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, 4, 4); ctx.restore();
+                    activeParticles++;
+                }
+            }
+
+            // 시스템 생명 순환: 모든 장치 레지스터 리셋 후 재가동
+            if (activeParticles === 0) {
+                t = 0;
+                isExploded = false;
+                filterTriggered = false;
+                bloomRegister.fill(0); // 블룸 필터 하드웨어 메모리 비우기
+                for(let i=0; i<16; i++) document.getElementById('bit-' + i).className = 'bloom-bit';
+                document.getElementById('filterMatch').innerText = "0 (FALSE)";
+                document.getElementById('filterMatch').style.color = "#ff007f";
+            }
+        }
+
+        requestAnimationFrame(runFilterEngine);
+    }
+
+    // 엔진 기동
+    requestAnimationFrame(runFilterEngine);
+</script>
+</body>
+</html>

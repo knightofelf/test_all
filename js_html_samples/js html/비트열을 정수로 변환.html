@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비트 → 정수 변환</title>
+</head>
+<body>
+  <h2>비트열을 정수로 변환</h2>
+  <input type="text" id="bitInput" size="120" 
+         value="1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001">
+  <button onclick="convertBit()">변환하기</button>
+  <p id="result"></p>
+
+  <script>
+    function convertBit() {
+      const bitString = document.getElementById("bitInput").value.trim();
+
+      // BigInt를 사용해 초거대 정수 처리
+      const decimalValue = BigInt("0b" + bitString);
+
+      document.getElementById("result").textContent = 
+        "정수 값: " + decimalValue.toString();
+    }
+  </script>
+</body>
+</html>

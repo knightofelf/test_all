@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Pure Offline Stencil Mirror Renderer</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#000; font-family: sans-serif; }
+    canvas { display:block; width:100vw; height:100vh; }
+    #loading { position:absolute; top:20px; left:20px; color:#fff; background:rgba(0,0,0,0.6); padding:8px; border-radius:4px; pointer-events:none; }
+  </style>
+</head>
+<body>
+<div id="loading">엔진 초기화 중...</div>
+
+<script>
+  window.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    // 가상 3D 공간 제어 변수 (빨간 구체의 이동 궤적 애니메이션용)
+    let time = 0;
+
+    function renderLoop() {
+      time += 0.02;
+      
+      // 1. 화면 전체 버퍼 초기화 (Clear)
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      
+      // 공간감을 위한 투영 바닥 그리드 격자 드로잉
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let i = -5; i <= 5; i++) {
+        // 가상 원근 보정이 들어간 바닥 가로/세로 격자 연산
+        ctx.beginPath();
+        ctx.moveTo(cx + i * 80, cy + 50);
+        ctx.lineTo(cx + i * 160, canvas.height);
+        ctx.stroke();
+      }
+
+      // 회전하는 빨간 구체의 실제 현실 좌표 계산
+      const ballX = cx + Math.sin(time) * 120;
+      const ballY = cy + Math.cos(time) * 40 - 20;
+      const ballRadius = 35;
+
+      // 중앙 거울 사각형 마스크 영역 정의 (가로 260px, 세로 180px 사선 배치)
+      const mirrorX = cx - 130;
+      const mirrorY = cy - 130;
+      const mirrorW = 260;
+      const mirrorH = 180;
+
+      // --- 단계 1: 스텐실 버퍼(Stencil Buffer) 마스킹 영역 굽기 ---
+      ctx.save(); 
+      ctx.beginPath();
+      ctx.rect(mirrorX, mirrorY, mirrorW, mirrorH);
+      // WebGL의 stencilTest(true) 및 EQUAL 판정을 브라우저 하드웨어 클리핑 레이어로 일대일 동치 구현
+      ctx.clip(); 
+
+      // --- 단계 2: 마킹된 스텐실 내부(거울 안)에만 대칭 반사 장면 투영 렌더링 ---
+      // 거울 내부 기본 어두운 반사면 색상 칠하기
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(mirrorX, mirrorY, mirrorW, mirrorH);
+
+      // 반사 공식 적용: 거울의 중심 수평선(Y축 기준)을 기점으로 카메라와 피사체 반전 연산
+      const mirrorCenterY = mirrorY + mirrorH;
+      const reflectedBallY = mirrorCenterY - (ballY - mirrorCenterY) - 50;
+
+      // 거울 속에 정교하게 분할 투영되는 대칭 반사 구체 드로잉
+      let refGrad = ctx.createRadialGradient(ballX - 10, reflectedBallY - 10, 2, ballX, reflectedBallY, ballRadius);
+      refGrad.addColorStop(0, '#fca5a5'); // 거울 속 광원 반사 하이라이트
+      refGrad.addColorStop(0.3, '#ef4444');
+      refGrad.addColorStop(1, '#7f1d1d');
+      
+      ctx.beginPath();
+      ctx.arc(ballX, reflectedBallY, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = refGrad;
+      ctx.fill();
+      
+      ctx.restore(); // 스텐실 마스크 해제 (현실 세계 레이어로 복귀)
+
+      // --- 단계 3: 거울 테두리 및 현실 세계 오리지널 메쉬 덮어쓰기 ---
+      // 거울 틀(하늘색 프레임) 렌더
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(mirrorX, mirrorY, mirrorW, mirrorH);
+
+      // 진짜 현실 세계에 실시간 공전 중인 오리지널 빨간 구체 렌더 (스텐실의 제한을 받지 않음)
+      let realGrad = ctx.createRadialGradient(ballX - 10, ballY - 10, 2, ballX, ballY, ballRadius);
+      realGrad.addColorStop(0, '#fecdd3');
+      realGrad.addColorStop(0.3, '#f43f5e');
+      realGrad.addColorStop(1, '#4c0519');
+      
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = realGrad;
+      ctx.fill();
+
+      // 인스턴스 렌더 완료 후 로딩 UI 제거
+      document.getElementById('loading').style.display = 'none';
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    renderLoop();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  };
+</script>
+</body>
+</html>

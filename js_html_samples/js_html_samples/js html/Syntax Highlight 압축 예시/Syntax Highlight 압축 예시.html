@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Syntax Highlight 압축 예시</title>
+<style>
+  pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  .keyword { color: #007acc; font-weight: bold; }
+  .string { color: #a31515; }
+  .number { color: #098658; }
+</style>
+</head>
+<body>
+<h2>Syntax Highlight 압축 시뮬레이션</h2>
+<pre id="code">
+<span class="keyword">for</span> (let i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) {
+  console.log(<span class="string">'Hello'</span>);
+}
+</pre>
+
+<script>
+// 1️⃣ 데이터 추출
+const codeElement = document.getElementById('code');
+const rawHTML = codeElement.innerHTML;
+
+// 2️⃣ 재그룹화: 태그별로 분리
+const groups = {
+  keyword: [],
+  string: [],
+  number: [],
+  other: []
+};
+
+rawHTML.split(/(<[^>]+>)/g).forEach(token => {
+  if (token.includes('keyword')) groups.keyword.push(token);
+  else if (token.includes('string')) groups.string.push(token);
+  else if (token.includes('number')) groups.number.push(token);
+  else groups.other.push(token);
+});
+
+// 3️⃣ 그룹별 압축 (Base64 + Deflate 시뮬레이션)
+function compress(str) {
+  return btoa(unescape(encodeURIComponent(str))); // 간단한 압축 시뮬레이션
+}
+
+const compressed = {
+  keyword: compress(groups.keyword.join('')),
+  string: compress(groups.string.join('')),
+  number: compress(groups.number.join('')),
+  other: compress(groups.other.join(''))
+};
+
+// 4️⃣ P2P 전송용 패킷 구성
+const packet = JSON.stringify({
+  meta: { version: 1.0, type: 'highlighted-code' },
+  data: compressed
+});
+
+console.log('압축된 패킷 크기:', packet.length, 'bytes');
+</script>
+</body>
+</html>

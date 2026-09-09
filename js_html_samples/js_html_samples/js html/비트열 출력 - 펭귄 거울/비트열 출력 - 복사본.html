@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비트 입력 출력</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    pre {
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+  <h2>비트 패턴 입력/출력</h2>
+  
+  <textarea id="bit-input" rows="6" cols="30" placeholder="여기에 비트 패턴 입력"></textarea><br>
+  <button onclick="printBits()">출력하기</button>
+  
+  <pre id="bit-output"></pre>
+
+  <script>
+    function printBits() {
+      const input = document.getElementById("bit-input").value;
+      const lines = input.split("\n");
+      const outputLines = [];
+      let seenUniform = new Set(); // 111..., 000... 중복 방지
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+
+        // 같은 숫자만 반복되는 경우
+        if (/^1+$/.test(trimmed) || /^0+$/.test(trimmed)) {
+          if (!seenUniform.has(trimmed)) {
+            outputLines.push(trimmed);
+            seenUniform.add(trimmed);
+          }
+        } else {
+          // 'A'가 아닌 '1'만 있는 경우 엔터 처리
+          if (trimmed === "1") {
+            outputLines.push(trimmed + "\n"); 
+          } else {
+            outputLines.push(line);
+          }
+        }
+      }
+
+      document.getElementById("bit-output").textContent = outputLines.join("\n");
+    }
+  </script>
+</body>
+</html>

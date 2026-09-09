@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>실시간 데이터 가청화 & 시각화 시스템</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            background: #111; 
+            color: #fff; 
+            padding: 20px; 
+            transition: background 0.1s ease; /* 에러 시 깜빡임 효과 */
+        }
+        .container { max-width: 600px; margin: 50px auto; background: #222; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        button { background: #28a745; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-size: 18px; width: 100%; font-weight: bold; margin-bottom: 20px;}
+        button:hover { background: #218838; }
+        .dashboard { display: flex; justify-content: space-between; margin: 20px 0; }
+        .card { background: #333; padding: 15px; border-radius: 8px; width: 28%; text-align: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .card h3 { margin: 0 0 10px 0; font-size: 14px; color: #aaa; }
+        .card .value { font-size: 24px; font-weight: bold; font-family: monospace; }
+        .error-card.active { background: #dc3545; color: white; animation: blink 0.5s infinite; }
+        .data-display { background: #000; padding: 15px; border-radius: 6px; font-family: monospace; height: 150px; overflow-y: auto; font-size: 13px; border: 1px solid #444; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔊 실시간 데이터 가청화 & 시각화</h2>
+    <button id="startBtn">대시보드 시작</button>
+    
+    <!-- 실시간 수치 시각화 대시보드 -->
+    <div class="dashboard">
+        <div class="card">
+            <h3>CPU 사용량</h3>
+            <div class="value" id="cpuVal" style="color: #007bff;">0%</div>
+        </div>
+        <div class="card">
+            <h3>트래픽 (Traffic)</h3>
+            <div class="value" id="trafficVal" style="color: #17a2b8;">0 pps</div>
+        </div>
+        <div class="card id='errCard'">
+            <h3>에러 상태</h3>
+            <div class="value" id="errorVal" style="color: #28a745;">정상</div>
+        </div>
+    </div>
+    
+    <!-- 로그 출력 -->
+    <div class="data-display" id="logDisplay">버튼을 누르면 실시간 모니터링이 시작됩니다.</div>
+</div>
+
+<script>
+let audioCtx = null;
+let isRunning = false;
+let streamInterval = null;
+
+document.getElementById('startBtn').addEventListener('click', () => {
+    if (isRunning) {
+        // 중지 상태로 변경
+        clearInterval(streamInterval);
+        document.body.style.background = "#111";
+        document.getElementById('startBtn').innerText = "대시보드 시작";
+        document.getElementById('startBtn').style.background = "#28a745";
+        isRunning = false;
+        return;
+    }
+
+    // 오디오 장치 연결
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    isRunning = true;
+    document.getElementById('startBtn').innerText = "대시보드 중지";
+    document.getElementById('startBtn').style.background = "#dc3545";
+
+    // 1초마다 무작위 데이터 발생 및 시각화/가청화 실행
+    streamInterval = setInterval(runSonificationAndVisualization, 1000);
+});
+
+function runSonificationAndVisualization() {
+    // 1. 가상 데이터 생성
+    const data = {
+        cpu: Math.floor(Math.random() * 100),
+        traffic: Math.floor(Math.random() * 1000),
+        error: Math.random() < 0.2 // 20% 확률로 에러 발생
+    };
+
+    // 2. [시각화] 대시보드 숫자 및 로그 업데이트
+    updateDashboardUI(data);
+
+    // 3. [가청화] 데이터 상태를 소리로 변환
+    playDataSound(data);
+}
+
+// [시각화 함수] 화면에 데이터를 숫장, 색상, 애니메이션으로 표현
+function updateDashboardUI(data) {
+    document.getElementById('cpuVal').innerText = `${data.cpu}%`;
+    document.getElementById('trafficVal').innerText = `${data.traffic} pps`;
+    
+    const errValNode = document.getElementById('errorVal');
+    const logDisplay = document.getElementById('logDisplay');
+    const time = new Date().toLocaleTimeString();
+    
+    let logMsg = `[${time}] CPU: ${data.cpu}% | Traffic: ${data.traffic}pps`;
+
+    if (data.error) {
+        // 에러 시 시각 효과: 배경을 빨갛게 깜빡이고 대시보드에 경고 표시
+        document.body.style.background = "#3a0000"; 
+        errValNode.innerText = "⚠️ 에러";
+        errValNode.style.color = "#ffc107";
+        logMsg += ` <span style="color:#ffc107; font-weight:bold;">⚠️ [ERROR]</span>`;
+    } else {
+        // 정상 시 시각 효과: 배경 원래대로 회복
+        document.body.style.background = "#111"; 
+        errValNode.innerText = "정상";
+        errValNode.style.color = "#28a745";
+    }
+
+    // 새 로그를 위로 쌓기
+    logDisplay.innerHTML = logMsg + "<br>" + logDisplay.innerHTML;
+}
+
+// [가청화 함수] 데이터를 주파수 파형으로 만들어 스피커로 출력
+function playDataSound(data) {
+    if (!audioCtx) return;
+
+    // 1. CPU 소리 (낮고 무거운 베이스 음 - CPU가 높을수록 음이 올라감)
+    const cpuOsc = audioCtx.createOscillator();
+    const cpuGain = audioCtx.createGain();
+    cpuOsc.type = 'sine';
+    cpuOsc.frequency.value = 80 + (data.cpu * 2); // 80Hz ~ 280Hz
+    cpuGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    cpuGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    cpuOsc.connect(cpuGain);
+    cpuGain.connect(audioCtx.destination);
+    cpuOsc.start();
+    cpuOsc.stop(audioCtx.currentTime + 0.3);
+
+    // 2. Traffic 소리 (트래픽이 600pps 이상으로 많을 때만 톡톡 튀는 고음 발생)
+    if (data.traffic > 600) {
+        const trafficOsc = audioCtx.createOscillator();
+        const trafficGain = audioCtx.createGain();
+        trafficOsc.type = 'triangle';
+        trafficOsc.frequency.value = 600 + data.traffic; // 1200Hz ~ 1600Hz
+        trafficGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        trafficGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+        trafficOsc.connect(trafficGain);
+        trafficGain.connect(audioCtx.destination);
+        trafficOsc.start();
+        trafficOsc.stop(audioCtx.currentTime + 0.08);
+    }
+
+    // 3. Error 소리 (에러 발생 시 사이렌 같은 찢어지는 굉음 발생)
+    if (data.error) {
+        const errorOsc = audioCtx.createOscillator();
+        const errorGain = audioCtx.createGain();
+        errorOsc.type = 'sawtooth'; // 삐죽삐죽한 거친 파형
+        errorOsc.frequency.value = 400; // 400Hz 고정 경보음
+        errorGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        errorGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        errorOsc.connect(errorGain);
+        errorGain.connect(audioCtx.destination);
+        errorOsc.start();
+        errorOsc.stop(audioCtx.currentTime + 0.5);
+    }
+}
+</script>
+
+</body>
+</html>

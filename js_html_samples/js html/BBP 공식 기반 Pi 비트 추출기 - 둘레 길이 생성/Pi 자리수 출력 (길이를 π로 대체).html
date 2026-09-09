@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pi Digits Viewer</title>
+</head>
+<body>
+  <h2>Pi 자리수 출력 (길이를 π로 대체)</h2>
+  <button onclick="fetchPi()">자리수 불러오기</button>
+  <pre id="result"></pre>
+
+  <script>
+    async function fetchPi() {
+      // Pi API에서 1000번째부터 1000자리 받아오기
+      const response = await fetch("https://api.pi.delivery/v1/pi?start=1000&numberOfDigits=1000");
+      const data = await response.json();
+      const digits = data.content;
+
+      // 길이를 π 기반으로 설정 (예: π * 100 ≈ 314)
+      let chunkSize = Math.floor(Math.PI * 100);
+      let output = "";
+      for (let i = 0; i < digits.length; i += chunkSize) {
+        output += digits.slice(i, i + chunkSize) + "\n";
+        document.getElementById("result").textContent = output;
+        await new Promise(r => setTimeout(r, 200)); // 잠시 쉬면서 출력
+      }
+    }
+  </script>
+</body>
+</html>

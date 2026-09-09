@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>이미지 → 태그 → 이미지 변환</title>
+  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.1.0/wordcloud2.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #preview { margin-top: 10px; max-width: 300px; }
+    #tagCanvas { border: 1px solid #ccc; margin-top: 20px; }
+    #cloudCanvas { border: 1px solid #ccc; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>이미지 → 태그 → 이미지 변환</h2>
+  
+  <!-- 이미지 업로드 -->
+  <input type="file" id="imageUpload" accept="image/*">
+  <br>
+  <img id="preview">
+
+  <!-- 태그 클라우드 출력 (wordcloud2.js) -->
+  <canvas id="tagCanvas" width="600" height="400"></canvas>
+
+  <!-- 태그 클라우드 출력 (간단 Canvas 버전) -->
+  <canvas id="cloudCanvas" width="600" height="400"></canvas>
+
+  <script>
+    // 이미지 분류 모델 로드
+    let classifier;
+    ml5.imageClassifier('MobileNet')
+      .then(model => {
+        classifier = model;
+        console.log("모델 로드 완료");
+      });
+
+    // 이미지 업로드 이벤트
+    document.getElementById('imageUpload').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      const img = document.getElementById('preview');
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        if (!classifier) {
+          alert("모델이 아직 로드되지 않았습니다. 잠시 후 다시 시도하세요.");
+          return;
+        }
+        classifier.classify(img).then(results => {
+          console.log(results); // 태그 데이터 확인
+          
+          // 태그 배열 생성 (라벨 + 신뢰도)
+          const tagList = results.map(r => [r.label, Math.ceil(r.confidence * 1000)]);
+          
+          // 워드 클라우드 (wordcloud2.js)
+          WordCloud(document.getElementById('tagCanvas'), {
+            list: tagList,
+            gridSize: 10,
+            weightFactor: 2,
+            color: 'random-dark',
+            backgroundColor: '#f0f0f0'
+          });
+
+          // 간단 Canvas 버전
+          const canvas = document.getElementById("cloudCanvas");
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, canvas.width, canvas.height); // 초기화
+          tagList.forEach(tag => {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const fontSize = tag[1] / 10; // 가중치 기반 크기
+            ctx.font = fontSize + "px Arial";
+            ctx.fillStyle = "hsl(" + Math.random()*360 + ",70%,50%)";
+            ctx.fillText(tag[0], x, y);
+          });
+        });
+      };
+    });
+  </script>
+</body>
+</html>

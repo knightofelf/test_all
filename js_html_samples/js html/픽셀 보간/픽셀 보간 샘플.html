@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>픽셀 보간 샘플</title>
+  <style>
+    canvas { border: 1px solid black; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h3>원본 / 1/4 샘플링 / 1/9 샘플링</h3>
+  <canvas id="original" width="300" height="300"></canvas>
+  <canvas id="quarter" width="300" height="300"></canvas>
+  <canvas id="ninth" width="300" height="300"></canvas>
+
+  <script>
+    const img = new Image();
+    img.src = "sample.jpg"; // 테스트할 이미지 파일 경로
+    img.onload = () => {
+      const original = document.getElementById("original").getContext("2d");
+      const quarter = document.getElementById("quarter").getContext("2d");
+      const ninth = document.getElementById("ninth").getContext("2d");
+
+      // 원본 출력
+      original.drawImage(img, 0, 0, 300, 300);
+
+      // 1/4 샘플링 후 보간
+      let offCanvas = document.createElement("canvas");
+      offCanvas.width = img.width / 2;
+      offCanvas.height = img.height / 2;
+      let offCtx = offCanvas.getContext("2d");
+      offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+      quarter.imageSmoothingEnabled = true; // 보간 활성화
+      quarter.drawImage(offCanvas, 0, 0, 300, 300);
+
+      // 1/9 샘플링 후 보간
+      offCanvas.width = img.width / 3;
+      offCanvas.height = img.height / 3;
+      offCtx = offCanvas.getContext("2d");
+      offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+      ninth.imageSmoothingEnabled = true;
+      ninth.drawImage(offCanvas, 0, 0, 300, 300);
+    };
+  </script>
+</body>
+</html>

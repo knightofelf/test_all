@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 객체 평균 거리 계산</title>
+</head>
+<body>
+  <h2>3D 객체 랜덤 점 생성</h2>
+  <button onclick="generatePoints()">점 생성 및 저장</button>
+  <pre id="output"></pre>
+
+  <script>
+    function generatePoints() {
+      const numPoints = 100;
+      const points = [];
+
+      // 1. 랜덤 점 생성
+      for (let i = 0; i < numPoints; i++) {
+        points.push([
+          Math.random() * 10,
+          Math.random() * 10,
+          Math.random() * 10
+        ]);
+      }
+
+      // 2. 평균 중심 계산
+      const centroid = [0, 0, 0];
+      points.forEach(p => {
+        centroid[0] += p[0];
+        centroid[1] += p[1];
+        centroid[2] += p[2];
+      });
+      centroid[0] /= numPoints;
+      centroid[1] /= numPoints;
+      centroid[2] /= numPoints;
+
+      // 3. 거리 계산
+      const distances = points.map(p =>
+        Math.sqrt(
+          Math.pow(p[0] - centroid[0], 2) +
+          Math.pow(p[1] - centroid[1], 2) +
+          Math.pow(p[2] - centroid[2], 2)
+        )
+      );
+
+      const avgDistance = distances.reduce((a, b) => a + b, 0) / numPoints;
+
+      // 4. 결과 출력
+      let text = "3D Points:\n";
+      points.forEach(p => {
+        text += `${p[0].toFixed(4)}, ${p[1].toFixed(4)}, ${p[2].toFixed(4)}\n`;
+      });
+      text += `\nCentroid:\n${centroid.map(c => c.toFixed(4)).join(", ")}\n`;
+      text += `\nAverage Distance:\n${avgDistance.toFixed(4)}\n`;
+
+      document.getElementById("output").textContent = text;
+
+      // 5. 파일 저장 (브라우저 다운로드)
+      const blob = new Blob([text], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "points_average_distance.txt";
+      link.click();
+    }
+  </script>
+</body>
+</html>

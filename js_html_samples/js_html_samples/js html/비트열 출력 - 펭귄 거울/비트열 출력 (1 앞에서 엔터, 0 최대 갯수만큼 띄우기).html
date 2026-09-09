@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>비트열 출력</title>
+</head>
+<body>
+<input id="inputBits" value="10101001011010">
+<button onclick="processBits()">출력</button>
+<div id="output"></div>
+
+<script>
+function processBits() {
+  const bits = document.getElementById("inputBits").value.trim();
+  let result = [];
+  let current = "";
+
+  for (let i = 0; i < bits.length; i++) {
+    const bit = bits[i];
+    current += bit; // 1이든 0이든 그냥 붙임
+
+    // 줄 끊는 조건: 현재 문자가 0이고, 다음 문자가 1일 때
+    if (bit === "0" && i + 1 < bits.length && bits[i + 1] === "1") {
+      result.push(current);
+      current = "";
+    }
+  }
+  if (current) result.push(current);
+
+  // 가장 긴 줄 길이 찾기
+  let maxLen = Math.max(...result.map(seg => seg.length));
+
+  // 열 맞춤
+  let formatted = result.map(seg => seg.padEnd(maxLen, " "));
+
+  document.getElementById("output").innerHTML =
+    "<pre>" + bits + "\n" + formatted.join("\n") + "</pre>";
+}
+</script>
+
+</body>
+</html>

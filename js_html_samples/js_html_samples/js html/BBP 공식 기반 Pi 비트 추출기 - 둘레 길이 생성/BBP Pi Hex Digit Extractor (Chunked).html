@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BBP Pi Hex Digit Extractor (Chunked)</title>
+</head>
+<body>
+  <h2>BBP 공식으로 Pi 특정 자리 추출 (Chunked)</h2>
+  <label>추출할 자리 (16진수, 예: 100): </label>
+  <input type="number" id="digit" value="100">
+  <button onclick="extractDigit()">계산하기</button>
+  <pre id="result"></pre>
+
+  <script>
+    function powMod(base, exp, mod) {
+      let result = 1n;
+      let b = BigInt(base);
+      let e = BigInt(exp);
+      let m = BigInt(mod);
+      while (e > 0n) {
+        if (e % 2n === 1n) result = (result * b) % m;
+        b = (b * b) % m;
+        e /= 2n;
+      }
+      return result;
+    }
+
+    function seriesChunk(j, n, start, end) {
+      let s = 0;
+      for (let k = start; k <= end; k++) {
+        let denom = 8 * k + j;
+        let modVal = Number(powMod(16, n - k, denom));
+        s += modVal / denom;
+      }
+      return s;
+    }
+
+    async function piHexDigit(n) {
+      let s1 = seriesChunk(1, n, 0, n/2);
+      document.getElementById("result").textContent = "중간 계산 완료 (절반)...";
+      await new Promise(r => setTimeout(r, 100)); // 잠시 쉬기
+      let s2 = seriesChunk(1, n, n/2+1, n);
+      let x = 4 * (s1+s2) - 2 * seriesChunk(4, n, 0, n) 
+              - seriesChunk(5, n, 0, n) - seriesChunk(6, n, 0, n);
+      return Math.floor(x * 16);
+    }
+
+    async function extractDigit() {
+      const n = parseInt(document.getElementById("digit").value);
+      const digit = await piHexDigit(n);
+      document.getElementById("result").textContent =
+        `Pi의 ${n}번째 16진수 자리 값: ${digit.toString(16)}`;
+    }
+  </script>
+</body>
+</html>

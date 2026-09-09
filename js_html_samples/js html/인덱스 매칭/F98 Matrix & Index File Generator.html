@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>F98 Matrix & Index File Generator</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            padding: 30px;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        h1 { font-size: 24px; color: #2c3e50; margin-bottom: 5px; }
+        p { color: #7f8c8d; margin-top: 0; margin-bottom: 25px; }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        h2 { font-size: 18px; color: #34495e; margin-top: 0; }
+        .desc { font-size: 14px; color: #555; margin-bottom: 15px; }
+        button {
+            padding: 11px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-blue { background-color: #3498db; }
+        .btn-blue:hover { background-color: #2980b9; }
+        .btn-green { background-color: #2ecc71; }
+        .btn-green:hover { background-color: #27ae60; }
+    </style>
+</head>
+<body>
+
+    <h1>F98 매트릭스 데이터 파일 생성기</h1>
+    <p>원하는 데이터 구성 방식의 버튼을 클릭하면 TXT 파일이 즉시 다운로드됩니다.</p>
+
+    <!-- 1번 파일 생성 섹션 -->
+    <div class="card">
+        <h2>방법 1. F98까지 배열 순서대로 인덱스 매칭 체크 파일</h2>
+        <div class="desc">
+            모든 4자리 숫자 데이터 행을 순서대로 순회하면서, 해당 데이터가 원래 <strong>어느 F 그룹의 몇 번째 줄(인덱스)</strong>에 매칭되는지 전수조사하여 배열 인덱스 형태로 기록하는 파일입니다.
+        </div>
+        <button class="btn-blue" onclick="generateIndexMatchFile()">📄 인덱스 매칭 체크 파일 생성</button>
+    </div>
+
+    <!-- 2번 파일 생성 섹션 -->
+    <div class="card">
+        <h2>방법 2. 단순 F 그룹명과 행 내부 인덱스 기반 정렬 파일</h2>
+        <div class="desc">
+            가장 직관적인 형태로, F1부터 F98까지 순서대로 그룹을 나열하고 각 행마다 내부 인덱스 번호(Line 1~4)를 명시하여 구조화한 파일입니다.
+        </div>
+        <button class="btn-green" onclick="generateSimpleFGroupFile()">📄 F-인덱스 명시 파일 생성</button>
+    </div>
+
+    <script>
+        // 4! 순열 연산 유틸 함수
+        function getPermutations(arr) {
+            let result = [];
+            function permute(current, remaining) {
+                if (remaining.length === 0) { result.push(current); return; }
+                for (let i = 0; i < remaining.length; i++) {
+                    permute([...current, remaining[i]], remaining.filter((_, idx) => idx !== i));
+                }
+            }
+            permute([], arr);
+            return result;
+        }
+
+        // 공통: 16주기 순환 알고리즘을 적용하여 F1 ~ F98까지의 원본 맵 생성
+        function buildMasterData() {
+            let fMap = {}; // F1: [row1, row2, row3, row4] 구조
+            let fIndex = 1;
+
+            // F98까지 채우기 위해 루프 제어 (총 98번 돌 때까지 기본 16개 블록을 순환)
+            while (fIndex <= 98) {
+                for (let i = 1; i <= 4 && fIndex <= 98; i++) {
+                    for (let j = 1; j <= 4 && fIndex <= 98; j++) {
+                        
+                        let r1 = `${i}${j}11 ${i}${j}12 ${i}${j}13 ${i}${j}14`;
+                        let r2 = `${i}${j}21 ${i}${j}22 ${i}${j}23 ${i}${j}24`;
+                        let r3 = `${i}${j}31 ${i}${j}32 ${i}${j}33 ${i}${j}34`;
+                        let r4 = `${i}${j}41 ${i}${j}42 ${i}${j}43 ${i}${j}44`;
+                        
+                        let baseRows = [r1, r2, r3, r4];
+                        let allPermutations = getPermutations(baseRows);
+                        
+                        // 24 / 4 = 6 구조 순환 매칭
+                        for (let k = 0; k < 6 && fIndex <= 98; k++) {
+                            let selectedRows = allPermutations[k * 4]; 
+                            fMap[`F${fIndex}`] = selectedRows;
+                            fIndex++;
+                        }
+                    }
+                }
+            }
+            return fMap;
+        }
+
+        // 파일 다운로드 실행 유틸 함수
+        function triggerDownload(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // [방법 1] 인덱스 매칭 체크 파일 생성 함수
+        function generateIndexMatchFile() {
+            const fMap = buildMasterData();
+            let fileContent = "=== 전체 4자리 데이터 행별 원본 F그룹 및 줄번호(인덱스) 매칭 리스트 ===\n\n";
+            
+            // 모든 발생 가능한 데이터 행을 수집하여 가나다/오름차순 역추적 사전화
+            let matchDict = {};
+            for (let fName in fMap) {
+                fMap[fName].forEach((rowStr, idx) => {
+                    if (!matchDict[rowStr]) matchDict[rowStr] = [];
+                    // 중복 순환 그룹이 있으므로 매칭되는 모든 위치를 배열에 누적
+                    matchDict[rowStr].push(`${fName}(Line ${idx + 1})`);
+                });
+            }
+
+            // 정렬된 순서대로 인덱스 매칭 구조 파일화
+            let sortedRows = Object.keys(matchDict).sort();
+            sortedRows.forEach((row, index) => {
+                fileContent += `[Array_Idx ${String(index).padStart(3, '0')}] 데이터: ${row}\n`;
+                fileContent += `  ➔ 매칭 정보: ${matchDict[row].join(" / ")}\n\n`;
+            });
+
+            triggerDownload(fileContent, "F98_인덱스_매칭_체크_리스트.txt");
+        }
+
+        // [방법 2] F와 내부 인덱스 사용 파일 생성 함수
+        function generateSimpleFGroupFile() {
+            const fMap = buildMasterData();
+            let fileContent = "=== F 그룹명 및 행 내부 인덱스 기반 데이터셋 (F1 ~ F98) ===\n\n";
+
+            for (let fIdx = 1; fIdx <= 98; fIdx++) {
+                let fName = `F${fIdx}`;
+                fileContent += `[${fName}]\n`;
+                
+                fMap[fName].forEach((rowStr, lineIdx) => {
+                    fileContent += `Idx_${lineIdx + 1} ➔ ${rowStr}\n`;
+                });
+                fileContent += "\n";
+            }
+
+            triggerDownload(fileContent, "F98_그룹_인덱스_명시_리스트.txt");
+        }
+    </script>
+</body>
+</html>

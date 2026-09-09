@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Rand Seq IO 성능 테스트</title>
+</head>
+<body>
+<h2>랜덤 시퀀스 기반 I/O 성능 벤치마크</h2>
+<button onclick="runTest()">1회차 실행</button>
+<button onclick="runTest(true)">2회차(참조) 실행</button>
+
+<p id="randSeq"></p>
+<p id="writeResult"></p>
+<p id="readResult"></p>
+<p id="perf"></p>
+
+<script>
+const rMAX = 8;
+let randSeq = [];
+let buffer = [];
+let savedSeq = null; // 1회차 시퀀스 저장
+
+// 랜덤 시퀀스 생성
+function generateRandSeq() {
+    let used = Array(rMAX).fill(false);
+    let seq = [];
+    while (seq.length < rMAX) {
+        let n = Math.floor(Math.random() * rMAX);
+        if (!used[n]) {
+            used[n] = true;
+            seq.push(n);
+        }
+    }
+    return seq;
+}
+
+// 데이터 쓰기
+function writeData(dataSize, seq) {
+    buffer = [];
+    for (let i = 0; i < dataSize; i++) {
+        let idx = seq[i % rMAX];
+        buffer.push("DATA" + idx);
+    }
+}
+
+// 데이터 읽기
+function readData(seq) {
+    return buffer.map((val, idx) => `[${seq[idx % rMAX]}] ${val}`);
+}
+
+// 성능 테스트 실행
+function runTest(useSaved=false) {
+    let seq;
+    if (useSaved && savedSeq) {
+        seq = savedSeq; // 1회차 참조
+    } else {
+        seq = generateRandSeq(); // 새 시퀀스 생성
+        savedSeq = seq; // 저장
+    }
+
+    document.getElementById("randSeq").innerText = "사용 시퀀스: " + seq.join(", ");
+
+    let dataSize = 100000;
+    let t1 = performance.now();
+    writeData(dataSize, seq);
+    let t2 = performance.now();
+    let readOut = readData(seq);
+    let t3 = performance.now();
+
+    document.getElementById("writeResult").innerText = "쓰기 완료 (데이터 크기: " + dataSize + ")";
+    document.getElementById("readResult").innerText = "읽기 샘플: " + readOut.slice(0, 10).join(" | ");
+    document.getElementById("perf").innerText =
+        "쓰기 시간: " + (t2 - t1).toFixed(2) + " ms, " +
+        "읽기 시간: " + (t3 - t2).toFixed(2) + " ms";
+}
+</script>
+</body>
+</html>

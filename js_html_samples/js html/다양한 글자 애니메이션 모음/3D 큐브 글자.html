@@ -1,0 +1,32 @@
+<style>
+  .cube span {
+    display: inline-block;
+    transform: rotateX(90deg);
+    opacity: 0;
+    transition: transform 0.8s ease, opacity 0.8s ease;
+  }
+  .cube span.show {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+</style>
+
+<h1 class="cube">3D 큐브 글자</h1>
+
+<script>
+  const cubeText = document.querySelector(".cube");
+  const chars = cubeText.textContent.split("");
+  cubeText.textContent = "";
+  chars.forEach(c => {
+    const span = document.createElement("span");
+    span.textContent = c;
+    cubeText.appendChild(span);
+  });
+
+  let i = 0;
+  setInterval(() => {
+    const span = cubeText.querySelectorAll("span")[i];
+    if (span) span.classList.add("show");
+    i++;
+  }, 200);
+</script>

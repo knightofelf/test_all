@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Pure Offline Stencil Mirror Render</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111827; font-family: sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #info { position: absolute; top: 20px; left: 20px; color: #fff; background: rgba(0,0,0,0.7); padding: 12px; border-radius: 6px; font-size: 13px; pointer-events: none; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<div id="info">
+  <strong>WebGL-Style Stencil Mirror Simulator</strong><br>
+  • 화면을 마우스로 <b>드래그</b>하면 모델과 시점이 회전합니다.<br>
+  • 거울 영역(하늘색 틀) 내부만 캐릭터가 정교하게 분할 투영됩니다.
+</div>
+
+<script>
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+
+  // 3D 회전 제어 변수
+  let angleX = 0.3;
+  let angleY = 0.5;
+  let isDragging = false;
+  let previousMousePosition = { x: 0, y: 0 };
+
+  // 마우스 인터랙션 바인딩
+  window.addEventListener('mousedown', (e) => { isDragging = true; previousMousePosition = { x: e.clientX, y: e.clientY }; });
+  window.addEventListener('mouseup', () => isDragging = false);
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - previousMousePosition.x;
+    const deltaY = e.clientY - previousMousePosition.y;
+    angleY += deltaX * 0.01;
+    angleX += deltaY * 0.01;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+  });
+
+  // 렌더링 루프
+  function render() {
+    // 1. 화면 전체 초기화 (Clear)
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // 거울의 변환 행렬 및 위치 계산
+    const mirrorSizeX = 140;
+    const mirrorSizeY = 220;
+    const mirrorZ = -50;
+
+    // --- 단계 1: 현실 세계의 거울 틀과 유리 바닥 그리기 ---
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 6;
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.transform(Math.cos(angleY), 0, 0, 1, 0, 0); // Y축 회전 투영 시뮬레이션
+    
+    ctx.beginPath();
+    ctx.rect(-mirrorSizeX, -mirrorSizeY, mirrorSizeX * 2, mirrorSizeY * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // --- 단계 2: 스텐실 마스크(Stencil Mask) 영역 정의 ---
+    // WebGL의 Stencil 기능을 2D Context의 Clip으로 완벽 매칭합니다.
+    ctx.save(); 
+    ctx.translate(cx, cy);
+    ctx.transform(Math.cos(angleY), 0, 0, 1, 0, 0);
+    ctx.beginPath();
+    ctx.rect(-mirrorSizeX + 3, -mirrorSizeY + 3, (mirrorSizeX * 2) - 6, (mirrorSizeY * 2) - 6);
+    ctx.clip(); // 스텐실 버퍼 작동 (이 영역 외부의 드로잉은 전부 차단됨)
+    ctx.restore();
+
+    // --- 단계 3: 스텐실 버퍼 내부에 거울 속 대칭 세계 투영 (Mirror Reflection) ---
+    ctx.save();
+    // 스텐실 마스크 레이어를 다시 열어 내부 렌더 가동
+    ctx.translate(cx, cy);
+    ctx.transform(Math.cos(angleY), 0, 0, 1, 0, 0);
+    ctx.beginPath();
+    ctx.rect(-mirrorSizeX, -mirrorSizeY, mirrorSizeX * 2, mirrorSizeY * 2);
+    ctx.clip();
+
+    // 반사 행렬 적용: 거울면 기준 축 대칭 반전 (X 반전 및 왜곡 조정)
+    ctx.scale(-1, 1); 
+
+    // 거울 속 가상 캐릭터 모델 렌더링
+    drawCharacter(Math.sin(angleY) * 60, 50 + Math.sin(angleX)*20, 45, true);
+    ctx.restore(); // 스텐실 마스크 닫기 (정상 세계로 복귀)
+
+    // --- 단계 4: 거울 앞 실제 현실의 3D 캐릭터 모델 렌더링 ---
+    // 거울 앞에 서 있는 캐릭터이므로 스텐실 영향을 받지 않고 자유롭게 그려집니다.
+    drawCharacter(cx + Math.sin(-angleY) * 60, cy + 50 + Math.sin(angleX)*20, 45, false);
+
+    requestAnimationFrame(render);
+  }
+
+  // 주전자와 사람을 형상화한 다이어그램 스타일의 3D 입체 테스트 모델 드로잉 함수
+  function drawCharacter(x, y, radius, isReflected) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 몸체 렌더링
+    let bodyGrad = ctx.createRadialGradient(-10, -10, 5, 0, 0, radius);
+    bodyGrad.addColorStop(0, isReflected ? '#93c5fd' : '#f87171');
+    bodyGrad.addColorStop(1, isReflected ? '#1e3a8a' : '#7f1d1d');
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // 머리/뿔 파트 투영
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-radius*0.4, -radius*0.8, radius*0.3, 0, Math.PI * 2);
+    ctx.arc(radius*0.4, -radius*0.8, radius*0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  render();
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+</script>
+</body>
+</html>

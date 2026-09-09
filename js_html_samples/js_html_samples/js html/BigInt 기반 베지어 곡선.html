@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>BigInt 베지어 곡선</title>
+</head>
+<body>
+  <h2>BigInt 기반 베지어 곡선</h2>
+  <canvas id="screen" width="400" height="400"></canvas>
+  <script>
+    // 제어점 (BigInt 좌표)
+    const points = [
+      {x: 0n, y: 0n},
+      {x: 100n, y: 300n},
+      {x: 300n, y: 100n},
+      {x: 400n, y: 400n}
+    ];
+
+    // 이항계수 계산 (BigInt)
+    function binomial(n, k) {
+      let res = 1n;
+      for (let i = 0; i < k; i++) {
+        res = res * BigInt(n - i) / BigInt(i + 1);
+      }
+      return res;
+    }
+
+    // 베지어 계산 (정수 스케일링)
+    function bezier(t, scale) {
+      let n = points.length - 1;
+      let x = 0n, y = 0n;
+      for (let i = 0; i <= n; i++) {
+        let coeff = binomial(n, i) *
+                    BigInt((scale - t) ** (n - i)) *
+                    BigInt(t ** i);
+        x += coeff * points[i].x;
+        y += coeff * points[i].y;
+      }
+      return {
+        x: Number(x / BigInt(scale ** n)), 
+        y: Number(y / BigInt(scale ** n))
+      };
+    }
+
+    // 그리기
+    let ctx = document.getElementById("screen").getContext("2d");
+    ctx.strokeStyle = "lime";
+    ctx.beginPath();
+    let scale = 100; // t를 0~100 정수로 표현
+    for (let t = 0; t <= scale; t++) {
+      let p = bezier(t, scale);
+      if (t === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  </script>
+</body>
+</html>

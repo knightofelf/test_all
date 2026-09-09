@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Character Points Render</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #0b0b12; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- 로컬에 다운로드한 three.min.js 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.body.innerHTML = "<h2 style='color:white; text-align:center; margin-top:20%;'>three.min.js 파일이 같은 폴더에 있는지 확인해주세요!</h2>";
+    } else {
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const numPoints = 3000; // 캐릭터 윤곽을 선명하게 하기 위해 점 증가
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+
+      for (let i = 0; i < numPoints; i++) {
+        // 구면 좌표계 기본 각도 생성
+        const theta = Math.random() * 2 * Math.PI; // 좌우 회전각 (0 ~ 2π)
+        const phi = (Math.random() - 0.5) * Math.PI; // 상하 회전각 (-π/2 ~ π/2)
+
+        // 기본 뼈대가 되는 얼굴 중심 반지름
+        let r = 8; 
+
+        // ==========================================
+        // [방법 1] 고양이 캐릭터 얼굴 (키티 스타일)
+        // 얼굴을 옆으로 넓적하게 늘리고, 특정 각도(귀 위치)에서 거리를 늘립니다.
+        // ------------------------------------------
+        
+        // 1. 얼굴 형태를 옆으로 넓적한 타원형으로 변형 (Z축 방향을 살짝 압축)
+        let x_scale = 1.2;
+        let y_scale = 0.9;
+        let z_scale = 0.85;
+
+        // 2. 고양이 귀 만들기 
+        // 머리 위쪽(phi > 0.4)이면서 좌우 대칭 각도(오른쪽 귀, 왼쪽 귀 영역) 구하기
+        const cosTheta = Math.cos(theta);
+        const sinTheta = Math.sin(theta);
+        
+        // 상단 부위이면서 좌측 뒤/우측 뒤 특정 각도 영역일 때 거리를 바깥으로 연장
+        if (phi > 0.3 && sinTheta > 0.3 && Math.abs(cosTheta) > 0.4) {
+          // 귀 끝으로 갈수록 뾰족해지도록 거리(r) 보정 가산
+          r += (phi - 0.3) * 12; 
+        }
+        
+        const x = r * Math.cos(phi) * cosTheta * x_scale;
+        const y = r * Math.sin(phi) * y_scale;
+        const z = r * Math.cos(phi) * sinTheta * z_scale;
+        positions.push(x, y, z);
+        
+        // ==========================================
+
+
+        // ==========================================
+        // [방법 2] 둥근 귀 캐릭터 얼굴 (미키 스타일) - 주석 해제 후 확인 가능
+        // 큰 머리 구체 위에 특정 각도 범위에서 독립된 둥근 원형 귀 두 개를 확장합니다.
+        // ------------------------------------------
+        /*
+        // 기본 머리 배치
+        let x = r * Math.cos(phi) * Math.cos(theta);
+        let y = r * Math.sin(phi);
+        let z = r * Math.cos(phi) * Math.sin(theta);
+
+        // 확률적으로 일부 점들을 양쪽 귀 위치에 독립된 구체 형태로 재배치
+        if (i % 3 === 0) { 
+          const isLeft = (i % 2 === 0);
+          const earRadius = 3.5; // 귀 크기(반지름)
+          
+          // 독립된 귀의 구면 좌표 계산
+          const eTheta = Math.random() * 2 * Math.PI;
+          const ePhi = (Math.random() - 0.5) * Math.PI;
+          
+          // 중심에서의 기본 거리 좌표를 이동시켜 귀 위치 확정
+          x = (isLeft ? -6 : 6) + earRadius * Math.cos(ePhi) * Math.cos(eTheta);
+          y = 6 + earRadius * Math.sin(ePhi);
+          z = earRadius * Math.cos(ePhi) * Math.sin(eTheta);
+        }
+        positions.push(x, y, z);
+        */
+        // ==========================================
+      }
+
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+      // 귀여운 네온 핫핑크 컬러 적용
+      const material = new THREE.PointsMaterial({ color: 0xff66cc, size: 0.15, transparent: true, opacity: 0.85 });
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      camera.position.z = 25;
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        // 캐릭터 정면과 귀가 잘 보이도록 Y축 중심으로 회전
+        points.rotation.y += 0.005; 
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비트 대칭 패턴 출력</title>
+</head>
+<body>
+  <h2>비트 대칭 패턴 출력기</h2>
+  <label>단계 입력: <input id="steps" type="number" value="3"></label>
+  <button onclick="generatePattern()">생성</button>
+  <pre id="output"></pre>
+
+  <script>
+    function generatePattern() {
+      const steps = parseInt(document.getElementById("steps").value);
+      let pattern = "01213121"; // 초기 패턴
+      let result = pattern + "\n";
+
+      for (let i = 2; i <= steps; i++) {
+        // 대칭 확장: 기존 패턴 + 새로운 번호 + 기존 패턴
+        pattern = pattern + i + pattern;
+        result += pattern + "\n";
+      }
+
+      document.getElementById("output").textContent = result;
+    }
+  </script>
+</body>
+</html>

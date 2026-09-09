@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>카프리카 수 및 sRGB 고속 변조 가속기</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.5rem; text-shadow: 0 0 10px #00ffcc; }
+        .info { color: #8892b0; font-size: 0.85rem; margin-bottom: 25px; }
+        .accelerator-container {
+            background: #111b2d;
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+            width: 650px;
+        }
+        .matrix-display {
+            background: #050811;
+            border: 1px solid #1f2e4d;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 180px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            transition: border-color 0.1s;
+        }
+        .raw-stream { color: #8892b0; font-weight: bold; border-bottom: 1px dashed #1f2e4d; margin-bottom: 10px; padding-bottom: 5px;}
+        .bit-layer { color: #ff007f; text-shadow: 0 0 3px #ff007f; }
+        .match-layer { color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        .color-box {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 10px;
+            border: 1px solid #fff;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kaprekar Number & sRGB Fast-Modulation Accelerator</h1>
+    <div class="info">Operational Mechanism: SubClassing Color Change Fast, HDC 0 Memory</div>
+
+    <div class="accelerator-container">
+        <div class="matrix-display" id="displayBox">
+            <div id="rawStream" class="raw-stream">KAPREKAR: INITIALIZING</div>
+            <div id="matrixLines"></div>
+        </div>
+
+        <div class="stats">
+            <div>TARGET REGISTER: <span id="targetReg" style="color:#ff007f;">0</span></div>
+            <div>sRGB STATE: <span id="srgbHex">#050811</span><span id="colorIndicator" class="color-box" style="background-color: #050811;"></span></div>
+            <div>MATCH INDEX: <span id="matchState" style="color:#00ffcc;">FALSE</span></div>
+        </div>
+    </div>
+
+<script>
+    // 1. 하드웨어 스캔 타겟 풀 선점 (카프리카 수 검증 스트림)
+    const TARGET_NUMBERS = "9,45,55,99,297,703,100,500,4879,9999".split(",").map(Number);
+    
+    // DOM 캐싱 (HDC 0 고정 메모리 타겟)
+    const domDisplayBox = document.getElementById('displayBox');
+    const domRawStream = document.getElementById('rawStream');
+    const domMatrixLines = document.getElementById('matrixLines');
+    const domTargetReg = document.getElementById('targetReg');
+    const domSrgbHex = document.getElementById('srgbHex');
+    const domColorIndicator = document.getElementById('colorIndicator');
+    const domMatchState = document.getElementById('matchState');
+
+    // 가청화 레지스터
+    let audioCtx = null, oscillator = null, gainNode = null;
+
+    let systemClock = 0;
+    let poolIdx = 0;
+    let currentStep = 0; 
+    let currentNum = 0;
+
+    // 2. 오디오 가청화 시스템 가동
+    window.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            oscillator.type = 'sine'; 
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+    });
+
+    // 3. 메인 오토마타 가속 디코딩 루프 (60Hz V-Sync 동기화)
+    function runKaprekarEngine() {
+        systemClock++;
+
+        // 25프레임마다 연산 레이어 스위칭
+        if ((systemClock % 25) === 0) {
+            
+            if (currentStep === 0) {
+                // [원시 데이터 인출]
+                currentNum = TARGET_NUMBERS[poolIdx % TARGET_NUMBERS.length];
+                domRawStream.innerText = "FETCH VALUE N: " + currentNum;
+                domTargetReg.innerText = currentNum;
+                domMatrixLines.innerHTML = '';
+                domMatchState.innerText = "CALCULATING";
+                domMatchState.style.color = "#8892b0";
+                
+                // 디스플레이 장치 기본 색상 초기화 (HDC 0 스와핑 모사)
+                domDisplayBox.style.borderColor = "#1f2e4d";
+                
+                if (audioCtx) {
+                    oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                }
+                currentStep = 1;
+
+            } else if (currentStep === 1) {
+                // [카프리카 수 분할 연산 및 sRGB 변조 매칭 장치]
+                const square = currentNum * currentNum; // 거듭제곱 물리량 생성
+                const numDigits = String(currentNum).length;
+                
+                // if문 분기 없이 10의 거듭제곱 가중치 계산 (수학적 껍질 분리)
+                const divisor = Math.pow(10, numDigits);
+                
+                // 좌우 껍질과 알맹이로 분할 (수학적 시프트 변조)
+                const leftPart = (square / divisor) | 0; // 몫 (왼쪽 조각)
+                const rightPart = square % divisor;       // 나머지 (오른쪽 조각)
+                const sumParts = leftPart + rightPart;
+
+                const isKaprekar = (sumParts === currentNum) && (rightPart > 0);
+
+                let stepsHtml = `
+                    <div class="bit-layer">[1] SQUARE OPERATION: ${currentNum}² = ${square}</div>
+                    <div class="bit-layer">[2] MATRIX DIVISION : ${leftPart} (Left) | ${rightPart} (Right)</div>
+                    <div class="bit-layer">[3] CORE SUMMATION : ${leftPart} + ${rightPart} = ${sumParts}</div>
+                `;
+                domMatrixLines.innerHTML = stepsHtml;
+
+                // [SubClassing Color Change Fast]
+                // 조건 대조 결과에 따라 sRGB 색상표의 상수를 메모리 상에서 직통 스와핑
+                let targetHex = "#ff007f"; // 불일치 시 마젠타 (노이즈 신호)
+                let audioPitch = 250;
+                
+                if (isKaprekar) {
+                    targetHex = "#00ffcc"; // 카프리카 수 일치 시 민트 (유효 신호)
+                    audioPitch = 900;
+                    domMatchState.innerText = "✅ TRUE (KAPREKAR MATCH)";
+                    domMatchState.style.color = "#00ffcc";
+                } else {
+                    domMatchState.innerText = "❌ FALSE (REGULAR NUMBER)";
+                    domMatchState.style.color = "#ff007f";
+                }
+
+                // 그래픽 파이프라인 가속 갱신 (HDC 메모리 직접 할당 배제)
+                domSrgbHex.innerText = targetHex;
+                domColorIndicator.style.backgroundColor = targetHex;
+                domDisplayBox.style.borderColor = targetHex;
+
+                if (audioCtx) {
+                    oscillator.frequency.setValueAtTime(audioPitch, audioCtx.currentTime);
+                    // 적중 시 강한 오디오 임팩트 감쇄 적용
+                    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                }
+
+                currentStep = 2;
+
+            } else {
+                // [생명 순환 대기 후 다음 인덱스로 시프트]
+                if (audioCtx) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                poolIdx++;
+                currentStep = 0;
+                systemClock = -30; // 30프레임 동안 결과 디스플레이 유지 홀딩
+            }
+        }
+
+        requestAnimationFrame(runKaprekarEngine);
+    }
+
+    // 시스템 가동
+    requestAnimationFrame(runKaprekarEngine);
+</script>
+</body>
+</html>

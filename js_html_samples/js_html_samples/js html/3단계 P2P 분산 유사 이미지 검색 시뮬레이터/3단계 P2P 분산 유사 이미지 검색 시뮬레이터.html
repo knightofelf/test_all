@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>3단계 P2P 분산 유사 이미지 검색 시뮬레이터</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { background: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn:hover { background: #0056b3; }
+        .network-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 20px 0; }
+        .node-card { border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #fafafa; }
+        .node-card.active { border-color: #28a745; background: #e8f5e9; }
+        #logConsole { background: #222; color: #00ff00; padding: 15px; border-radius: 6px; font-family: monospace; height: 250px; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+        .highlight { color: #ffeb3b; font-weight: bold; }
+        .danger { color: #ff5252; font-weight: bold; }
+        .success { color: #69f0ae; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📡 3단계 P2P 유사 이미지 검색 시뮬레이터</h2>
+    <p>1차 노드 검색 실패 시, 가장 유사한 데이터를 가진 이웃 노드로 <strong>최대 3단계(3-Hop)</strong>까지만 재전송 검색을 수행합니다.</p>
+    
+    <button class="btn" onclick="startSimulatedSearch()">🔍 3단계 유사 이미지 검색 시작</button>
+
+    <h3>🌐 가상 P2P 네트워크 노드 구성 상황</h3>
+    <div class="network-status" id="networkMap"></div>
+
+    <h3>📜 실시간 라우팅 로그</h3>
+    <div id="logConsole">대기 중... 검색 시작 버튼을 눌러주세요.</div>
+</div>
+
+<script>
+// 1. 가상 가중치 데이터 구조 정의 (0.0 ~ 1.0 사이의 이미지 특징 벡터 대용)
+// 각 노드는 고유의 '이미지 카테고리 특징값'을 가집니다. Target값과 가까울수록 유사 이미지가 존재합니다.
+const networkNodes = [
+    { id: "Node-A (최초 요청 노드)", feature: 0.1, neighbors: ["Node-B", "Node-C"] },
+    { id: "Node-B", feature: 0.3, neighbors: ["Node-A", "Node-D"] },
+    { id: "Node-C", feature: 0.2, neighbors: ["Node-A", "Node-E"] },
+    { id: "Node-D", feature: 0.6, neighbors: ["Node-B", "Node-F"] },
+    { id: "Node-E", feature: 0.4, neighbors: ["Node-C", "Node-G"] },
+    { id: "Node-F", feature: 0.7, neighbors: ["Node-D", "Node-H"] }, // Target 이미지(0.95)와 가장 가까운 노드 포진 시작
+    { id: "Node-G", feature: 0.5, neighbors: ["Node-E", "Node-I"] },
+    { id: "Node-H", feature: 0.95, neighbors: ["Node-F"] }, // 🎯 정답 노드 (목표 유사도 도달 가능)
+    { id: "Node-I", feature: 0.6, neighbors: ["Node-G", "Node-J"] },
+    { id: "Node-J", feature: 0.65, neighbors: ["Node-I"] } // 10단계 설계였다면 방문했을 비효율 노드들
+];
+
+const TARGET_FEATURE = 0.95; // 찾고자 하는 타겟 이미지 특징값
+const SIMILARITY_THRESHOLD = 0.90; // 이 값 이상이면 검색 성공으로 간주 (유사도 90% 이상)
+const MAX_HOPS = 3; // 🚀 핵심 제약: 최대 3단계 재전송 제한
+
+let consoleEl, networkMapEl;
+
+window.onload = () => {
+    consoleEl = document.getElementById("logConsole");
+    networkMapEl = document.getElementById("networkMap");
+    renderNetwork();
+};
+
+// 화면에 가상 노드 상태 렌더링
+function renderNetwork() {
+    networkMapEl.innerHTML = networkNodes.map(node => `
+        <div class="node-card" id="card-${node.id.split(' ')[0]}">
+            <strong>${node.id}</strong><br>
+            보유 특징값: ${node.feature}<br>
+            이웃 노드: ${node.neighbors.join(', ')}
+        </div>
+    `).join('');
+}
+
+// 로그 출력 함수
+function log(message, className = '') {
+    const span = document.createElement('span');
+    span.className = className;
+    span.innerHTML = message + '<br>';
+    consoleEl.appendChild(span);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+// 시뮬레이션 시작 함수
+async function startSimulatedSearch() {
+    consoleEl.innerHTML = ""; // 로그 초기화
+    document.querySelectorAll('.node-card').forEach(el => el.classList.remove('active'));
+    
+    log("🚀 [검색 개시] 타겟 이미지 벡터 분석 완료. 유사도 매칭을 시작합니다...", "highlight");
+    
+    // Node-A에서 최초 검색 시작 (Hop count = 0)
+    const success = await routeSearch("Node-A (최초 요청 노드)", 0, new Set());
+    
+    if (!success) {
+        log(`❌ [안전 차단] ${MAX_HOPS}단계 내에 완벽히 일치하는 이미지를 찾지 못해 검색을 종료합니다. (네트워크 과부하 차단)`, "danger");
+    }
+}
+
+// 재귀적 라우팅 및 3단계 제한 로직
+async function routeSearch(currentNodeId, currentHop, visitedNodes) {
+    const cleanId = currentNodeId.split(' ')[0];
+    const node = networkNodes.find(n => n.id.startsWith(cleanId));
+    
+    if (!node) return false;
+
+    // 시각적 피드백을 위한 하이라이트 효과
+    document.getElementById(`card-${cleanId}`).classList.add('active');
+    visitedNodes.add(cleanId);
+
+    // 1. 유사도 연산 (1 - 거리차이)
+    const similarity = (1 - Math.abs(TARGET_FEATURE - node.feature)).toFixed(2);
+    
+    log(`📍 [${currentHop} Hop] 현재 위치: ${cleanId} (매칭 유사도: ${(similarity * 100).toFixed(0)}%)`);
+    await delay(800); // 네트워크 지연 체감을 위한 딜레이
+
+    // 2. 조기 종료 조건 검사
+    if (similarity >= SIMILARITY_THRESHOLD) {
+        log(`🎯 [성공] ${cleanId}에서 목표 유사도 이상인 이미지를 발견했습니다! 검색을 조기 종료합니다.`, "success");
+        return true;
+    }
+
+    // 3. 3단계 제약 조건 검사 (Hop 카운트 체크)
+    if (currentHop >= MAX_HOPS) {
+        log(`⚠️ [제한 도달] ${cleanId}에서 다음 노드로의 재전송이 차단되었습니다. (최대 한계 ${MAX_HOPS}단계 도달)`, "danger");
+        return false;
+    }
+
+    // 4. 지능형 라우팅: 방문하지 않은 이웃 노드 중 정답 확률(유사도)이 가장 높은 넥스트 노드 선별
+    let bestNeighbor = null;
+    let maxBestSimilarity = -1;
+
+    for (const neighborId of node.neighbors) {
+        if (!visitedNodes.has(neighborId)) {
+            const neighborNode = networkNodes.find(n => n.id.startsWith(neighborId));
+            const neighborSim = 1 - Math.abs(TARGET_FEATURE - neighborNode.feature);
+            if (neighborSim > maxBestSimilarity) {
+                maxBestSimilarity = neighborSim;
+                bestNeighbor = neighborId;
+            }
+        }
+    }
+
+    // 5. 다음 단계로 재전송 (Next Hop)
+    if (bestNeighbor) {
+        log(`➡️ 유사도가 더 높은 다음 이웃 노드로 재전송합니다: [${cleanId}] ➔ [${bestNeighbor}]`);
+        return await routeSearch(bestNeighbor, currentHop + 1, visitedNodes);
+    } else {
+        log(`❌ [경로 단절] ${cleanId} 주변에 더 이상 방문할 수 있는 이웃 노드가 없습니다.`);
+        return false;
+    }
+}
+
+// 딜레이용 헬퍼 함수
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+</script>
+
+</body>
+</html>

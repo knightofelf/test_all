@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>상태 분기 연산 효율 테스트</title>
+</head>
+<body>
+  <h2>상태 분기 연산기</h2>
+  <input type="number" id="numA" placeholder="숫자 A">
+  <input type="number" id="numB" placeholder="숫자 B">
+  <select id="operation">
+    <option value="ADD">덧셈</option>
+    <option value="SUB">뺄셈</option>
+    <option value="MUL">곱셈</option>
+    <option value="DIV">나눗셈</option>
+  </select>
+  <button onclick="runCalc()">계산</button>
+  
+  <p id="result"></p>
+  <p id="time"></p>
+
+  <script>
+    function calculator(a, b, op) {
+      switch(op) {
+        case "ADD": return a + b;
+        case "SUB": return a - b;
+        case "MUL": return a * b;
+        case "DIV": return b !== 0 ? a / b : "Error: 0으로 나눔";
+        default: return "Unknown operation";
+      }
+    }
+
+    function runCalc() {
+      const a = parseFloat(document.getElementById("numA").value);
+      const b = parseFloat(document.getElementById("numB").value);
+      const op = document.getElementById("operation").value;
+
+      const start = performance.now(); // 시작 시간 기록
+      const result = calculator(a, b, op);
+      const end = performance.now();   // 종료 시간 기록
+
+      document.getElementById("result").innerText = "결과: " + result;
+      document.getElementById("time").innerText = "연산 시간: " + (end - start).toFixed(6) + " ms";
+    }
+  </script>
+</body>
+</html>

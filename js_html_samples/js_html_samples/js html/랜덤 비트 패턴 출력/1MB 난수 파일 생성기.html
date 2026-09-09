@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>1MB 난수 파일 생성기</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        button { padding: 15px 30px; font-size: 16px; cursor: pointer; background-color: #007BFF; color: white; border: none; border-radius: 5px; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; font-weight: bold; color: #28a745; }
+    </style>
+</head>
+<body>
+
+    <h2>1MB Random File Generator</h2>
+    <button onclick="generateAndDownload1MB()">1MB 무작위 파일 생성 및 다운로드</button>
+    <div id="status"></div>
+
+    <script>
+        function generateAndDownload1MB() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "파일 생성 중...";
+
+            // 1MB = 1024 * 1024 = 1,048,576 바이트
+            const FILE_SIZE = 1024 * 1024; 
+            const buffer = new Uint8Array(FILE_SIZE);
+
+            // 브라우저의 암호학적 난수 생성기로 1MB 버퍼를 무작위 바이트(0~255)로 채움
+            // 한 번에 대량의 독립 난수를 고속으로 안전하게 생성합니다.
+            window.crypto.getRandomValues(buffer);
+
+            // 바이너리 데이터 블록(Blob) 생성
+            const blob = new Blob([buffer], { type: 'application/octet-stream' });
+            
+            // 가상의 다운로드 링크 생성 및 실행
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'random_1mb_file.bin'; // 저장될 파일 이름
+            document.body.appendChild(a);
+            a.click();
+
+            // 메모리 정리 및 상태 표시
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            statusDiv.innerText = "다운로드가 완료되었습니다! (random_1mb_file.bin)";
+        }
+    </script>
+
+</body>
+</html>

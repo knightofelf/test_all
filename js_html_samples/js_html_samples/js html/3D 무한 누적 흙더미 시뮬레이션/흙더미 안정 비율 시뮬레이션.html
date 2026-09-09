@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>흙더미 안정 비율 시뮬레이션</title>
+  <style>
+    #canvas {
+      border: 1px solid #333;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>흙더미 비율 시뮬레이터</h2>
+  <label>높이 (m): <input type="number" id="height" value="1" step="0.1"></label><br>
+  <label>경사각 (°): <input type="number" id="angle" value="30" step="1"></label><br>
+  <button onclick="drawPile()">시뮬레이션 실행</button>
+
+  <canvas id="canvas" width="400" height="300"></canvas>
+
+  <script>
+    function drawPile() {
+      const height = parseFloat(document.getElementById('height').value);
+      const angle = parseFloat(document.getElementById('angle').value);
+
+      // 바닥 폭 계산: tan(θ) = 높이 / (바닥폭/2)
+      const baseHalf = height / Math.tan(angle * Math.PI / 180);
+      const baseWidth = baseHalf * 2;
+
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 스케일링 (화면에 맞추기 위해)
+      const scale = 50; // 1m = 50px
+      const hPx = height * scale;
+      const bPx = baseWidth * scale;
+
+      const centerX = canvas.width / 2;
+      const bottomY = canvas.height - 20;
+
+      // 삼각형 그리기
+      ctx.beginPath();
+      ctx.moveTo(centerX - bPx/2, bottomY);
+      ctx.lineTo(centerX + bPx/2, bottomY);
+      ctx.lineTo(centerX, bottomY - hPx);
+      ctx.closePath();
+
+      ctx.fillStyle = "#c2a66d";
+      ctx.fill();
+      ctx.stroke();
+
+      // 텍스트 표시
+      ctx.fillStyle = "#000";
+      ctx.fillText(`높이: ${height}m`, 10, 20);
+      ctx.fillText(`바닥 폭: ${baseWidth.toFixed(2)}m`, 10, 40);
+      ctx.fillText(`경사각: ${angle}°`, 10, 60);
+    }
+  </script>
+</body>
+</html>

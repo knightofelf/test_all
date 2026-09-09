@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>거대 정수 매칭비트 패턴 계산기</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 { border-bottom: 2px solid #2ecc71; padding-bottom: 10px; color: #2c3e50; }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+            word-break: break-all;
+        }
+        button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover { background-color: #27ae60; }
+        .result-box {
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 5px solid #3498db;
+            border-radius: 4px;
+        }
+        .result-item {
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+        .label { font-weight: bold; color: #34495e; display: block; margin-bottom: 5px; }
+        .value { font-family: 'Courier New', Courier, monospace; background: #eaeded; padding: 5px; border-radius: 3px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🧩 거대 정수 매칭비트 패턴 계산기</h2>
+    <p>아무리 긴 숫자를 입력해도 무한대로 매칭비트와 이진수를 정밀하게 계산합니다.</p>
+    
+    <label class="label" for="numberInput">정수 입력 (자릿수 제한 없음):</label>
+    <!-- 기본값으로 제시하셨던 대형 정수 세팅 -->
+    <textarea id="numberInput" placeholder="여기에 숫자를 입력하세요...">8495798475092340957093245072304750234059862380946509237405962039465096237409560932465098327640598364509637490533470592834534</textarea>
+    
+    <button onclick="calculateMatchingBit()">패턴 분석 실행</button>
+
+    <div class="result-box" id="resultContainer" style="display:none;">
+        <div class="result-item">
+            <span class="label">📌 입력된 정수 값:</span>
+            <span class="value" id="resInput"></span>
+        </div>
+        <div class="result-item">
+            <span class="label">📎 이진 비트열:</span>
+            <span class="value" id="resBinary"></span>
+        </div>
+        <div class="result-item">
+            <span class="label">🔁 연산된 매칭비트:</span>
+            <span class="value" id="resMatching" style="color: #e74c3c; font-weight: bold;"></span>
+        </div>
+        <div class="result-item">
+            <span class="label">⚙️ 내부 비트 상태 판별:</span>
+            <span class="value" id="resStatus"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateMatchingBit() {
+    // 1. 입력값 가져오기 및 공백 제거
+    const inputStr = document.getElementById('numberInput').value.trim();
+    
+    if (!inputStr || !/^\d+$/.test(inputStr)) {
+        alert("올바른 숫자 양식만 입력해주세요.");
+        return;
+    }
+
+    try {
+        // 2. 무한대 자릿수 연산을 위한 BigInt 변환 (자료형 제한 해제)
+        const n = BigInt(inputStr);
+
+        let binaryStr = "";
+        let matchingBit = "";
+        let statusText = "";
+
+        if (n === 0n) {
+            binaryStr = "0";
+            matchingBit = "0";
+            statusText = "시작점 (0)";
+        } else {
+            // 이진수 비트열 변환
+            binaryStr = n.toString(2);
+
+            // 3. 비트 연산을 통한 매칭비트 정밀 추출 규칙 적용
+            // (n & (n - 1n)) === 0n 구조는 2의 거듭제곱(Bit가 단 하나만 켜진 상태) 검사
+            if ((n & (n - 1n)) === 0n) {
+                matchingBit = binaryStr; // 거듭제곱수는 이진수 형태 그대로 매칭비트가 됨
+                statusText = "★ 2의 거듭제곱 (새로운 자릿수 팽창 포인트)";
+            } else {
+                // 그 외의 경우: 가장 하위 비트(Lowest Set Bit) 그룹을 비트 연산으로 분리 추출
+                const lowestSetBit = n & -n;
+                matchingBit = lowestSetBit.toString(2);
+                statusText = "반복 구간 내부 (하위 대칭 비트 패턴 매칭)";
+            }
+        }
+
+        // 4. 화면에 결과 바인딩 및 출력
+        document.getElementById('resInput').innerText = n.toString();
+        document.getElementById('resBinary').innerText = binaryStr;
+        document.getElementById('resMatching').innerText = matchingBit;
+        document.getElementById('resStatus').innerText = statusText;
+        
+        document.getElementById('resultContainer').style.display = "block";
+
+    } catch (error) {
+        alert("연산 중 오류가 발생했습니다: " + error.message);
+    }
+}
+</script>
+
+</body>
+</html>

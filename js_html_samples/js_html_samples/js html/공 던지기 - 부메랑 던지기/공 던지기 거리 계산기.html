@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공 던지기 거리 계산기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>⚾ 공 던지기 거리 계산기</h2>
+    
+    <div class="input-group">
+        <label for="velocity">초기 속도 (m/s):</label>
+        <input type="number" id="velocity" placeholder="예: 20" value="20">
+    </div>
+
+    <div class="input-group">
+        <label for="angle">던지는 각도 (도, °):</label>
+        <input type="number" id="angle" placeholder="예: 45" value="45" min="0" max="90">
+    </div>
+
+    <button onclick="calculateDistance()">거리 계산하기</button>
+
+    <div id="result"></div>
+
+    <script>
+        function calculateDistance() {
+            // 1. 입력값 가져오기
+            const velocity = parseFloat(document.getElementById('velocity').value);
+            const angleDegrees = parseFloat(document.getElementById('angle').value);
+            
+            // 중력 가속도 (m/s²)
+            const g = 9.81; 
+
+            // 2. 예외 처리
+            if (isNaN(velocity) || isNaN(angleDegrees)) {
+                document.getElementById('result').innerText = "올바른 숫자를 입력해주세요.";
+                return;
+            }
+
+            // 3. 각도를 라디안(Radian)으로 변환 (JS의 Math 삼각함수는 라디안을 사용함)
+            const angleRadians = angleDegrees * (Math.PI / 180);
+
+            // 4. 포물선 수평 거리 공식 적용: (v^2 * sin(2 * theta)) / g
+            const distance = (Math.pow(velocity, 2) * Math.sin(2 * angleRadians)) / g;
+
+            // 5. 결과 화면 출력 (소수점 둘째 자리까지 반올림)
+            document.getElementById('result').innerText = `🎯 날아간 거리: ${distance.toFixed(2)} m`;
+        }
+    </script>
+
+</body>
+</html>

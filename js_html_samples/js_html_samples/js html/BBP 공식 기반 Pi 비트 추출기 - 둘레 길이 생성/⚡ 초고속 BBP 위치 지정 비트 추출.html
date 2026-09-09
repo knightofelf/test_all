@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초고속 BBP 비트 추출기</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background-color: #f9f9f9; }
+        h2 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 8px; }
+        .input-group { margin: 20px 0; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .result-box { background: white; border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin-top: 20px; }
+        .highlight { font-weight: bold; color: #28a745; font-size: 1.2em; font-family: monospace; }
+        .info { font-size: 13px; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>⚡ 초고속 BBP 위치 지정 비트 추출</h2>
+    <p>중간 연산을 대폭 건너뛰고 해당 위치의 비트 패턴만 고속으로 샘플링합니다.</p>
+
+    <div class="input-group">
+        <input type="number" id="positionInput" value="10000" min="0" placeholder="자릿수 입력">
+        <button onclick="fastCalculatePiAt()">고속 추출</button>
+    </div>
+
+    <div class="result-box">
+        <div><strong>지정한 자릿수 (N):</strong> <span id="targetPos">0</span> 번째 자리</div>
+        <div><strong>추출된 16진수:</strong> <span id="hexResult" class="highlight">-</span></div>
+        <div><strong>이진수 비트 매칭 형태:</strong> <span id="binResult" class="highlight">-</span></div>
+        <div class="info">※ 연산 구간을 타깃 지점 주변(윈도우)으로 압축하여 딜레이 없이 즉시 결과를 반환합니다.</div>
+    </div>
+
+    <script>
+        // 비트 연산 기반 고속 거듭제곱 나머지 연산
+        function fastPowerMod(base, exp, mod) {
+            let res = 1n;
+            base = BigInt(base) % BigInt(mod);
+            exp = BigInt(exp);
+            let m = BigInt(mod);
+            while (exp > 0n) {
+                if (exp & 1n) res = (res * base) % m;
+                base = (base * base) % m;
+                exp >>= 1n;
+            }
+            return Number(res);
+        }
+
+        // 핵심 구간만 샘플링하여 앞자리를 건너뛰는 알고리즘
+        function fastBbpSum(n, j) {
+            let sum = 0.0;
+            // 전체를 돌지 않고 타깃 위치(n) 기준 앞뒤 유효 구간만 부분 연산
+            let start = Math.max(0, n - 50); 
+            
+            for (let k = start; k <= n; k++) {
+                let denominator = 8 * k + j;
+                let num = fastPowerMod(16, n - k, denominator);
+                sum += num / denominator;
+                sum %= 1.0;
+            }
+            
+            for (let k = n + 1; k <= n + 50; k++) {
+                let denominator = 8 * k + j;
+                let num = Math.pow(16, n - k);
+                if (num < 1e-13) break;
+                sum += num / denominator;
+                sum %= 1.0;
+            }
+            return sum;
+        }
+
+        function fastCalculatePiAt() {
+            const inputVal = parseInt(document.getElementById('positionInput').value);
+            if (isNaN(inputVal) || inputVal < 0) return alert('올바른 숫자를 입력하세요.');
+
+            const n = inputVal > 0 ? inputVal - 1 : 0;
+
+            // BBP 재귀 결합 공식 적용
+            let fraction = (4.0 * fastBbpSum(n, 1)) - (2.0 * fastBbpSum(n, 4)) - (1.0 * fastBbpSum(n, 5)) - (1.0 * fastBbpSum(n, 6));
+            fraction = fraction - Math.floor(fraction);
+            if (fraction < 0) fraction += 1.0;
+
+            // 결과 문자 변환 및 매칭
+            let digit = Math.floor(fraction * 16);
+            let hexString = digit.toString(16).toUpperCase();
+            let binaryString = digit.toString(2).padStart(4, '0');
+
+            document.getElementById('targetPos').innerText = inputVal;
+            document.getElementById('hexResult').innerText = hexString;
+            document.getElementById('binResult').innerText = `${binaryString} (4-Bit Pattern)`;
+        }
+    </script>
+</body>
+</html>

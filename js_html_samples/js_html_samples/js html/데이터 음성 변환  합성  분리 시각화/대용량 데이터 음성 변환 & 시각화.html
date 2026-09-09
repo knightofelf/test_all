@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Large Data Sonification & Visualization</title>
+  <style>
+    canvas { border: 1px solid #333; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>대용량 데이터 음성 변환 & 시각화</h2>
+  <button onclick="runLargeDemo()">대용량 실행</button>
+  <canvas id="visual" width="800" height="300"></canvas>
+
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const canvas = document.getElementById("visual");
+    const ctx = canvas.getContext("2d");
+
+    function generateLargeData(size) {
+      return Array.from({length: size}, () => Math.floor(Math.random() * 1000));
+    }
+
+    function compressData(data) {
+      // 1000개 단위로 평균값 추출 → 압축
+      const chunkSize = 1000;
+      const compressed = [];
+      for (let i=0; i<data.length; i+=chunkSize) {
+        const chunk = data.slice(i, i+chunkSize);
+        compressed.push(chunk.reduce((a,b)=>a+b)/chunk.length);
+      }
+      return compressed;
+    }
+
+    function playOscillator(data) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const freq = data.reduce((a,b)=>a+b)/data.length;
+      osc.frequency.value = freq;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      setTimeout(()=>osc.stop(), 1000); // 1초만 재생
+    }
+
+    function visualize(data) {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const barWidth = canvas.width / data.length;
+      data.forEach((val,i)=>{
+        ctx.fillStyle = "rgb("+(val%255)+",80,150)";
+        ctx.fillRect(i*barWidth, canvas.height-val%250, barWidth, val%250);
+      });
+    }
+
+    function runLargeDemo() {
+      const data = generateLargeData(200000); // 20만개 데이터
+      const compressed = compressData(data);  // 압축 처리
+      playOscillator(compressed);             // 압축된 데이터로 음성 변환
+      visualize(compressed);                  // 시각화
+    }
+  </script>
+</body>
+</html>

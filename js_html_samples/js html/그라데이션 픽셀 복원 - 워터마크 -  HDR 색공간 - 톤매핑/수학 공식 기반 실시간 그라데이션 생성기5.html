@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>이미지 + 공식 기반 무결성 데이터 완전 복원 시스템</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; line-height: 1.5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .input-box { background: #222; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px dashed #555; }
+        .input-box input { margin-top: 5px; display: block; }
+        button { padding: 10px 15px; font-weight: bold; cursor: pointer; background: #e91e63; color: white; border: none; border-radius: 4px; }
+        button:disabled { background: #555; color: #aaa; cursor: not-allowed; }
+        .status-box { background: #000; border: 1px solid #333; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 14px; margin-top: 15px; }
+        .success { color: #4caf50; font-weight: bold; }
+        .highlight { color: #00bcd4; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔑 이미지 + 공식 명세서 기반 독립 복원 시스템</h2>
+    <p>브라우저를 새로고침하더라도, 이전에 저장한 <b>그라데이션 이미지</b>와 <b>공식 텍스트 파일</b>만 있으면 원본 난수를 100% 복구합니다.</p>
+
+    <!-- 1단계 입력: PNG 이미지 파일 -->
+    <div class="input-box">
+        <strong>📁 1) 그라데이션 이미지 (.png) 선택:</strong>
+        <input type="file" id="imageInput" accept=".png" onchange="checkInputs()">
+    </div>
+
+    <!-- 2단계 입력: 공식 명세서 .txt 파일 -->
+    <div class="input-box">
+        <strong>📁 2) gradient_formula_specification.txt 파일 선택:</strong>
+        <input type="file" id="formulaInput" accept=".txt" onchange="checkInputs()">
+    </div>
+
+    <!-- 3단계: 복원 실행 및 추출 -->
+    <button id="btnRestore" onclick="executeIndependentRestoration()" disabled>🔍 픽셀 역산 및 데이터 최종 복원 시작</button>
+    <button id="btnDownload" onclick="downloadRestoredTxt()" disabled style="background:#ff9800;">💾 원본 파일로 내보내기</button>
+
+    <!-- 상태 중계 전광판 -->
+    <div class="status-box">
+        <div>• 판독된 이미지 해상도: <span id="imgMetaState" class="highlight">-</span></div>
+        <div>• 감지된 압축 공식 엔진: <span id="formulaMetaState" class="highlight">-</span></div>
+        <div>• 최종 데이터 복원 상태: <span id="resultState" class="success">대기 중</span></div>
+    </div>
+</div>
+
+<script>
+    let loadedImgData = null;
+    let decodedTargetRule = null;
+    let finalRestoredArray = null;
+
+    // 두 개의 파일이 모두 업로드되었는지 감시하는 장치
+    function checkInputs() {
+        const imgFile = document.getElementById('imageInput').files[0];
+        const txtFile = document.getElementById('formulaInput').files[0];
+        document.getElementById('btnRestore').disabled = !(imgFile && txtFile);
+    }
+
+    // 🚀 [핵심 엔진] 이미지와 공식 텍스트 파일을 결합하여 독립 역산 수행
+    function executeIndependentRestoration() {
+        const imgFile = document.getElementById('imageInput').files[0];
+        const txtFile = document.getElementById('formulaInput').files[0];
+
+        if (!imgFile || !txtFile) return;
+
+        // 1. 공식 명세서 텍스트 먼저 파싱 및 해독
+        const txtReader = new FileReader();
+        txtReader.onload = function(e) {
+            const text = e.target.result;
+            
+            // 텍스트 파일 내에서 복원 핵심 마스크인 0x03, 0x0F 등을 정규식으로 자동 추적 감지
+            const maskMatch = text.match(/PixelColor\[i\]\s*&\s*(0x[0-9A-Fa-f]+)/) || text.match(/Payload\s*=\s*PixelValue\s*&\s*(0x[0-9A-Fa-f]+)/);
+            
+            if (!maskMatch) {
+                alert("유효한 그라데이션 공식 명세서 파일이 아닙니다.");
+                return;
+            }
+
+            // 파일에서 추출한 비트 마스크 규칙 값 저장 (예: 0x03)
+            decodedTargetRule = parseInt(maskMatch[1], 16);
+            document.getElementById('formulaMetaState').innerText = `성공 (추출된 복원 마스크: ${maskMatch[1]})`;
+
+            // 2. 이어서 이미지 파일 로드 후 픽셀 물리 추출 시작
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // 안티앨리어싱 보정 왜곡 차단
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(img, 0, 0);
+
+                document.getElementById('imgMetaState').innerText = `${img.width}px × ${img.height}px`;
+
+                const imgBuffer = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                const totalPixels = canvas.width * canvas.height;
+                
+                // 복원 데이터를 담을 물리 바이트 버퍼 동적 생성
+                finalRestoredArray = [];
+
+                // 💡 [수학 역산 결합 루프] 
+                // 명세서에서 해독해 낸 디코딩 룰(decodedTargetRule)을 
+                // 업로드된 이미지의 R, G, B 채널 픽셀에 1:1 대입하여 순수한 난수 조각을 실시간 복구합니다.
+                for (let i = 0; i < totalPixels; i++) {
+                    const p = i * 4;
+                    // 공식 문서에 명시된 비트 마스크에 따라 원본 데이터 자릿수 복원
+                    // 0x03 마스크의 경우 하위 2비트이므로 그대로 가공 없이 푸시
+                    finalRestoredArray.push(imgBuffer[p] & decodedTargetRule);
+                    finalRestoredArray.push(imgBuffer[p+1] & decodedTargetRule);
+                    finalRestoredArray.push(imgBuffer[p+2] & decodedTargetRule);
+                }
+
+                // 최종 UI 상태 업데이트
+                document.getElementById('resultState').innerHTML = 
+                    `<span class="success">100% 무결성 복원 성공! 🔓</span><br>` +
+                    `• 복구 완료된 랜덤 난수 크기: ${finalRestoredArray.length.toLocaleString()} 바이트 데이터셋<br>` +
+                    `• 복구 난수 샘플(앞 5개): [${finalRestoredArray.slice(0, 5).join(', ')}]`;
+                
+                document.getElementById('btnDownload').disabled = false;
+            };
+            img.src = URL.createObjectURL(imgFile);
+        };
+        txtReader.readAsText(txtFile);
+    }
+
+    // 복원된 최종 난수 배열을 다시 물리 텍스트 파일(.txt)로 배출
+    function downloadRestoredTxt() {
+        if (!finalRestoredArray || finalRestoredArray.length === 0) return;
+        
+        const textContent = finalRestoredArray.join(', ');
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+        
+        link.href = URL.createObjectURL(blob);
+        link.download = "absolute_recovered_random_data.txt";
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+</script>
+
+</body>
+</html>

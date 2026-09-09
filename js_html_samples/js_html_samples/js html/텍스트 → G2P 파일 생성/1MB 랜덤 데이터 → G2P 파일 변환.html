@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>랜덤 데이터 G2P 파일 생성</title>
+</head>
+<body>
+  <h2>1MB 랜덤 데이터 → G2P 파일 변환</h2>
+  <button id="generateBtn">G2P 파일 생성</button>
+
+<script>
+  function generateRandomData(size) {
+    const array = new Uint8Array(size);
+    const chunk = 65536; // 최대 허용 크기
+
+    for (let i = 0; i < size; i += chunk) {
+      const slice = array.subarray(i, i + Math.min(chunk, size - i));
+      crypto.getRandomValues(slice);
+    }
+    return array;
+  }
+
+  function downloadG2PFile() {
+    const size = 1024 * 1024; // 1MB
+    const randomData = generateRandomData(size);
+
+    const blob = new Blob([randomData], { type: "application/octet-stream" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "random_data.g2p";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+
+    document.getElementById("generateBtn").addEventListener("click", downloadG2PFile);
+  </script>
+</body>
+</html>

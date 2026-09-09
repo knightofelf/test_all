@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Texture Projection & Interpolation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #030308; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    const gl = canvas.getContext('webgl2');
+    if (!gl) {
+        document.body.innerHTML = "<h2 style='padding:20px;'>WebGL2를 지원하지 않는 브라우저입니다.</h2>";
+        return;
+    }
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 정점 셰이더
+    const vsSource = `#version 300 es
+        in vec2 position;
+        out vec2 vUv;
+        void main() {
+            vUv = position * 0.5 + 0.5;
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    `;
+
+    // 프래그먼트 셰이더 (외부 텍스처 사용)
+    const fsSource = `#version 300 es
+        precision highp float;
+        in vec2 vUv;
+        uniform vec2 uResolution;
+        uniform float uTime;
+        uniform vec2 uMouse;
+        uniform sampler2D uTexture;
+        out vec4 fragColor;
+
+        mat2 rotate(float a) {
+            return mat2(cos(a), -sin(a), sin(a), cos(a));
+        }
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - uResolution * 0.5) / uResolution.y * 2.6;
+            vec2 mouseRot = (uMouse - uResolution * 0.5) / uResolution.y * 3.1415;
+            uv *= rotate(mouseRot.x + 0.3);
+
+            float dist = length(uv);
+            float angle = atan(uv.y, uv.x);
+
+            vec2 projectedUV = vec2(cos(angle), sin(angle)) * 0.38;
+            vec4 texPixel = texture(uTexture, projectedUV * 0.5 + 0.5);
+
+            vec3 color = vec3(0.02, 0.02, 0.05);
+            float r1 = 0.45, r2 = 0.85, r3 = 1.25;
+
+            if (dist < r1) {
+                color = texture(uTexture, uv * 0.5 + 0.5).rgb;
+            } else if (dist < r2) {
+                float f = (dist - r1) / (r2 - r1);
+                color = mix(texPixel.rgb * 0.9, texPixel.rgb * 0.45, f);
+            } else if (dist < r3) {
+                float f = (dist - r2) / (r3 - r2);
+                color = mix(texPixel.rgb * 0.45, texPixel.rgb * 0.15, f);
+            } else if (dist < r3 + 0.3) {
+                float f = (dist - r3) / 0.3;
+                color = mix(texPixel.rgb * 0.15, vec3(0.0), f);
+            }
+
+            float lineThickness = 0.01;
+            if (abs(dist - r1) < lineThickness || abs(dist - r2) < lineThickness || abs(dist - r3) < lineThickness) {
+                color = mix(vec3(0.0, 1.0, 0.7), texPixel.rgb * 2.0, 0.5);
+            }
+
+            fragColor = vec4(color, 1.0);
+        }
+    `;
+
+    function createShader(src, type) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, createShader(vsSource, gl.VERTEX_SHADER));
+    gl.attachShader(program, createShader(fsSource, gl.FRAGMENT_SHADER));
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    const vertices = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const pLoc = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(pLoc);
+    gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const resLoc = gl.getUniformLocation(program, "uResolution");
+    const timeLoc = gl.getUniformLocation(program, "uTime");
+    const mouseLoc = gl.getUniformLocation(program, "uMouse");
+    const texLoc = gl.getUniformLocation(program, "uTexture");
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    // 텍스처 로드
+    const texture = gl.createTexture();
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "https://threejs.org/examples/textures/uv_grid_opengl.jpg"; // 임의 텍스처
+    img.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    };
+
+    function loop(now) {
+        gl.uniform2f(resLoc, canvas.width, canvas.height);
+        gl.uniform1f(timeLoc, now * 0.001);
+        gl.uniform2f(mouseLoc, mouseX, mouseY);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(texLoc, 0);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>

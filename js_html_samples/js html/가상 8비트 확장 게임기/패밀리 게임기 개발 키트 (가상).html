@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>패밀리 게임기 개발 키트</title>
+  <style>
+    canvas { border:2px solid #333; background:#000; }
+  </style>
+</head>
+<body>
+  <h2>패밀리 게임기 개발 키트 (가상)</h2>
+  <canvas id="screen" width="256" height="240"></canvas><br>
+  <button onclick="runDemo()">데모 실행</button>
+
+  <script>
+    // CPU (간단한 8비트 레지스터)
+    let regA = 0, regB = 0;
+
+    // 팔레트
+    const palette = ["#000","#F00","#0F0","#00F","#FF0","#F0F","#0FF","#FFF"];
+
+    // 그래픽 출력
+    function drawSprite(x,y,colorIndex) {
+      let ctx = document.getElementById("screen").getContext("2d");
+      ctx.fillStyle = palette[colorIndex % palette.length];
+      ctx.fillRect(x,y,16,16);
+    }
+
+    // 데모 프로그램
+    function runDemo() {
+      let ctx = document.getElementById("screen").getContext("2d");
+      ctx.clearRect(0,0,256,240);
+
+      for (let i=0; i<10; i++) {
+        regA = (regA + 5) & 0xFF;
+        regB = (regB + 3) & 0xFF;
+        drawSprite(regA, regB, i);
+      }
+    }
+  </script>
+</body>
+</html>

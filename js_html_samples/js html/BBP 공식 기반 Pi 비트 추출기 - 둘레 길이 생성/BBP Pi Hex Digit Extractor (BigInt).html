@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BBP Pi Hex Digit Extractor (BigInt)</title>
+</head>
+<body>
+  <h2>BBP 공식으로 Pi 특정 자리 추출 (BigInt)</h2>
+  <label>추출할 자리 (16진수, 예: 10): </label>
+  <input type="number" id="digit" value="10">
+  <button onclick="extractDigit()">계산하기</button>
+  <pre id="result"></pre>
+
+  <script>
+    // BigInt 거듭제곱 (mod 포함)
+    function powMod(base, exp, mod) {
+      let result = 1n;
+      let b = BigInt(base);
+      let e = BigInt(exp);
+      let m = BigInt(mod);
+      while (e > 0n) {
+        if (e % 2n === 1n) result = (result * b) % m;
+        b = (b * b) % m;
+        e /= 2n;
+      }
+      return result;
+    }
+
+    function series(j, n) {
+      let s = 0;
+      for (let k = 0; k <= n; k++) {
+        let denom = 8 * k + j;
+        let modVal = Number(powMod(16, n - k, denom));
+        s += modVal / denom;
+      }
+      let t = 0;
+      for (let k = n + 1; k <= n + 100; k++) {
+        t += Math.pow(16, n - k) / (8 * k + j);
+      }
+      return (s + t) % 1;
+    }
+
+    function piHexDigit(n) {
+      let x = 4 * series(1, n) - 2 * series(4, n) - series(5, n) - series(6, n);
+      return Math.floor(x * 16);
+    }
+
+    function extractDigit() {
+      const n = parseInt(document.getElementById("digit").value);
+      const digit = piHexDigit(n);
+      document.getElementById("result").textContent =
+        `Pi의 ${n}번째 16진수 자리 값: ${digit.toString(16)}`;
+    }
+  </script>
+</body>
+</html>

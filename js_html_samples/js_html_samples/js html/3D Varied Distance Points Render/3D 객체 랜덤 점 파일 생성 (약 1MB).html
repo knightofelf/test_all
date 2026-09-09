@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 객체 파일 생성</title>
+</head>
+<body>
+  <h2>3D 객체 랜덤 점 파일 생성 (약 1MB)</h2>
+  <button onclick="generateObjectFile()">파일 생성 및 다운로드</button>
+  <pre id="status"></pre>
+
+  <script>
+    function generateObjectFile() {
+      const numPoints = 50000; // 점 개수 (파일 크기 조절용)
+      const points = [];
+
+      // 랜덤 3D 점 생성
+      for (let i = 0; i < numPoints; i++) {
+        const x = (Math.random() * 100).toFixed(6);
+        const y = (Math.random() * 100).toFixed(6);
+        const z = (Math.random() * 100).toFixed(6);
+        points.push(`${x}, ${y}, ${z}`);
+      }
+
+      // 텍스트 파일 내용 구성
+      let text = "3D Points:\n";
+      text += points.join("\n");
+
+      // Blob으로 파일 생성
+      const blob = new Blob([text], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "3D_object_points.txt";
+      link.click();
+
+      // 상태 출력
+      document.getElementById("status").textContent =
+        `총 ${numPoints}개의 점을 생성했습니다. 파일 크기: 약 ${(blob.size/1024/1024).toFixed(2)} MB`;
+    }
+  </script>
+</body>
+</html>

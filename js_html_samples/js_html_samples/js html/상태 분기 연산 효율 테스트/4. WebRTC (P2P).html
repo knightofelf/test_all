@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <button onclick="start()">WebRTC 연결</button>
+  <pre id="output"></pre>
+
+  <script>
+    async function start() {
+      const pc = new RTCPeerConnection();
+      const channel = pc.createDataChannel("chat");
+      channel.onmessage = (e) => document.getElementById("output").innerText = "메시지: " + e.data;
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // 실제로는 시그널링 서버를 통해 offer/answer 교환 필요
+      console.log("Offer SDP:", offer.sdp);
+    }
+  </script>
+</body>
+</html>

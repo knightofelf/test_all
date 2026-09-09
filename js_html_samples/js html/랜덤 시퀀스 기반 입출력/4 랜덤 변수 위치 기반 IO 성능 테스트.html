@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>랜덤 변수 위치 I/O</title>
+</head>
+<body>
+<h2>랜덤 변수 위치 기반 I/O 성능 테스트</h2>
+<button onclick="runTest()">실행</button>
+
+<p id="randSeq"></p>
+<p id="writeResult"></p>
+<p id="readResult"></p>
+<p id="perf"></p>
+
+<script>
+const rMAX = 8;
+let randSeq = [];
+let buffer = new Array(rMAX);
+
+// 랜덤 시퀀스 생성 (변수 위치용)
+function generateRandSeq() {
+    let used = Array(rMAX).fill(false);
+    let seq = [];
+    while (seq.length < rMAX) {
+        let n = Math.floor(Math.random() * rMAX);
+        if (!used[n]) {
+            used[n] = true;
+            seq.push(n);
+        }
+    }
+    return seq;
+}
+
+// 데이터 쓰기: 랜덤 위치에 값 저장
+function writeData(seq) {
+    for (let i = 0; i < seq.length; i++) {
+        buffer[seq[i]] = "DATA" + seq[i]; // 위치 기반 저장
+    }
+}
+
+// 데이터 읽기: 랜덤 위치 순서대로 읽기
+function readData(seq) {
+    let result = [];
+    for (let i = 0; i < seq.length; i++) {
+        result.push(`[pos ${seq[i]}] ${buffer[seq[i]]}`);
+    }
+    return result;
+}
+
+// 성능 테스트 실행
+function runTest() {
+    randSeq = generateRandSeq();
+    document.getElementById("randSeq").innerText = "랜덤 변수 위치 시퀀스: " + randSeq.join(", ");
+
+    let t1 = performance.now();
+    writeData(randSeq);
+    let t2 = performance.now();
+    let readOut = readData(randSeq);
+    let t3 = performance.now();
+
+    document.getElementById("writeResult").innerText = "쓰기 완료: " + buffer.join(" | ");
+    document.getElementById("readResult").innerText = "읽기 순서: " + readOut.join(" | ");
+    document.getElementById("perf").innerText =
+        "쓰기 시간: " + (t2 - t1).toFixed(2) + " ms, " +
+        "읽기 시간: " + (t3 - t2).toFixed(2) + " ms";
+}
+</script>
+</body>
+</html>

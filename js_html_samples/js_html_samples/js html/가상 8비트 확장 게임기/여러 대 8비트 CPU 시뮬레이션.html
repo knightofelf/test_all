@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>여러 대 8비트 CPU → 16비트 확장</title>
+</head>
+<body>
+  <h2>여러 대 8비트 CPU 시뮬레이션</h2>
+  <button onclick="simulate()">실행</button>
+  
+  <h3>결과:</h3>
+  <pre id="output"></pre>
+  
+  <script>
+    function simulate() {
+      const cpuCount = 2; // 8비트 CPU 두 대 → 16비트
+      const valueA = 0x1234;
+      const valueB = 0x00FF;
+
+      // CPU 배열 (각각 8비트만 처리 가능)
+      let cpus = new Array(cpuCount).fill(0);
+
+      // 하위 CPU (하위 8비트 처리)
+      let aLow = valueA & 0xFF;
+      let bLow = valueB & 0xFF;
+      let lowSum = aLow + bLow;
+      let carry = 0;
+      if (lowSum > 0xFF) {
+        carry = 1;
+        lowSum &= 0xFF;
+      }
+      cpus[0] = lowSum;
+
+      // 상위 CPU (상위 8비트 처리 + 캐리 반영)
+      let aHigh = (valueA >> 8) & 0xFF;
+      let bHigh = (valueB >> 8) & 0xFF;
+      let highSum = aHigh + bHigh + carry;
+      if (highSum > 0xFF) {
+        highSum &= 0xFF;
+      }
+      cpus[1] = highSum;
+
+      // 최종 16비트 결과
+      let result = (cpus[1] << 8) | cpus[0];
+
+      document.getElementById("output").textContent =
+        `CPU[0] (하위 8비트): ${cpus[0]}\n` +
+        `CPU[1] (상위 8비트): ${cpus[1]}\n` +
+        `최종 16비트 결과: 0x${result.toString(16).toUpperCase()} (${result})`;
+    }
+  </script>
+</body>
+</html>

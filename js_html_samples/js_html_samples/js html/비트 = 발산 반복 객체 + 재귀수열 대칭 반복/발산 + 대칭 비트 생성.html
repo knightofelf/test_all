@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>발산 + 대칭 비트 생성</title>
+  <style>
+    body { font-family: monospace; background: #fafafa; padding: 20px; }
+    .level { margin: 10px 0; }
+    .bit { display: inline-block; margin: 0 8px; }
+    .reduced { color: #007acc; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>발산 반복 객체 + 대칭 반복 비트 생성</h2>
+  <label>최대 레벨: <input type="number" id="maxLevel" value="4"></label>
+  <button onclick="generateBits()">생성</button>
+
+  <div id="output"></div>
+
+  <script>
+    // 접두사 제거 함수
+    function removePrefix(bits) {
+      if (bits.length <= 1) return bits;
+      let prefix = bits[0];
+      for (let i = 1; i < bits.length; i++) {
+        if (bits[i] !== prefix) {
+          return bits.slice(i);
+        }
+      }
+      return bits.slice(-1);
+    }
+
+    function generateBits() {
+      const maxLevel = parseInt(document.getElementById("maxLevel").value, 10);
+      const output = document.getElementById("output");
+      output.innerHTML = "";
+
+      let current = ["1"]; // 시작 객체
+
+      for (let level = 0; level < maxLevel; level++) {
+        const div = document.createElement("div");
+        div.className = "level";
+
+        current.forEach(bit => {
+          const reduced = removePrefix(bit);
+          const span = document.createElement("span");
+          span.className = "bit";
+          span.innerHTML = `${bit} <span class="reduced">(${reduced})</span>`;
+          div.appendChild(span);
+        });
+
+        output.appendChild(div);
+
+        // 발산: 다음 단계 생성 (0,1 붙이기)
+        let next = [];
+        current.forEach(bit => {
+          next.push(bit + "0");
+          next.push(bit + "1");
+        });
+        current = next;
+      }
+    }
+
+    // 초기 실행
+    generateBits();
+  </script>
+</body>
+</html>

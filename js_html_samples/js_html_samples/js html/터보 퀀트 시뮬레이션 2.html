@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>TurboQuant Demo</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .box { margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h2>터보 퀀트 시뮬레이션 (JS + HTML)</h2>
+  
+  <button onclick="runTurboQuant()">실행하기</button>
+  
+  <div class="box" id="original"></div>
+  <div class="box" id="compressed"></div>
+  <div class="box" id="decompressed"></div>
+  
+  <script>
+    // 간단한 양자화 함수 (예: 3비트 → 0~7 범위)
+
+  function quantize(arr, bits=3) {
+    const levels = Math.pow(2, bits);
+    const minVal = Math.min(...arr);
+    const maxVal = Math.max(...arr);
+    const compressed = arr.map(v => Math.round(((v - minVal) / (maxVal - minVal)) * (levels - 1)));
+    return { compressed, minVal, maxVal };
+  }
+
+  function dequantize(data, bits=3) {
+    const { compressed, minVal, maxVal } = data;
+    const levels = Math.pow(2, bits);
+    return compressed.map(q => Math.round((q / (levels - 1)) * (maxVal - minVal) + minVal));
+  }
+
+  function runTurboQuant() {
+    const data = Array.from({length: 10}, () => Math.floor(Math.random() * 100));
+    
+    const quantized = quantize(data, 3);
+    const decompressed = dequantize(quantized, 3);
+    
+    document.getElementById("original").innerText = "원본 데이터: " + data.join(", ");
+    document.getElementById("compressed").innerText = "압축 데이터(3비트): " + quantized.compressed.join(", ");
+    document.getElementById("decompressed").innerText = "복원 데이터: " + decompressed.join(", ");
+  }
+
+  </script>
+</body>
+</html>

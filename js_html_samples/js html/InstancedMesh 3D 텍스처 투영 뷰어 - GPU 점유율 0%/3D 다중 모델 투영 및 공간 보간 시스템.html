@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 다중 모델 투영 및 공간 보간 시스템</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #05050a; color: #fff; font-family: sans-serif; user-select: none; }
+    canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #info-panel {
+      position: absolute; top: 15px; left: 15px; z-index: 100;
+      background: rgba(10, 10, 20, 0.9); padding: 18px; border-radius: 8px;
+      border: 1px solid rgba(0, 255, 170, 0.25); max-width: 350px; pointer-events: none;
+    }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #00ffaa; text-transform: uppercase; }
+    p { margin: 0 0 6px 0; font-size: 12px; color: #ccc; line-height: 1.4; }
+    .badge { display: inline-block; background: #ff0055; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="info-panel">
+    <h2>3D 다중 레이어 투영 시스템</h2>
+    <p><span class="badge">PROJECTION</span> 중앙 5개 독립 입체의 고정 픽셀이 외부 3겹 구체 레이어로 직선 방사 투영됩니다.</p>
+    <p><span class="badge" style="background:#0077ff;">INTERPOLATION</span> 각 원(구체) 사이의 빈 공간을 볼 때는 물리적 거리를 기준으로 픽셀을 부드럽게 선형 보간(Mix)합니다.</p>
+    <p style="color:#777; font-size:11px; margin-top:8px;">※ 마우스 드래그: 360도 전방위 시점 회전</p>
+  </div>
+
+  <!-- [PAGE 2] 외부 셰이더 모듈 로드 (동일 폴더 위치 필수) -->
+  <script src="./shader2.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+  <script>
+    // 1. 기본 씬 및 카메라 설정 (FOV 버그 수정: 750 -> 60)
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 12);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // 2. 중앙에 배치할 5개의 독립된 고정 텍스처 모델 생성 (MeshNormalMaterial 적용)
+    const modelGroup = new THREE.Group();
+    const geometries = [
+      new THREE.TorusKnotGeometry(0.7, 0.22, 100, 16), // 1. 정중앙 토러스노트
+      new THREE.BoxGeometry(0.9, 0.9, 0.9),           // 2. 상단 상자
+      new THREE.SphereGeometry(0.6, 32, 32),          // 3. 하단 구체
+      new THREE.ConeGeometry(0.6, 1.1, 32),           // 4. 좌측 원뿔
+      new THREE.CylinderGeometry(0.5, 0.5, 1.1, 32)   // 5. 우측 원기둥
+    ];
+    
+    const positions = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 1.8, 0),
+      new THREE.Vector3(0, -1.8, 0),
+      new THREE.Vector3(-1.8, 0, 0),
+      new THREE.Vector3(1.8, 0, 0)
+    ];
+
+    geometries.forEach((geo, i) => {
+      const mesh = new THREE.Mesh(geo, new THREE.MeshNormalMaterial());
+      mesh.position.copy(positions[i]);
+      modelGroup.add(mesh);
+    });
+    scene.add(modelGroup);
+
+    // 3. 360도 전방위 픽셀 정보를 구워낼 렌더 타겟 및 큐브/투영 카메라 설정
+    const renderTarget = new THREE.WebGLRenderTarget(1024, 1024);
+    const projectionCamera = new THREE.PerspectiveCamera(90, 1, 0.1, 20);
+
+    // 4. 요구사항: 바깥쪽 "3겹 원" 공간 레이어 생성 및 가시화
+    const layerRadii = [3.5, 5.5, 7.5]; // 3겹 원의 반지름 고정 정의
+    const layers = [];
+
+    for (let i = 0; i < 3; i++) {
+      const r = layerRadii[i];
+      const inner = (i === 0) ? 0.0 : layerRadii[i - 1];
+      const outer = (i === 2) ? r + 2.5 : layerRadii[i + 1];
+
+      const layerGeometry = new THREE.SphereGeometry(r, 64, 64);
+      
+      // PAGE 2 (shader.js)에서 정의한 커스텀 셰이더 바인딩 및 매핑 연동
+      const layerMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          tex: { value: renderTarget.texture },
+          uInnerRadius: { value: inner },
+          uOuterRadius: { value: outer },
+          uCurrentRadius: { value: r },
+          uCameraMatrix: { value: new THREE.Matrix4() }
+        },
+        vertexShader: customVertexShader,
+        fragmentShader: customFragmentShader,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      const layerMesh = new THREE.Mesh(layerGeometry, layerMaterial);
+      scene.add(layerMesh);
+      layers.push(layerMesh);
+    }
+
+    // 5. 마우스 드래그를 이용한 360도 자유 시점 제어 로직
+    let isDragging = false;
+    const rotationContainer = new THREE.Object3D();
+    scene.add(rotationContainer);
+    // 조작 시 카메라가 전방위를 공전하도록 계층 재배치
+    rotationContainer.add(camera); 
+
+    let prevX = 0, prevY = 0;
+    window.addEventListener('mousedown', (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dX = e.clientX - prevX;
+      const dY = e.clientY - prevY;
+      rotationContainer.rotation.y -= dX * 0.005;
+      rotationContainer.rotation.x -= dY * 0.005;
+      rotationContainer.rotation.x = Math.max(-1.4, Math.min(1.4, rotationContainer.rotation.x));
+      prevX = e.clientX; prevY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    // 6. 실시간 애니메이션 및 렌더링 파이프라인 루프
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // 5개 고정 모델들의 자전 애니메이션
+      modelGroup.children.forEach((mesh) => {
+        mesh.rotation.x += 0.005;
+        mesh.rotation.y += 0.008;
+      });
+
+      // [버그 수정]: 피드백 루프를 방지하기 위해 렌더 타겟에 구울 때는 외곽 레이어들을 가립니다.
+      layers.forEach(l => l.visible = false);
+      modelGroup.visible = true;
+
+      // 다중 각도 픽셀 투영 버퍼 굽기
+      renderer.setRenderTarget(renderTarget);
+      renderer.render(scene, projectionCamera);
+      renderer.setRenderTarget(null);
+
+      // 메인 화면 렌더링 (레이어 다시 켜기)
+      layers.forEach(l => {
+        l.visible = true;
+        // 카메라의 현재 3D 회전 행렬을 셰이더로 실시간 동기화 전송
+        l.material.uniforms.uCameraMatrix.value.copy(camera.matrixWorldInverse);
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>

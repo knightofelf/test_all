@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>해시 테이블 효율 확인</title>
+</head>
+<body>
+  <h2>해시 테이블 효율 측정</h2>
+  <button onclick="checkEfficiency()">효율 확인</button>
+  <pre id="output"></pre>
+
+  <script>
+    // 예시 데이터 (페이지에서 본 값)
+    const table = {
+      0: [["22","44"]],
+      3: [["34","ㄱㄱ"]],
+      6: [["34ㄱ","34"]],
+      8: [["66","434"]]
+    };
+
+    function checkEfficiency() {
+      let bucketCount = Object.keys(table).length; // 실제 사용된 버킷 수
+      let itemCount = 0;
+      let collisions = 0;
+
+      for (let key in table) {
+        let bucket = table[key];
+        itemCount += bucket.length;
+        if (bucket.length > 1) collisions += (bucket.length - 1);
+      }
+
+      let loadFactor = itemCount / bucketCount;
+      let efficiency = ((itemCount - collisions) / itemCount) * 100;
+
+      document.getElementById('output').textContent =
+        `총 아이템 수: ${itemCount}\n` +
+        `버킷 수: ${bucketCount}\n` +
+        `충돌 수: ${collisions}\n` +
+        `로드 팩터: ${loadFactor.toFixed(2)}\n` +
+        `효율: ${efficiency.toFixed(2)}%`;
+    }
+  </script>
+</body>
+</html>

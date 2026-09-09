@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Euler Partition Demo</title>
+</head>
+<body>
+  <h2>Euler Partition 비교</h2>
+  <label>숫자 입력: <input type="number" id="num" value="10"></label>
+  <button onclick="calculate()">계산하기</button>
+  <div id="result"></div>
+
+  <script>
+    // distinct partition 계산
+    function distinctPartitions(n, max = n) {
+      if (n === 0) return 1;
+      if (n < 0 || max === 0) return 0;
+      return distinctPartitions(n - max, max - 1) + distinctPartitions(n, max - 1);
+    }
+
+    // odd partition 계산
+    function oddPartitions(n, max = n) {
+      if (n === 0) return 1;
+      if (n < 0 || max <= 0) return 0;
+      if (max % 2 === 0) return oddPartitions(n, max - 1);
+      return oddPartitions(n - max, max) + oddPartitions(n, max - 2);
+    }
+
+    function calculate() {
+      const n = parseInt(document.getElementById("num").value);
+      const distinct = distinctPartitions(n);
+      const odd = oddPartitions(n);
+      document.getElementById("result").innerHTML =
+        `<p>입력값: ${n}</p>
+         <p>서로 다른 수로 분할: ${distinct}</p>
+         <p>홀수로만 분할: ${odd}</p>
+         <p><b>결과: 두 값은 항상 동일!</b></p>`;
+    }
+  </script>
+</body>
+</html>

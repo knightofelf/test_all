@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>실시간 유체역학 시뮬레이션</title>
+    <style>
+        body { margin: 0; background: #111; color: #fff; font-family: sans-serif; text-align: center; overflow: hidden; }
+        canvas { display: block; margin: 20px auto; background: #000; box-shadow: 0 0 20px rgba(0,255,255,0.2); }
+        h1 { margin-top: 20px; font-size: 24px; color: #00ffcc; }
+        p { color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>실시간 격자 기반 유체 시뮬레이션</h1>
+    <p>마우스를 클릭한 채 드래그하면 유체의 속도(Velocity)와 염료(Dye)가 추가됩니다.</p>
+    <canvas id="fluidCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('fluidCanvas');
+const ctx = canvas.getContext('2d');
+
+// 해상도 설정 (계산 최적화를 위해 격자 크기를 작게 설정)
+const NX = 64; 
+const NY = 64;
+const SCALE = 8; // 화면에 그릴 크기 배율
+canvas.width = NX * SCALE;
+canvas.height = NY * SCALE;
+
+// 유체 데이터 배열 (현재 프레임과 이전 프레임 복사를 위한 구조)
+let u = new Float32Array(NX * NY);    // X축 속도
+let v = new Float32Array(NX * NY);    // Y축 속도
+let u_prev = new Float32Array(NX * NY);
+let v_prev = new Float32Array(NX * NY);
+let d = new Float32Array(NX * NY);    // 염료 농도 (밀도)
+let d_prev = new Float32Array(NX * NY);
+let p = new Float32Array(NX * NY);    // 압력
+let div = new Float32Array(NX * NY);  // 발산 (Divergence)
+
+// 마우스 상태
+let isDrawing = false;
+let mx = 0, my = 0, pmx = 0, pmy = 0;
+
+// 1차원 인덱스 변환 함수
+function IX(x, y) {
+    if (x < 0) x = 0; if (x >= NX) x = NX - 1;
+    if (y < 0) y = 0; if (y >= NY) y = NY - 1;
+    return x + y * NX;
+}
+
+// 1. 확산 (Diffusion) 연산: 가우스-자이델 반복법 적용
+function diffuse(b, x, x0, diff, dt) {
+    const a = dt * diff * NX * NY;
+    for (let k = 0; k < 20; k++) {
+        for (let j = 1; j < NY - 1; j++) {
+            for (let i = 1; i < NX - 1; i++) {
+                x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i+1, j)] + x[IX(i-1, j)] + x[IX(i, j+1)] + x[IX(i, j-1)])) / (1 + 4 * a);
+            }
+        }
+        set_bnd(b, x);
+    }
+}
+
+// 2. 이류 (Advection) 연산: Semi-Lagrangian 방식 적용
+function advect(b, d, d0, u, v, dt) {
+    const dt0 = dt * Math.max(NX, NY);
+    for (let j = 1; j < NY - 1; j++) {
+        for (let i = 1; i < NX - 1; i++) {
+            let x = i - dt0 * u[IX(i, j)];
+            let y = j - dt0 * v[IX(i, j)];
+            
+            if (x < 0.5) x = 0.5; if (x > NX - 1.5) x = NX - 1.5;
+            if (y < 0.5) y = 0.5; if (y > NY - 1.5) y = NY - 1.5;
+            
+            const i0 = Math.floor(x); const i1 = i0 + 1;
+            const j0 = Math.floor(y); const j1 = j0 + 1;
+            
+            const s1 = x - i0; const s0 = 1 - s1;
+            const t1 = y - j0; const t0 = 1 - t1;
+            
+            d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
+                          s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
+        }
+    }
+    set_bnd(b, d);
+}
+
+// 3. 투형 (Projection) 연산: 질량 보존 법칙(비압축성 성질) 만족
+function project(u, v, p, div) {
+    for (let j = 1; j < NY - 1; j++) {
+        for (let i = 1; i < NX - 1; i++) {
+            div[IX(i, j)] = -0.5 * (u[IX(i+1, j)] - u[IX(i-1, j)] + v[IX(i, j+1)] - v[IX(i, j-1)]) / Math.max(NX, NY);
+            p[IX(i, j)] = 0;
+        }
+    }
+    set_bnd(0, div); set_bnd(0, p);
+    
+    for (let k = 0; k < 20; k++) {
+        for (let j = 1; j < NY - 1; j++) {
+            for (let i = 1; i < NX - 1; i++) {
+                p[IX(i, j)] = (div[IX(i, j)] + p[IX(i+1, j)] + p[IX(i-1, j)] + p[IX(i, j+1)] + p[IX(i, j-1)]) / 4;
+            }
+        }
+        set_bnd(0, p);
+    }
+    
+    for (let j = 1; j < NY - 1; j++) {
+        for (let i = 1; i < NX - 1; i++) {
+            u[IX(i, j)] -= 0.5 * Math.max(NX, NY) * (p[IX(i+1, j)] - p[IX(i-1, j)]);
+            v[IX(i, j)] -= 0.5 * Math.max(NX, NY) * (p[IX(i, j+1)] - p[IX(i, j-1)]);
+        }
+    }
+    set_bnd(1, u); set_bnd(2, v);
+}
+
+// 경계 조건 설정 함수
+function set_bnd(b, x) {
+    for (let i = 1; i < NX - 1; i++) {
+        x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+        x[IX(i, NY-1)] = b === 2 ? -x[IX(i, NY-2)] : x[IX(i, NY-2)];
+    }
+    for (let j = 1; j < NY - 1; j++) {
+        x[IX(0, j)] = b === 1 ? -x[IX(1, j)] : x[IX(1, j)];
+        x[IX(NX-1, j)] = b === 1 ? -x[IX(NX-2, j)] : x[IX(NX-2, j)];
+    }
+    x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+    x[IX(0, NY-1)] = 0.5 * (x[IX(1, NY-1)] + x[IX(0, NY-2)]);
+    x[IX(NX-1, 0)] = 0.5 * (x[IX(NX-2, 0)] + x[IX(NX-1, 1)]);
+    x[IX(NX-1, NY-1)] = 0.5 * (x[IX(NX-2, NY-1)] + x[IX(NX-1, NY-2)]);
+}
+
+// 시뮬레이션 한 프레임 스텝 진행
+function step(dt) {
+    diffuse(1, u_prev, u, 0.0001, dt);
+    diffuse(2, v_prev, v, 0.0001, dt);
+    
+    project(u_prev, v_prev, p, div);
+    
+    advect(1, u, u_prev, u_prev, v_prev, dt);
+    advect(2, v, v_prev, u_prev, v_prev, dt);
+    
+    project(u, v, p, div);
+    
+    diffuse(0, d_prev, d, 0.001, dt);
+    advect(0, d, d_prev, u, v, dt);
+}
+
+// 화면 렌더링
+function render() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let j = 0; j < NY; j++) {
+        for (let i = 0; i < NX; i++) {
+            const density = d[IX(i, j)];
+            if (density > 0) {
+                // 밀도값에 따라 Cyan과 Blue 색상 맵핑
+                const r = 0;
+                const g = Math.min(255, Math.floor(density * 255));
+                const b = Math.min(255, Math.floor(density * 500));
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(i * SCALE, j * SCALE, SCALE, SCALE);
+            }
+        }
+    }
+}
+
+// 마우스 입력 처리 및 인터랙션 반영
+function updateMouse() {
+    if (!isDrawing) return;
+    const gridX = Math.floor(mx / SCALE);
+    const gridY = Math.floor(my / SCALE);
+    
+    if (gridX > 0 && gridX < NX - 1 && gridY > 0 && gridY < NY - 1) {
+        const idx = IX(gridX, gridY);
+        // 드래그 속도 계산하여 유체 힘으로 변환
+        u[idx] += (mx - pmx) * 5;
+        v[idx] += (my - pmy) * 5;
+        d[idx] += 10; // 염료 주입
+    }
+    pmx = mx; pmy = my;
+}
+
+// 메인 루프
+function loop() {
+    updateMouse();
+    step(0.1);
+    render();
+    requestAnimationFrame(loop);
+}
+
+// 이벤트 리스너 등록
+window.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    mx = pmx = e.clientX - rect.left;
+    my = pmy = e.clientY - rect.top;
+});
+window.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    const rect = canvas.getBoundingClientRect();
+    mx = e.clientX - rect.left;
+    my = e.clientY - rect.top;
+});
+window.addEventListener('mouseup', () => isDrawing = false);
+
+// 시뮬레이션 시작
+loop();
+</script>
+</body>
+</html>

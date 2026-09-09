@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure JS 3D RGB Cube</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: sans-serif;
+            color: white;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        <h3>순수 JS 3D RGB 색공간</h3>
+        <p>마우스 드래그: 회전</p>
+        <p>인터넷 연결 없이 로컬에서 바로 실행 가능</p>
+    </div>
+
+    <canvas id="cubeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('cubeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 창 크기 맞춤
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 3D 입자 데이터 생성 (RGB 큐브)
+        const size = 12; // 입자 밀도 (로컬 2D 그래픽 성능을 고려해 12~15 추천)
+        const points = [];
+
+        for (let r = 0; r < size; r++) {
+            for (let g = 0; g < size; g++) {
+                for (let b = 0; b < size; b++) {
+                    // -1.0 ~ 1.0 사이의 3D 공간 좌표로 정규화
+                    const x = (r / (size - 1)) * 2 - 1;
+                    const y = (g / (size - 1)) * 2 - 1;
+                    const z = (b / (size - 1)) * 2 - 1;
+
+                    // 실제 화면에 보여줄 0 ~ 255 RGB 색상 계산
+                    const colorR = Math.floor((r / (size - 1)) * 255);
+                    const colorG = Math.floor((g / (size - 1)) * 255);
+                    const colorB = Math.floor((b / (size - 1)) * 255);
+
+                    points.push({
+                        x: x, y: y, z: z,
+                        color: `rgb(${colorR},${colorG},${colorB})`
+                    });
+                }
+            }
+        }
+
+        // 회전 및 마우스 인터랙션 변수
+        let angleX = 0.5;
+        let angleY = 0.5;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        // 마우스 이벤트 리스너
+        window.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            angleY += deltaX * 0.01;
+            angleX += deltaY * 0.01;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        // 렌더링 루프
+        function render() {
+            // 화면 지우기
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const scale = Math.min(canvas.width, canvas.height) * 0.25;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // 3D 회전 행렬 계산용 삼각함수
+            const cosX = Math.cos(angleX);
+            const sinX = Math.sin(angleX);
+            const cosY = Math.cos(angleY);
+            const sinY = Math.sin(angleY);
+
+            // 원근감(Depth) 표현을 위해 3D 상에서 뒤에 있는 점부터 정렬 (원근 렌더링의 핵심)
+            const transformedPoints = points.map(p => {
+                // Y축 회전
+                let x1 = p.x * cosY - p.z * sinY;
+                let z1 = p.x * sinY + p.z * cosY;
+
+                // X축 회전
+                let y2 = p.y * cosX - z1 * sinX;
+                let z2 = p.y * sinX + z1 * cosX;
+
+                // 카메로부터의 거리 계산 (원근감 및 정렬용)
+                const distance = 3; 
+                const sz = 1 / (distance - z2); 
+
+                // 2D 화면 좌표로 투영 (Perspective Projection)
+                const screenX = centerX + x1 * sz * scale;
+                const screenY = centerY + y2 * sz * scale;
+
+                return { screenX, screenY, depth: z2, color: p.color, sz };
+            });
+
+            // 뒤에 있는 입자부터 그리도록 정렬 (Z-버퍼 시뮬레이션)
+            transformedPoints.sort((a, b) => a.depth - b.depth);
+
+            // 화면에 입자 그리기
+            transformedPoints.forEach(p => {
+                // 화면 밖으로 벗어난 좌표 예외 처리
+                if (p.screenX < 0 || p.screenX > canvas.width || p.screenY < 0 || p.screenY > canvas.height) return;
+
+                ctx.beginPath();
+                // 원근감에 따라 가까운 점은 크게, 먼 점은 작게 표시
+                const radius = Math.max(1, p.sz * 6); 
+                ctx.arc(p.screenX, p.screenY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+
+            // 마우스를 떼고 있을 때는 부드럽게 자동 회전
+            if (!isDragging) {
+                angleY += 0.005;
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+</body>
+</html>

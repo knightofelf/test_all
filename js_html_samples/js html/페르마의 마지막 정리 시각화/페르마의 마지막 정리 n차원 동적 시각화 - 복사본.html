@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르마의 마지막 정리 & 방정식 시각화 앱</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --primary: #2563eb;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-main);
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 5px; }
+        .desc { color: var(--text-sub); font-size: 14px; margin-bottom: 25px; }
+        
+        .control-panel {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .slider-box { width: 100%; }
+        label { font-weight: 600; font-size: 15px; color: var(--text-sub); }
+        input[type="range"] { width: 70%; cursor: pointer; }
+        input[type="number"] {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 15px;
+        }
+        
+        .formula {
+            font-size: 26px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .status-box {
+            font-size: 15px;
+            font-weight: 500;
+            margin: 15px 0 25px 0;
+            line-height: 1.6;
+        }
+        .badge {
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+        .badge.possible { background-color: #dcfce7; color: #166534; }
+        .badge.impossible { background-color: #fee2e2; color: #991b1b; }
+        
+        canvas {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>페르마의 마지막 정리 & 방정식 분석</h1>
+        <p class="desc">정수 범위 내에서 방정식의 해가 존재하는지 실시간으로 판정하고 시각화합니다.</p>
+        
+        <div class="control-panel">
+            <div class="input-group slider-box">
+                <label for="nSlider">지수 (n) = <span id="nValue" style="color:var(--primary); font-size:18px;">2</span></label>
+                <input type="range" id="nSlider" min="1" max="5" step="1" value="2">
+            </div>
+            <div class="input-group">
+                <label>입력값 피연산자: </label>
+                <label>x =</label> <input type="number" id="inputX" min="1" max="100" value="3">
+                <label style="margin-left:10px;">y =</label> <input type="number" id="inputY" min="1" max="100" value="4">
+            </div>
+        </div>
+
+        <div class="formula" id="formulaText">3² + 4² = z²</div>
+        <div class="status-box" id="statusBox"></div>
+
+        <canvas id="renderCanvas" width="500" height="380"></canvas>
+    </div>
+
+    <!-- 스크립트 파일 로드 -->
+    <script src="app.js"></script>
+</body>
+</html>

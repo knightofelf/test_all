@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>1MB 파일 생성</title>
+</head>
+<body>
+  <button id="downloadBtn">1MB 파일 다운로드</button>
+
+  <script>
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      // 1MB = 1024 * 1024 바이트
+      const size = 1024 * 1024;
+      let data = "";
+
+      // 'A' 문자를 반복해서 1MB 문자열 생성
+      for (let i = 0; i < size; i++) {
+        data += "A";
+      }
+
+      // Blob 객체 생성
+      const blob = new Blob([data], { type: "text/plain" });
+
+      // 다운로드 링크 생성
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "1MB_file.txt";
+      link.click();
+    });
+  </script>
+</body>
+</html>

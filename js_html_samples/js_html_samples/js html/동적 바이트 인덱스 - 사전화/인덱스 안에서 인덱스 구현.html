@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>인덱스 안에 인덱스</title>
+</head>
+<body>
+  <h2>인덱스 안에서 인덱스 구현</h2>
+  <pre id="output"></pre>
+
+  <script>
+    const data = "47283927483910293847";
+
+    // 2자리 단위로 인덱싱
+    const positions = {};
+    for (let i = 0; i < data.length; i += 2) {
+      const chunk = data.slice(i, i+2);
+      if (!positions[chunk]) positions[chunk] = [];
+      positions[chunk].push(i);
+    }
+
+    // 인덱스의 인덱스: 중복된 값만 다시 인덱싱
+    const indexOfIndex = {};
+    for (const [key, value] of Object.entries(positions)) {
+      if (value.length > 1) {
+        indexOfIndex[key] = {};
+        value.forEach((pos, idx) => {
+          indexOfIndex[key][idx] = pos; // 위치 리스트의 인덱스 → 실제 위치
+        });
+      }
+    }
+
+    // 출력
+    const output = document.getElementById("output");
+    output.textContent += "기본 인덱스:\n";
+    for (const [key, value] of Object.entries(positions)) {
+      output.textContent += `${key}: ${value}\n`;
+    }
+
+    output.textContent += "\n인덱스의 인덱스 (중복만):\n";
+    for (const [key, value] of Object.entries(indexOfIndex)) {
+      output.textContent += `${key}: ${JSON.stringify(value)}\n`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>로컬 CS 상태 분기 테스트</title>
+</head>
+<body>
+  <h2>로컬 상태 분기 연산</h2>
+  <button onclick="sendRequest('ADD')">덧셈 요청</button>
+  <button onclick="sendRequest('SUB')">뺄셈 요청</button>
+  <pre id="output"></pre>
+
+  <script>
+    // "서버" 역할을 하는 함수
+    function fakeServer(op) {
+      let state = "INIT";
+      let result;
+
+      switch(op) {
+        case "ADD":
+          state = "ADD";
+          result = 10 + 5;
+          break;
+        case "SUB":
+          state = "SUB";
+          result = 10 - 5;
+          break;
+        default:
+          state = "UNKNOWN";
+          result = "Unknown operation";
+      }
+
+      console.log("Server State:", state);
+      return result;
+    }
+
+    // "클라이언트" 역할을 하는 함수
+    function sendRequest(op) {
+      const response = fakeServer(op); // 서버 호출 대신 함수 실행
+      document.getElementById("output").innerText = "결과: " + response;
+    }
+  </script>
+</body>
+</html>

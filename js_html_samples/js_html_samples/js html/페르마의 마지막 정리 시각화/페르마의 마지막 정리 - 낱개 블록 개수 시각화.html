@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르마의 마지막 정리 - 낱개 블록 개수 시각화</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --primary: #2563eb;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-main);
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 700px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 5px; }
+        .desc { color: var(--text-sub); font-size: 14px; margin-bottom: 25px; }
+        
+        .control-panel {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .radio-label { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        
+        .formula {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .explanation {
+            font-size: 14px;
+            color: var(--text-sub);
+            background: #fdf2f2;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ef4444;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .explanation.success {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+        canvas {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>페르마의 정리: 낱개 블록 개수 증명</h1>
+        <p class="desc">쪼개진 격자 블록들의 <b>진짜 갯수</b>를 더해 다음 정수 도형을 채울 수 있는지 확인해 봅니다.</p>
+        
+        <div class="control-panel">
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="dimension" value="2" checked> n = 2 (2D 평면 블록 갯수)
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="dimension" value="3"> n = 3 (3D 입체 블록 갯수)
+                </label>
+            </div>
+        </div>
+
+        <div class="formula" id="formulaText">3² + 4² = 5²</div>
+        <div class="explanation success" id="explainBox"></div>
+
+        <canvas id="renderCanvas" width="650" height="420"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('renderCanvas');
+        const ctx = canvas.getContext('2d');
+        const formulaText = document.getElementById('formulaText');
+        const explainBox = document.getElementById('explainBox');
+        const radios = document.querySelectorAll('input[name="dimension"]');
+
+        let currentDim = 2;
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentDim = parseInt(e.target.value);
+                draw(currentDim);
+            });
+        });
+
+        // 3D 등각 투영 좌표 변환 함수
+        function project(x, y, z, scale) {
+            const isoX = (x - y) * Math.cos(Math.PI / 6) * scale;
+            const isoY = (x + y) * Math.sin(Math.PI / 6) * scale - z * scale;
+            return { x: isoX, y: isoY };
+        }
+
+        // 3D 낱개 큐브 블록 하나를 그리는 함수
+        function drawSingleBlock(bx, by, x, y, z, scale, topCol, leftCol, rightCol, strokeCol) {
+            const v = [];
+            // 블록 하나의 로컬 꼭짓점 8개 투영
+            const u = 0.95; // 블록 간의 구분을 위해 아주 미세한 틈새 간격 부여
+            v.push(project(x, y, z, scale));
+            v.push(project(x+u, y, z, scale));
+            v.push(project(x+u, y+u, z, scale));
+            v.push(project(x, y+u, z, scale));
+            v.push(project(x, y, z+u, scale));
+            v.push(project(x+u, y, z+u, scale));
+            v.push(project(x+u, y+u, z+u, scale));
+            v.push(project(x, y+u, z+u, scale));
+
+            v.forEach(pt => { pt.x += bx; pt.y += by; });
+
+            const face = (indices, color) => {
+                ctx.fillStyle = color;
+                ctx.strokeStyle = strokeCol;
+                ctx.beginPath();
+                indices.forEach((idx, i) => {
+                    if (i === 0) ctx.moveTo(v[idx].x, v[idx].y);
+                    else ctx.lineTo(v[idx].x, v[idx].y);
+                });
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+            };
+
+            // 뒤쪽 면부터 그려서 겹침 방지 (Painter's Algorithm)
+            face([0, 3, 7, 4], leftCol);  // 왼쪽 면
+            face([1, 2, 6, 5], rightCol); // 오른쪽 면
+            face([4, 5, 6, 7], topCol);   // 윗면
+        }
+
+        // 메인 드로잉 함수
+        function draw(n) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 1;
+            const cy = canvas.height / 2;
+
+            if (n === 2) {
+                // --- 2D 평면 격자 블록 배치 모드 ---
+                formulaText.innerHTML = "3²(9개) + 4²(16개) = 5²(25개)";
+                explainBox.className = "explanation success";
+                explainBox.innerHTML = `<b>[2D 블록 갯수 일치]</b> 파란 블록 <b>9개</b>와 빨간 블록 <b>16개</b>를 하나씩 바닥에 깔아 이어 붙이면, 정확히 가로5×세로5 크기의 초록색 블록판 <b>25칸</b>을 빈틈없이 완벽하게 채울 수 있습니다!`;
+
+                const u = 16; // 2D 블록 크기
+
+                // 1. X 블록 (3x3 = 9개)
+                const ox1 = 40, oy1 = cy - 30;
+                for(let i=0; i<3; i++) {
+                    for(let j=0; j<3; j++) {
+                        ctx.fillStyle = '#93c5fd'; ctx.strokeStyle = '#1d4ed8';
+                        ctx.fillRect(ox1 + i*u, oy1 + j*u, u-1, u-1);
+                        ctx.strokeRect(ox1 + i*u, oy1 + j*u, u-1, u-1);
+                    }
+                }
+                ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 13px sans-serif'; ctx.fillText("3×3 = 9개", ox1 + 2, oy1 + 4 * u);
+
+                // 더하기 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("+", 125, cy - 10);
+
+                // 2. Y 블록 (4x4 = 16개)
+                const ox2 = 170, oy2 = cy - 40;
+                for(let i=0; i<4; i++) {
+                    for(let j=0; j<4; j++) {
+                        ctx.fillStyle = '#fca5a5'; ctx.strokeStyle = '#b91c1c';
+                        ctx.fillRect(ox2 + i*u, oy2 + j*u, u-1, u-1);
+                        ctx.strokeRect(ox2 + i*u, oy2 + j*u, u-1, u-1);
+                    }
+                }
+                ctx.fillStyle = '#b91c1c'; ctx.font = 'bold 13px sans-serif'; ctx.fillText("4×4 = 16개", ox2 + 5, oy2 + 5 * u);
+
+                // 등호 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("=", 270, cy - 10);
+
+                // 3. Z 블록 결과물 (5x5 = 25개 결합 완료)
+                const ox3 = 330, oy3 = cy - 50;
+                // 배경 총 25칸 격자 그리기
+                for(let i=0; i<5; i++) {
+                    for(let j=0; j<5; j++) {
+                        // 9개는 파란색 출신 블록 표시, 16개는 빨간색 출신 블록 표시로 결합됨을 시각화
+                        if (i < 3 && j < 3) {
+                            ctx.fillStyle = 'rgba(59, 130, 246, 0.7)';
+                        } else {
+                            ctx.fillStyle = 'rgba(239, 68, 68, 0.7)';
+                        }
+                        ctx.strokeStyle = '#16a34a';
+                        ctx.fillRect(ox3 + i*u, oy3 + j*u, u-1, u-1);
+                        ctx.strokeRect(ox3 + i*u, oy3 + j*u, u-1, u-1);
+                    }
+                }
+                ctx.fillStyle = '#16a34a'; ctx.font = 'bold 13px sans-serif'; 
+                ctx.fillText("합쳐진 블록판: 총 25개", ox3, oy3 + 6 * u);
+
+                // 우측 미니 수식 가이드 추가
+                ctx.fillStyle = '#475569'; ctx.font = '12px sans-serif';
+                ctx.fillText("(9개 + 16개 = 25개)", ox3 + 2, oy3 + 7 * u);
+
+            } else if (n === 3) {
+                // --- 3D 입체 낱개 블록 쌓기 모드 ---
+                formulaText.innerHTML = "3³(27) + 4³(64) = 91개 (5³탑 불가)";
+                explainBox.className = "explanation";
+                explainBox.innerHTML = `<b>[3D 블록 갯수 결함]</b> 3층탑 블록 <b>27개</b>와 4층탑 블록 <b>64개</b>를 전부 부수어 모으면 총 <b>91개</b>의 블록이 생깁니다. 이 블록들로 온전한 5층탑<b>(5³=125개 필요)</b>을 쌓으려고 정렬하면, 보라색 음영 부위만큼 <b>무려 34개의 블록이 모자라서 탑 꼭대기와 모퉁이가 텅 비어 무너집니다!</b>`;
+
+                const sc = 11; // 3D 블록 투영 스케일
+                const bcy = cy + 50;
+
+                // 1. X 입체 블록탑 (3x3x3 = 27개)
+                const bx1 = 80;
+                for(let z=0; z<3; z++) {
+                    for(let y=0; y<3; y++) {
+                        for(let x=0; x<3; x++) {
+                            drawSingleBlock(bx1, bcy, x, y, z, sc, '#bfdbfe', '#60a5fa', '#2563eb', '#1d4ed8');
+                        }
+                    }
+                }
+                ctx.fillStyle = '#2563eb'; ctx.font = 'bold 12px sans-serif'; ctx.fillText("3³탑 = 27개", 40, bcy + 40);
+
+                // 더하기 기호
+                ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("+", 150, bcy - 20);
+
+                // 2. Y 입체 블록탑 (4x4x4 = 64개)
+                const bx2 = 230;
+                for(let z=0; z<4; z++) {
+                    for(let y=0; y<4; y++) {
+                        for(let x=0; x<4; x++) {
+drawSingleBlock(bx2, bcy, x, y, z, sc, '#fecaca', '#f87171', '#dc2626', '#b91c1c');}}}ctx.fillStyle = '#dc2626'; ctx.font = 'bold 12px sans-serif'; ctx.fillText("4³탑 = 64개", 190, bcy + 50);// 화살표 기호ctx.fillStyle = '#475569'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("➔", 330, bcy - 20);// 3. 결합 시도 (5x5x5 탑에 91개 채우기 연출)const bx3 = 480;let blocksPlaced = 0;// 원래 채워야 하는 목표 5x5x5 공간 루프 실행for(let z=0; z<5; z++) {for(let y=0; y<5; y++) {for(let x=0; x<5; x++) {// 총 보유 블록 개수가 91개이므로, 91번까지만 실제 블록을 채우고 나머지는 '부족한 가상 투명 블록'으로 처리if (blocksPlaced < 91) {// 기존 파랑/빨강 블록이 뒤섞여 쌓인 형태 연출const isBlueOrigin = blocksPlaced < 27;const topC = isBlueOrigin ? '#c7d2fe' : '#fbcfe8';const leftC = isBlueOrigin ? '#818cf8' : '#f472b6';const rightC = isBlueOrigin ? '#4f46e5' : '#db2777';const strokeC = isBlueOrigin ? '#3730a3' : '#9d174d';drawSingleBlock(bx3, bcy, x, y, z, sc, topC, leftC, rightC, strokeC);} else {// 91개를 초과해 채우지 못하고 텅 빈 34개 구역은 점선/흐린 보라색 유령 블록 테두리로 시각화drawSingleBlock(bx3, bcy, x, y, z, sc, 'rgba(216,180,254,0.1)', 'rgba(192,132,252,0.15)', 'rgba(147,51,234,0.15)', 'rgba(147,51,234,0.3)');}blocksPlaced++;}}}ctx.fillStyle = '#7c3aed'; ctx.font = 'bold 12px sans-serif';ctx.fillText("보유 블록: 91개", 420, bcy + 60);ctx.fillStyle = '#ef4444'; ctx.font = '11px sans-serif';ctx.fillText("(5³탑 완성에 34개 부족!)", 420, bcy + 78);}}// 초기 구동 실행 (2D 모드)draw(2);
+
+}
+}
+
+</script>
+

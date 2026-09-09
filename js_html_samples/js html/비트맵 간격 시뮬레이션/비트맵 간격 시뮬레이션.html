@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비트맵 간격 시뮬레이션</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    canvas { border: 1px solid #ccc; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>비트맵 간격 시뮬레이션</h2>
+  <label>관찰 거리 (배율): 
+    <input type="range" id="distance" min="1" max="20" value="1">
+  </label>
+  <span id="distanceValue">1</span>x
+  <br>
+  <canvas id="bitmap" width="400" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("bitmap");
+    const ctx = canvas.getContext("2d");
+    const slider = document.getElementById("distance");
+    const distanceValue = document.getElementById("distanceValue");
+
+    const pixelSize = 10; // 픽셀 크기
+    const gap = 10;       // 간격 크기
+    const rows = 20;
+    const cols = 20;
+
+    function draw(scale) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "black";
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          ctx.fillRect(
+            x * (pixelSize + gap) * scale,
+            y * (pixelSize + gap) * scale,
+            pixelSize * scale,
+            pixelSize * scale
+          );
+        }
+      }
+    }
+
+    slider.addEventListener("input", () => {
+      const scale = 1 / slider.value; // 거리 커질수록 픽셀 작아짐
+      distanceValue.textContent = slider.value;
+      draw(scale);
+    });
+
+    draw(1); // 초기 그리기
+  </script>
+</body>
+</html>

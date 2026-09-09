@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>순수 JS/HTML PC 간 1:1 직통 통신</title>
+    <!-- 브라우저 보안 우회를 위한 무료 통신 라이브러리 로드 -->
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .box { border-left: 4px solid #007bff; padding-left: 10px; margin: 15px 0; background: #fbfbfb; padding: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        input { padding: 8px; width: 200px; border: 1px solid #ccc; border-radius: 4px; }
+        #chatBox { border: 1px solid #ddd; height: 150px; overflow-y: scroll; padding: 10px; background: #fff; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>PC1 ↔ PC2 직통 무서버 통신</h2>
+
+    <!-- 내 아이디 확인 -->
+    <div class="box">
+        <h3>1. 내 PC의 주소 고유 코드</h3>
+        <p id="myId" style="font-weight: bold; color: green; font-size: 18px;">주소 발급 중...</p>
+        <p style="font-size:12px; color:#666;">※ 위 코드를 카톡 등으로 상대방에게 알려주세요.</p>
+    </div>
+
+    <!-- 상대방 연결하기 -->
+    <div class="box">
+        <h3>2. 상대방 PC와 연결하기</h3>
+        <input type="text" id="peerIdInput" placeholder="상대방 고유 코드 입력">
+        <button id="connectBtn">연결 시도</button>
+    </div>
+
+    <!-- 실시간 채팅창 -->
+    <div class="box">
+        <h3>3. 실시간 데이터 송수신</h3>
+        <div id="status" style="color: red; font-weight: bold; margin-bottom: 5px;">상태: 연결 대기 중...</div>
+        <div id="chatBox"></div>
+        <input type="text" id="msgInput" placeholder="메시지 입력" style="width:65%;" disabled>
+        <button id="sendBtn" disabled>전송</button>
+    </div>
+</div>
+
+<script>
+    // 무료 연결 중계소 객체 생성
+    const peer = new Peer();
+    let conn = null;
+
+    // 1. 서버 실행 시 내 고유 주소 발급 완료 이벤트
+    peer.on('open', (id) => {
+        document.getElementById('myId').innerText = id;
+        document.getElementById('status').innerText = "상태: 내 주소 준비 완료 (상대방 대기 중)";
+    });
+
+    // 2. [PC2 입장] 버튼을 눌러 내가 먼저 상대방에게 연결을 시도할 때
+    document.getElementById('connectBtn').addEventListener('click', () => {
+        const peerId = document.getElementById('peerIdInput').value.trim();
+        if(!peerId) return alert("상대방 코드를 입력하세요.");
+
+        document.getElementById('status').innerText = "상태: 연결 연결 중...";
+        conn = peer.connect(peerId);
+        setupConnection(conn);
+    });
+
+    // 3. [PC1 입장] 상대방이 나에게 연결을 요청해왔을 때 수락하는 이벤트
+    peer.on('connection', (incomingConn) => {
+        conn = incomingConn;
+        setupConnection(conn);
+    });
+
+    // 4. 연결 성공 후 메시지 송수신 활성화 함수
+    function setupConnection(connection) {
+        connection.on('open', () => {
+            document.getElementById('status').innerText = "상태: 연결 성공! (실시간 통신 가능)";
+            document.getElementById('status').style.color = "green";
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            appendLog("⚙️ 상대방 PC와 데이터 통신로가 개설되었습니다.");
+        });
+
+        // 상대방으로부터 데이터가 올 때
+        connection.on('data', (data) => {
+            appendLog(`📩 상대방: ${data}`);
+        });
+    }
+
+    // 5. 메시지 전송 버튼 구현
+    document.getElementById('sendBtn').addEventListener('click', () => {
+        const input = document.getElementById('msgInput');
+        if(!input.value || !conn) return;
+
+        conn.send(input.value); // 상대방에게 전송
+        appendLog(`📤 나: ${input.value}`);
+        input.value = '';
+    });
+
+    function appendLog(msg) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML += `<div>${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>순수 JS/HTML 가상 통신 서버</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .box { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 6px; background: #fafafa; }
+        button { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { padding: 7px; width: 200px; border: 1px solid #ccc; border-radius: 4px; }
+        .output { margin-top: 10px; padding: 8px; background: #e9ecef; border-left: 4px solid #007bff; font-size: 14px; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>JS / HTML 단일 파일 통신 시스템</h2>
+    <p style="color: #666; font-size: 13px;">※ Node.js나 서버 설치 없이 브라우저 단독으로 동작합니다.</p>
+
+    <!-- 1. 무료 외부 가상 서버 통신 (실제 HTTP 요청) -->
+    <div class="box">
+        <h3>1. 외부 무료 API 서버와 실제 통신 (Fetch API)</h3>
+        <p style="font-size:12px; color:#888;">인터넷이 연결되어 있으면 외부 테스트 서버와 실시간으로 데이터를 주고받습니다.</p>
+        <input type="text" id="apiInput" placeholder="서버로 보낼 제목 입력">
+        <button id="apiBtn">실제 전송 (POST)</button>
+        <div class="output" id="apiOutput">결과가 여기 표시됩니다.</div>
+    </div>
+
+    <!-- 2. 서비스 워커 가상 서버 (브라우저 내부 가로채기) -->
+    <div class="box">
+        <h3>2. 브라우저 내부 가상 서버 통신 (Service Worker)</h3>
+        <p style="font-size:12px; color:#888;">브라우저 내부에 가상 주소(<code style="color:red;">/virtual-api/data</code>)를 만들어 통신을 흉내 냅니다.</p>
+        <button id="swBtn">가상 서버에 데이터 요청 (GET)</button>
+        <div class="output" id="swOutput">결과가 여기 표시됩니다.</div>
+    </div>
+
+    <!-- 3. 로컬 저장소 통신 (서버 데이터베이스 역할 대용) -->
+    <div class="box">
+        <h3>3. 로컬 데이터베이스 통신 (LocalStorage)</h3>
+        <p style="font-size:12px; color:#888;">새로고침을 해도 데이터가 브라우저에 안전하게 영구 저장됩니다.</p>
+        <input type="text" id="dbInput" placeholder="저장할 데이터 입력">
+        <button id="dbSaveBtn">DB 저장</button>
+        <button id="dbLoadBtn" style="background:#28a745;">DB 불러오기</button>
+        <div class="output" id="dbOutput">결과가 여기 표시됩니다.</div>
+    </div>
+</div>
+
+<script>
+    // ========================================================
+    // 1. 외부 무료 API 가상 서버 통신 구현
+    // ========================================================
+    document.getElementById('apiBtn').addEventListener('click', async () => {
+        const inputValue = document.getElementById('apiInput').value;
+        const output = document.getElementById('apiOutput');
+        output.innerText = "통신 중...";
+
+        try {
+            // 전 세계 개발자들이 테스트용으로 쓰는 무료 가상 REST API 서버입니다.
+            const response = await fetch('https://typicode.com', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: inputValue, body: '가상 본문 내용', userId: 1 })
+            });
+            const data = await response.json();
+            output.innerText = `[서버 수신 응답 완료]\n발급된 가상 ID: ${data.id}\n입력한 제목: ${data.title}`;
+        } catch (error) {
+            output.innerText = "통신 실패: 인터넷 연결을 확인하세요.";
+        }
+    });
+
+    // ========================================================
+    // 2. Service Worker 가상 주소 통신 구현
+    // ========================================================
+    // 인라인 서비스 워커 코드를 등록하여 브라우저 내부에서 네트워크 요청을 가로챕니다.
+    const swCode = `
+        self.addEventListener('fetch', (event) => {
+            if (event.request.url.includes('/virtual-api/data')) {
+                const mockResponse = {
+                    status: "success",
+                    message: "외부 서버 없이 브라우저 자체적으로 생성한 가상 응답입니다!",
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                event.respondWith(
+                    new Response(JSON.stringify(mockResponse), {
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                );
+            }
+        });
+    `;
+
+    // 가상 서비스워커 가동
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register(swUrl);
+    }
+
+    document.getElementById('swBtn').addEventListener('click', async () => {
+        const output = document.getElementById('swOutput');
+        try {
+            // 가상의 URL 주소로 통신 요청을 보냄
+            const response = await fetch('/virtual-api/data');
+            const data = await response.json();
+            output.innerText = `[가상 서버 결과]\n메시지: ${data.message}\n시간: ${data.timestamp}`;
+        } catch (e) {
+            output.innerText = "첫 실행 시 페이지를 한 번 새로고침(F5) 해주세요.";
+        }
+    });
+
+    // ========================================================
+    // 3. LocalStorage 가상 DB 통신 구현
+    // ========================================================
+    const dbOutput = document.getElementById('dbOutput');
+
+    // 가상 DB에 데이터 쓰기 (POST 역할)
+    document.getElementById('dbSaveBtn').addEventListener('click', () => {
+        const text = document.getElementById('dbInput').value;
+        if(!text) return alert('내용을 입력하세요');
+        
+        localStorage.setItem('my_mock_db', text);
+        dbOutput.innerText = "가상 DB(LocalStorage)에 데이터가 성공적으로 저장되었습니다.";
+    });
+
+    // 가상 DB에서 데이터 읽기 (GET 역할)
+    document.getElementById('dbLoadBtn').addEventListener('click', () => {
+        const savedData = localStorage.getItem('my_mock_db');
+        if (savedData) {
+            dbOutput.innerText = `[DB 조회 결과]: ${savedData}`;
+        } else {
+            dbOutput.innerText = "저장된 데이터가 없습니다. 먼저 저장해 주세요.";
+        }
+    });
+</script>
+
+</body>
+</html>

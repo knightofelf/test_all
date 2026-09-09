@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>DID Implementation Demo</title>
+</head>
+<body>
+  <h2>DID Demo (UTF-8 Safe)</h2>
+  <pre id="output"></pre>
+
+  <script>
+    // UTF-8 안전 Base64 인코딩/디코딩 함수
+    function utf8ToBase64(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    function base64ToUtf8(str) {
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    // 1. DID 생성
+    function createDID(method, identifier) {
+      return `did:${method}:${identifier}`;
+    }
+
+    // 2. DID Document 생성
+    function createDIDDocument(did, publicKey) {
+      return {
+        "@context": "https://www.w3.org/ns/did/v1",
+        id: did,
+        authentication: [{
+          type: "Ed25519VerificationKey2018",
+          publicKey: publicKey
+        }],
+        service: [{
+          id: "#auth",
+          type: "MultiPathAuth",
+          serviceEndpoint: [
+            "https://node1.example.com",
+            "https://node2.example.com",
+            "https://node3.example.com"
+          ]
+        }]
+      };
+    }
+
+    // 3. 서명 검증 (시뮬레이션)
+    function verifySignature(message, signature, publicKey) {
+      return signature === utf8ToBase64(message + publicKey);
+    }
+
+    // 실행 예시
+    const did = createDID("example", "user12345");
+    const publicKey = "z6MkiPublicKeyExample";
+    const didDoc = createDIDDocument(did, publicKey);
+
+    const message = "로그인 요청"; // 한글 포함
+    const signature = utf8ToBase64(message + publicKey);
+
+    const isValid = verifySignature(message, signature, publicKey);
+
+    document.getElementById("output").textContent =
+      "DID: " + did + "\n\n" +
+      "DID Document:\n" + JSON.stringify(didDoc, null, 2) + "\n\n" +
+      "Message: " + message + "\n" +
+      "Signature: " + signature + "\n" +
+      "검증 결과: " + (isValid ? "✅ 유효함" : "❌ 실패");
+  </script>
+</body>
+</html>

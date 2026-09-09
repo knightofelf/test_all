@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>1/N 샘플링 및 양선형 보간 복원</title>
+    <style>
+        body { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; background: #111; margin: 0; font-family: sans-serif; color: #fff; }
+        .controls { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .row { display: flex; align-items: center; gap: 15px; }
+        input[type="file"] { background: #333; padding: 5px; border-radius: 4px; border: none; color: #fff; cursor: pointer; }
+        canvas { image-rendering: pixelated; border: 4px solid #fff; max-width: 90vw; max-height: 70vh; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <div class="row">
+        <label for="imageInput">이미지 선택:</label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    <div class="row">
+        <label for="nSlider">샘플링 간격 (1/N):</label>
+        <input type="range" id="nSlider" min="2" max="50" value="10">
+        <span id="nValue">10</span>px
+    </div>
+</div>
+
+<canvas id="outputCanvas"></canvas>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const nSlider = document.getElementById('nSlider');
+    const nValue = document.getElementById('nValue');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let loadedImg = null;
+
+    // 슬라이더 값 변경 시 실시간 레이블 업데이트 및 재연산
+    nSlider.addEventListener('input', (e) => {
+        nValue.textContent = e.target.value;
+        if (loadedImg) processImage(loadedImg);
+    });
+
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            loadedImg = new Image();
+            loadedImg.src = event.target.result;
+            loadedImg.onload = () => processImage(loadedImg);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function processImage(img) {
+        const N = parseInt(nSlider.value, 10);
+        const w = img.width;
+        const h = img.height;
+
+        canvas.width = w;
+        canvas.height = h;
+
+        // 1. 원본 이미지의 원본 픽셀 데이터를 읽기 위한 임시 캔버스
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        tempCtx.drawImage(img, 0, 0);
+        const srcData = tempCtx.getImageData(0, 0, w, h).data;
+
+        // 출력용 새 이미지 버퍼 생성
+        const imgData = ctx.createImageData(w, h);
+        const outData = imgData.data;
+
+        // 특정 좌표 (x, y)의 RGB 값을 안전하게 가져오는 인라인 헬퍼 함수
+        const getSrcPixel = (px, py) => {
+            const clampedX = Math.max(0, Math.min(w - 1, px));
+            const clampedY = Math.max(0, Math.min(h - 1, py));
+            const idx = (clampedY * w + clampedX) * 4;
+            return [srcData[idx], srcData[idx + 1], srcData[idx + 2]];
+        };
+
+        // 2. 전체 픽셀을 순회하며 1/N 위치의 원본 값을 참조해 주변 공간 보간
+        for (let y = 0; y < h; y++) {
+            // 현재 y 좌표를 기준으로 바로 위쪽과 아래쪽의 1/N 샘플링 라인 탐색
+            const y0 = Math.floor(y / N) * N;
+            const y1 = Math.min(h - 1, y0 + N);
+            const dy = (y1 === y0) ? 0 : (y - y0) / (y1 - y0); // 세로 가중치 (0 ~ 1)
+
+            for (let x = 0; x < w; x++) {
+                // 현재 x 좌표를 기준으로 바로 왼쪽과 오른쪽의 1/N 샘플링 열 탐색
+                const x0 = Math.floor(x / N) * N;
+                const x1 = Math.min(w - 1, x0 + N);
+                const dx = (x1 === x0) ? 0 : (x - x0) / (x1 - x0); // 가로 가중치 (0 ~ 1)
+
+                // 1/N 그리드 교차점 사방 4곳의 원본 실제 픽셀값 얻기
+                const p00 = getSrcPixel(x0, y0); // 좌상단 (실제 원본 픽셀)
+                const p10 = getSrcPixel(x1, y0); // 우상단 (실제 원본 픽셀)
+                const p01 = getSrcPixel(x0, y1); // 좌하단 (실제 원본 픽셀)
+                const p11 = getSrcPixel(x1, y1); // 우하단 (실제 원본 픽셀)
+
+                const outIdx = (y * w + x) * 4;
+
+                // 3. 양선형 보간(Bilinear Interpolation) 공식을 채널별(R, G, B)로 적용
+                for (let c = 0; c < 3; c++) {
+                    // 상단 두 픽셀 간 가로 보간
+                    const topInterpolated = p00[c] * (1 - dx) + p10[c] * dx;
+                    // 하단 두 픽셀 간 가로 보간
+                    const bottomInterpolated = p01[c] * (1 - dx) + p11[c] * dx;
+                    // 위아래 보간 결과를 세로 가중치로 최종 합산
+                    outData[outIdx + c] = Math.floor(topInterpolated * (1 - dy) + bottomInterpolated * dy);
+                }
+                outData[outIdx + 3] = 255; // 알파 채널 (불투명)
+            }
+        }
+
+        // 보간 처리가 끝난 버퍼 화면에 투사
+        ctx.putImageData(imgData, 0, 0);
+    }
+</script>
+
+</body>
+</html>

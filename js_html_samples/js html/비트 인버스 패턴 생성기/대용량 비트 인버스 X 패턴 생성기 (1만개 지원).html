@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>대용량 비트 인버스 X 패턴 생성기 (1만개 지원)</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 95%;
+            max-width: 1400px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        textarea {
+            background-color: #222;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            width: 80%;
+            height: 60px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .btn-group {
+            width: 20%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        button {
+            background-color: #222;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            height: 100%;
+        }
+        button:hover {
+            background-color: #00ff66;
+            color: #121212;
+        }
+        pre {
+            background-color: #1a1a1a;
+            border: 1px dashed #00ff66;
+            padding: 20px;
+            overflow: auto;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: pre;
+            max-height: 700px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>대용량 비트 인버스 패턴 생성기 (10,000 Bits)</h2>
+    <div class="controls">
+        <textarea id="bitInput" placeholder="2진수 비트를 입력하세요. (우측 버튼으로 1만개 자동 생성 가능)"></textarea>
+        <div class="btn-group">
+            <button onclick="generateRandomBits(10000)">1만개 비트 무작위 생성</button>
+            <button onclick="runPattern()">패턴 생성 시작</button>
+        </div>
+    </div>
+    <pre id="output">여기에 거대한 패턴 맵이 출력됩니다. (스크롤 가능)</pre>
+</div>
+
+<script>
+// 2진수 비트 생성 함수
+function generateRandomBits(count) {
+    let res = "";
+    for(let i=0; i<count; i++) {
+        res += Math.random() > 0.5 ? "1" : "0";
+    }
+    document.getElementById('bitInput').value = res;
+}
+
+function runPattern() {
+    const input = document.getElementById('bitInput').value.trim();
+    if (!input) {
+        alert("비트를 먼저 입력하거나 생성해주세요.");
+        return;
+    }
+    
+    // [수정 완료] 정규표현식 문법 오류 해결 (/^[01]+$/)
+    if (!/^[01]+$/.test(input)) {
+        alert("0과 1로 구성된 2진수만 입력 가능합니다.");
+        return;
+    }
+
+    const outputElement = document.getElementById('output');
+    outputElement.textContent = "패턴 연산 중... 잠시만 기다려주세요.";
+
+    // 브라우저가 화면을 먼저 갱신할 수 있도록 비동기 처리
+    setTimeout(() => {
+        let resultLines = [];
+        let currentLineArr = input.split('');
+        const len = currentLineArr.length;
+
+        // 1행 추가
+        resultLines.push(currentLineArr.join(''));
+
+        let leftBoundary = 0;
+        let rightBoundary = len - 1;
+        let rowCount = 1;
+
+        // 중앙에서 수렴할 때까지 무한 추적 연산
+        while (leftBoundary <= rightBoundary) {
+            let prevLineStr = resultLines[resultLines.length - 1];
+            
+            // 바로 윗줄에서 처음 등장하는 '1'의 인덱스 검색
+            let targetIdx = -1;
+            for (let i = leftBoundary; i <= rightBoundary; i++) {
+                if (prevLineStr[i] === '1') {
+                    targetIdx = i;
+                    break;
+                }
+            }
+
+            // 범위 내에 '1'이 더 이상 없다면 종료
+            if (targetIdx === -1) {
+                break;
+            }
+
+            let newLineArr = new Array(len).fill(' ');
+
+            let currentLeftX = targetIdx;
+            let currentRightX = rightBoundary - (currentLeftX - leftBoundary);
+
+            if (currentLeftX > currentRightX) break;
+
+            // 비트 인버스(반전) 수행
+            for (let i = currentLeftX; i <= currentRightX; i++) {
+                let prevChar = prevLineStr[i];
+                if (prevChar === '1') newLineArr[i] = '0';
+                else if (prevChar === '0') newLineArr[i] = '1';
+            }
+
+            // 경계면에 x 표시 찍기
+            newLineArr[currentLeftX] = 'x';
+            newLineArr[currentRightX] = 'x';
+
+            // 우측 날개 패턴 공백 자동 계산 결합
+            let mainPattern = newLineArr.join('');
+            let outerRightWing = " ".repeat(rowCount * 2) + "x" + " ".repeat(rowCount * 4) + "x";
+            
+            resultLines.push(mainPattern + outerRightWing);
+
+            // 다음 행 추적을 위해 경계 범위를 안쪽으로 압축
+            leftBoundary = currentLeftX + 1;
+            rightBoundary = currentRightX - 1;
+            rowCount++;
+        }
+
+        // 마지막 줄 최종 교차 지지대 행 생성
+        let groundLeft = new Array(len).fill(' ');
+        for(let i=0; i<len; i+=3) {
+            if(i < len) groundLeft[i] = 'x';
+            if(i+1 < len) groundLeft[i+1] = 'x';
+        }
+        let finalGroundStr = groundLeft.join('') + " ".repeat(rowCount * 2) + "xx";
+        resultLines.push(finalGroundStr);
+
+        // 출력 영역에 최종 반영
+        outputElement.textContent = resultLines.join('\n');
+    }, 50);
+}
+
+// 초기 기본 예시 작동
+window.onload = function() {
+    document.getElementById('bitInput').value = "11011000011110011";
+    runPattern();
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+﻿
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<title>bigInt</title>
+
+
+<h1>BigInt Demo v.0.1</h1>
+<p>With JavaScript <em><a href="http://deztec.jp/x/05/faireal/js/bigint_0_1.js">bigint_0_1.js</a></em></p>
+
+<form name="FORM">
+
+<fieldset>
+<legend>Demo</legend>
+
+<label>A = <input type="text" name="biA" size="128" value=""></label><br>
+
+<label>B = <input type="text" name="biB" size="128" value=""></label><br>
+
+<label>C = <input type="text" name="biC" size="128" value=""></label><br>
+
+<label>D = <input type="text" name="biD" size="128" value=""></label><br>
+
+<div align="center">
+<input type="submit" value=" * Test * " onclick="demo(this.form);return false;" />
+</div>
+
+<textarea name="result" rows="32" cols="128"></textarea>
+
+
+</fieldset>
+</form>
+
+<script type="text/javascript" src="http://deztec.jp/x/05/faireal/js/bigint_0_1.js">
+</script>
+
+
+
+<script type="text/javascript">
+
+
+function fn( val1 )
+{
+	var num1="123456789012345678901234567890123456789";
+	var num2="987654321098765432109876543210987654321";
+
+	var s = new String();
+	s = String(val1);
+
+	var start = 0;
+	var end = 0;
+	for(i=0; i<s.length; i++)
+	{
+if(s[0] < s[1])
+{
+	  if(s[0] == num1[i])
+	  {
+	    start = i;
+	    break;
+	  }
+}
+else
+{
+	  if(s[0] == num2[i])
+	  {
+	    start = i;
+	    break;
+	  }
+}
+	}
+	end = start + s.length;
+
+	var out = "";
+	for(i=0; i<s.length; i++)
+	{
+if(s[0] < s[1])
+{
+	if(i >= 8 )
+	{
+	out += '0';
+	}
+	else
+	{
+	out += num1[start+i];
+	}
+}
+else
+{
+	if(i >= 8 )
+	{
+	out += '0';
+	}
+	else
+	{
+	out += num2[start+i];
+	}
+}
+	}
+
+	var val2=0;
+	var val3=0;
+	val2 = Number(out);
+	val3 = val1-val2;
+
+/*
+
+	if(val1 < val2)
+	{
+		val3 = val2 - val1;
+		return val3;
+	}
+
+	if(val1 > val2)
+	{
+		val3 = val1 - val2;
+		return val3;
+	}
+*/
+
+	if(val3 < 0)
+	{
+		val3 = val3 * -1;
+	}
+
+	var o = new Object();
+	o.tmp = val3;
+	o.start = start;
+	o.end = end-start
+	return o;
+
+	//str += val2+"\r"+val3+"\r"+val1;
+}
+
+
+function demo(F) {
+
+var objDate0 = new Date();
+var tick0 = objDate0.getTime();
+
+	var A = bset(F.biA.value);
+	var B = bset(F.biB.value);
+	var C = bset(F.biC.value);
+	var D = bset(F.biD.value);
+
+	var str = "";
+	var Zero = bset("0");
+
+		var X;
+		var Y;
+
+var val1=40984004153046;
+var o = new Object();
+o.tmp = val1;
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+o = fn(o.tmp); str += o.start+" "+o.end+" "+o.tmp+"\r";
+
+
+//setTimeout(fn(o.tmp), 1);
+
+
+	var objDate = new Date();
+	var cost = objDate.getTime() - tick0;
+
+	str += ("\r\nCost: " + cost/1000 + " sec.");
+
+	F.result.value = str;
+
+}
+
+</script>
+
+
+<hr>
+<p><a href="25-index.html#d20525">How does this work?</a></p>
+
+<hr>
+<address>
+<a href="index.html">faireal.net</a>
+</address>
+

@@ -1,0 +1,135 @@
+﻿
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<title>bigInt</title>
+
+
+<h1>BigInt Demo v.0.1</h1>
+<p>With JavaScript <em><a href="http://deztec.jp/x/05/faireal/js/bigint_0_1.js">bigint_0_1.js</a></em></p>
+
+<form name="FORM">
+
+<fieldset>
+<legend>Demo</legend>
+
+<label>A = <input type="text" name="biA" size="128" value=""></label><br>
+
+<label>B = <input type="text" name="biB" size="128" value=""></label><br>
+
+<label>C = <input type="text" name="biC" size="128" value=""></label><br>
+
+<label>D = <input type="text" name="biD" size="128" value=""></label><br>
+
+<div align="center">
+<input type="submit" value=" * Test * " onclick="demo(this.form);return false;" />
+</div>
+
+<textarea name="result" rows="32" cols="128"></textarea>
+
+
+</fieldset>
+</form>
+
+<script type="text/javascript" src="http://deztec.jp/x/05/faireal/js/bigint_0_1.js">
+</script>
+
+<script type="text/javascript">
+function demo(F) {
+
+var objDate0 = new Date();
+var tick0 = objDate0.getTime();
+
+	var A = bset(F.biA.value);
+	var B = bset(F.biB.value);
+	var C = bset(F.biC.value);
+	var D = bset(F.biD.value);
+
+	var str = "";
+	var Zero = bset("0");
+//	if( babscmp(A, Zero) > 0 && babscmp(B, Zero) > 0 && babscmp(C, Zero) > 0 ) {
+//	if( babscmp(A, Zero) > 0 && babscmp(B, Zero) > 0  ) {
+
+		var X;
+		var Y;
+
+/*
+		X = badd(A,B);
+		str += ("A = " + bshow(A) + "\r\n");
+		str += ("B = " + bshow(B) + "\r\n");
+		str += ("X = A+B =" + bshow(X) + "\r\n");
+		str += ("A = X-B =" + bshow(bsub(X,B)) + "\r\n");
+
+		str += ( check(bsub(X,B), A) + "\r\n" );
+		str += ("B = X-A =" + bshow(bsub(X,A)) + "\r\n");
+		str += ( check(bsub(X,A), B) + "\r\n" );
+
+		X = badd(badd(A,B), C);
+		var Y = badd(A, badd(B,C));
+
+		str += ("X = (A+B)+C =" + bshow(X) + "\r\n");
+		str += ("Y = A+(B+C) =" + bshow(Y) + "\r\n");
+		str += ( check( X,Y) + "\r\n" );
+*/
+
+
+		X = bdiv(A,B);
+		Y = bdiv(A,B);
+
+		str += ("X = (A/B) =" + bshow(X) + "\r\n");
+		str += ("Y = (A/B) =" + bshow(Y) + "\r\n");
+//		str += ( check( X,Y) + "\r\n" );
+
+/*
+		X = bmul(bmul(A,B), C);
+		Y = bmul(A, bmul(B,C));
+
+		str += ("X = (A*B)*C =" + bshow(X) + "\r\n");
+		str += ("Y = A*(B*C) =" + bshow(Y) + "\r\n");
+		str += ( check( X,Y) + "\r\n" );
+
+		X = bmul(badd(A,B), C);
+		Y = badd(bmul(A,C),bmul(B,C));
+
+		str += ("X = (A+B)*C =" + bshow(X) + "\r\n");
+		str += ("Y = A*B+A*C =" + bshow(Y) + "\r\n");
+		str += ( check( X,Y) + "\r\n" );
+*/
+
+/*
+	} else if( babscmp(A, Zero) > 0 && babscmp(B, Zero) > 0 ) {
+		str += ("A = " + bshow(A) + "\r\n");
+		str += ("B = " + bshow(B) + "\r\n");
+		str += ("A+B = " + bshow(badd(A,B)) + "\r\n");
+		str += ("A*B = " + bshow(bmul(A,B)) + "\r\n");
+	} else {
+		str = "INPUT A AND B!!!";
+	}
+*/
+
+	var objDate = new Date();
+	var cost = objDate.getTime() - tick0;
+
+	str += ("\r\nCost: " + cost/1000 + " sec.");
+
+	F.result.value = str;
+
+}
+
+
+function check(B1,B2) {
+
+	if( babscmp(B1,B2)==0 && bsign(B1)==bsign(B2) ) return "OK!";
+	else return "Error?";
+}
+
+</script>
+
+
+<hr>
+<p><a href="25-index.html#d20525">How does this work?</a></p>
+
+<hr>
+<address>
+<a href="index.html">faireal.net</a>
+</address>
+

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 모델 투영 + 보간</title>
+  <style>body { margin:0; }</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script>
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(750, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.z = 12;
+
+  // 중앙 모델 (예: 토러스)
+  const geometry = new THREE.TorusKnotGeometry(1, 0.3, 128, 32);
+  const material = new THREE.MeshNormalMaterial();
+  const model = new THREE.Mesh(geometry, material);
+  scene.add(model);
+
+  // 렌더 타겟 생성
+  const renderTarget = new THREE.WebGLRenderTarget(512, 512);
+
+  // 원통 레이어 (구형 매핑)
+  const layerGeometry = new THREE.SphereGeometry(3, 64, 64);
+  const layerMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      tex: { value: renderTarget.texture },
+      time: { value: 0.0 }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tex;
+      uniform float time;
+      varying vec2 vUv;
+      void main() {
+        vec4 color = texture2D(tex, vUv);
+        // 간단한 보간 효과 추가
+        color.rgb *= 0.5 + 0.5*sin(time + vUv.x*10.0);
+        gl_FragColor = color;
+      }
+    `
+  });
+  const layerMesh = new THREE.Mesh(layerGeometry, layerMaterial);
+  scene.add(layerMesh);
+
+  function animate(t) {
+    requestAnimationFrame(animate);
+    model.rotation.x += 0.01;
+    model.rotation.y += 0.01;
+
+    // 중앙 모델을 렌더 타겟에 렌더링
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+
+    // 메인 장면 렌더링
+    layerMaterial.uniforms.time.value = t*0.001;
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

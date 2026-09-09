@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <button onclick="connect()">SSE 연결</button>
+  <pre id="output"></pre>
+
+  <script>
+    function connect() {
+      const evtSource = new EventSource("http://localhost:3000/sse"); // 서버 필요
+      evtSource.onmessage = (e) => {
+        document.getElementById("output").innerText = "서버 메시지: " + e.data;
+      };
+    }
+  </script>
+</body>
+</html>

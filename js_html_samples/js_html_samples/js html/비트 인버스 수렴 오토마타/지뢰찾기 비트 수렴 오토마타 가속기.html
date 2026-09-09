@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>지뢰찾기 비트 수렴 오토마타 가속기</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.5rem; text-shadow: 0 0 10px #00ffcc; }
+        .info { color: #8892b0; font-size: 0.85rem; margin-bottom: 25px; }
+        .accelerator-container {
+            background: #111b2d;
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+            width: 650px;
+        }
+        .matrix-display {
+            background: #050811;
+            border: 1px solid #1f2e4d;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 180px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+        }
+        .raw-stream { color: #8892b0; font-weight: bold; border-bottom: 1px dashed #1f2e4d; margin-bottom: 10px; padding-bottom: 5px;}
+        .inverse-step { color: #ff007f; text-shadow: 0 0 3px #ff007f; }
+        .char-x { color: #ff007f; font-weight: bold; text-shadow: 0 0 5px #ff007f; }
+        .char-blank { color: #495670; }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Minesweeper Bit-Inverse Automata</h1>
+    <div class="info">Operational Mechanism: Reverse Convergence Shell-Stripping Search Engine</div>
+
+    <div class="accelerator-container">
+        <div class="matrix-display">
+            <div id="rawStream" class="raw-stream"></div>
+            <div id="matrixLines"></div>
+        </div>
+
+        <div class="stats">
+            <div>SEARCH STATE: <span id="convState" style="color:#ff007f;">STEADY</span></div>
+            <div>RADAR FREQ: <span id="audioFreq">0Hz</span></div>
+            <div>OPEN RATIO: <span id="compRatio">0%</span></div>
+        </div>
+    </div>
+
+<script>
+    // 1. 하드웨어 스펙 지정 (17비트 가상 지뢰 레지스터 맵)
+    const BIT_WIDTH = 17;
+    const CENTER_CORE = 8; // 클릭된 영점 위치 (정중앙)
+    
+    // DOM 캐싱 (HDC 0 고정 메모리 배치)
+    const domRawStream = document.getElementById('rawStream');
+    const domMatrixLines = document.getElementById('matrixLines');
+    const domConvState = document.getElementById('convState');
+    const domAudioFreq = document.getElementById('audioFreq');
+    const domCompRatio = document.getElementById('compRatio');
+
+    // 오디오 가청화 레지스터
+    let audioCtx = null, oscillator = null, gainNode = null;
+
+    // 시스템 상태 제어 오토마타 변수
+    let systemClock = 0;
+    let currentStep = 0; 
+    let mineFieldRegister = new Array();
+
+    // 2. 가청화 사운드 블래스터 기동 인터페이스
+    window.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            oscillator.type = 'sine'; // 레이더 탐색 느낌의 정현파
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+    });
+
+    // 3. 무작위 지뢰 필드 매트릭스 생성기 (1은 지뢰, 0은 공백)
+    function generateMineField() {
+        const bits = new Array();
+        for(let i=0; i<BIT_WIDTH; i++) {
+            // 정중앙 클릭점은 무조건 공백(0), 나머지는 무작위 지뢰(1) 배치
+            if (i === CENTER_CORE) {
+                bits.push('0');
+            } else {
+                bits.push(Math.random() > 0.75 ? '1' : '0');
+            }
+        }
+        // 양방향 수렴 한계선 역할을 할 진짜 지뢰를 양 끝단에 강제 배치
+        bits[0] = '1';
+        bits[BIT_WIDTH - 1] = '1';
+        return bits;
+    }
+
+    // 4. 역방향 지뢰 탐색 코어 루프 (60Hz 동기화)
+    function runMineAutomata() {
+        systemClock++;
+
+        // 시각적 흐름 제어를 위해 12프레임마다 연산 축 스위칭
+        if ((systemClock % 12) === 0) {
+            
+            if (currentStep === 0) {
+                // [영점 클릭 및 레이더 가동]
+                mineFieldRegister = generateMineField();
+                domRawStream.innerText = "FIELD: " + mineFieldRegister.map(b => b === '1' ? 'M' : '.').join('');
+                domMatrixLines.innerHTML = '';
+                domConvState.innerText = "CLICK CENTER CORE";
+                domConvState.style.color = "#8892b0";
+                domCompRatio.innerText = "0%";
+                
+                if (audioCtx) {
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                }
+                currentStep = 1;
+
+            } else if (currentStep >= 1 && currentStep <= 5) {
+                // [정중앙 영점으로부터 양방향 비트 시프트 확장 탐색]
+                const radius = currentStep - 1; 
+                const leftPointer = CENTER_CORE - radius;
+                const rightPointer = CENTER_CORE + radius;
+
+                let lineHtml = '';
+                let hitMine = false;
+
+                // if문 분기 없이 순수 포인터 경계 스캔 
+                for(let i=0; i<BIT_WIDTH; i++) {
+                    if (i < leftPointer || i > rightPointer) {
+                        // 아직 탐색 영역이 닿지 않은 미개척 껍질 공간
+                        lineHtml += '<span class="char-blank">■</span>';
+                    } else if (i === leftPointer || i === rightPointer) {
+                        // 양방향으로 뻗어나간 실시간 레이더 탐색 포인터 경계면
+                        if (mineFieldRegister[i] === '1') {
+                            lineHtml += '<span class="char-x">X</span>'; // 지뢰 장벽 발견!
+                            hitMine = true;
+                        } else {
+                            lineHtml += '0'; // 안전 구역 깎아내기 완료
+                        }
+                    } else {
+                        // 이미 검증이 끝난 내부 안전 알맹이 영역 (비트 인버스 처리 상징)
+                        lineHtml += ' ';
+                    }
+                }
+
+                domMatrixLines.innerHTML += `<div class="inverse-step">${lineHtml}</div>`;
+                domConvState.innerText = `EXPAND LAYER ${currentStep}`;
+                domConvState.style.color = "#ff007f";
+                
+                // 오픈율 계산
+                const openedCells = (radius * 2) + 1;
+                domCompRatio.innerText = `${((openedCells / BIT_WIDTH) * 100).toFixed(0)}%`;
+
+                // 가청화 변조: 밖으로 확장하며 퍼져나갈수록 주파수가 깊고 무겁게 떨어짐 (인버스의 역반응)
+                if (audioCtx) {
+                    const nextFreq = 880 / Math.pow(1.3, currentStep);
+                    oscillator.frequency.setValueAtTime(nextFreq, audioCtx.currentTime);
+                    domAudioFreq.innerText = `${nextFreq | 0}Hz`;
+                }
+
+                currentStep++;
+
+            } else {
+                // [생명 순환 대기 레이어] 탐색 완료 후 버퍼 리셋 홀딩
+                domConvState.innerText = "✅ RADAR BOUNDARY SET (0ms)";
+                domConvState.style.color = "#00ffcc";
+                if (audioCtx) gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                
+                currentStep = 0;
+                systemClock = -40; // 화면 유지 딜레이 장벽 후 루프 순환
+            }
+        }
+
+        requestAnimationFrame(runMineAutomata);
+    }
+
+    // 오토마타 기동
+    requestAnimationFrame(runMineAutomata);
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>매칭비트 역검색 (경로)</title>
+</head>
+<body>
+  <h2>매칭비트 + 재귀 단계 + 경로 → 숫자</h2>
+  <label>매칭비트 값: <input id="bitValue" type="text" value="1"></label>
+  <label>재귀 단계: <input id="level" type="number" value="16"></label>
+  <label>경로 문자열: <input id="path" type="text" value="우좌우우좌좌우좌좌좌좌좌좌우우"></label>
+  <button onclick="findNumber()">검색</button>
+  <pre id="output"></pre>
+
+  <script>
+    function getMatchBit(n) {
+      if (n === 0n) return "0";
+      if (n % 2n === 1n) return "1";
+      const trailingZeros = n.toString(2).match(/0+$/)[0].length;
+      return "1" + "0".repeat(trailingZeros);
+    }
+
+    function getRecursionLevel(n) {
+      return n.toString(2).length;
+    }
+
+    function getSymmetryPath(n) {
+      let path = [];
+      let level = getRecursionLevel(n);
+      let start = 2 ** (level - 1);
+      let end = 2 ** level - 1;
+
+      while (level > 1) {
+        const mid = (start + end) / 2;
+        if (n <= mid) {
+          path.push("좌");
+          end = Math.floor(mid);
+        } else {
+          path.push("우");
+          start = Math.ceil(mid);
+        }
+        level--;
+      }
+      return path.join("");
+    }
+
+    function findNumber() {
+      const bitValue = document.getElementById("bitValue").value;
+      const level = parseInt(document.getElementById("level").value);
+      const path = document.getElementById("path").value;
+
+      const start = 2 ** (level - 1);
+      const end = 2 ** level - 1;
+      let candidates = [];
+
+      for (let n = start; n <= end; n++) {
+        const match = getMatchBit(BigInt(n));
+        const recursionLevel = getRecursionLevel(n);
+        const symmetryPath = getSymmetryPath(n);
+        if (match === bitValue && recursionLevel === level && symmetryPath === path) {
+          candidates.push(n);
+        }
+      }
+
+      document.getElementById("output").textContent =
+        candidates.length > 0
+          ? `결과: ${candidates.join(", ")}`
+          : "조건에 맞는 숫자가 없습니다.";
+    }
+  </script>
+</body>
+</html>

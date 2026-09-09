@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>비트 재귀 수열 생성기</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 20px;
+        }
+        pre {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            line-height: 1.5;
+            font-size: 16px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>비트 재귀 수열 결과 (00-15)</h2>
+    <pre id="output"></pre>
+
+    <script>
+        function getBitPattern(n) {
+            if (n === 0) return "00000";
+            
+            // n & -n 으로 가장 낮은 자리의 1(Lowest Set Bit)을 추출
+            const lowestSetBit = n & -n;
+            
+            // Math.clz32를 활용하여 하위 0의 개수(Trailing Zeros) 계산
+            const trailingZeros = 31 - Math.clz32(lowestSetBit);
+            
+            return "1" + "0".repeat(trailingZeros);
+        }
+
+        let result = "";
+        for (let i = 0; i <= 15; i++) {
+            const numStr = String(i).padStart(2, '0');
+            const patternStr = getBitPattern(i).padStart(9, ' ');
+            result += `${numStr} ${patternStr}\n`;
+        }
+
+        document.getElementById("output").textContent = result;
+    </script>
+
+</body>
+</html>

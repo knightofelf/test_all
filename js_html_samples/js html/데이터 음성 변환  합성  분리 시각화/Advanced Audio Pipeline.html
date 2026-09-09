@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Audio Pipeline</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .step { border-left: 4px solid #007bff; padding-left: 15px; margin-bottom: 25px; }
+        .step h3 { margin-top: 0; color: #333; }
+        .controls { margin: 10px 0; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        canvas { background: #111; display: block; margin-top: 10px; border-radius: 4px; width: 100%; height: 120px; }
+        .status { font-size: 0.9em; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎵 오디오 합성 ➔ 분리 ➔ 시각화 파이프라인</h2>
+    <p class="status">여러 소리를 섞고, 분리하여 실시간 파형을 관찰하는 브라우저 기반 시스템입니다.</p>
+    <hr>
+
+    <!-- STEP 1: 소스 준비 및 합성 -->
+    <div class="step">
+        <h3>1. 데이터 음성 변환 및 다중 음원 합성 (Synthesis & Mix)</h3>
+        <p>텍스트를 두 개의 서로 다른 음성(좌/우 채널용)으로 합성하여 하나의 입체 음향 파일로 결합합니다.</p>
+        <div class="controls">
+            <input type="text" id="text-left" value="왼쪽 채널에서 나오는 첫 번째 목소리입니다." style="width: 45%;">
+            <input type="text" id="text-right" value="오른쪽 채널에서 나오는 두 번째 목소리입니다." style="width: 45%;">
+            <br><br>
+            <button id="btn-mix">두 음성 생성 후 하나로 합성하기</button>
+        </div>
+        <div id="mix-status" class="status">대기 중...</div>
+    </div>
+
+    <!-- STEP 2: 음원 분리 및 시각화 -->
+    <div class="step">
+        <h3>2. 합성된 음원 재생, 분리 및 실시간 시각화 (Separation & Visualization)</h3>
+        <p>합성된 파일에서 왼쪽(Track 1)과 오른쪽(Track 2) 신호를 실시간 분리하여 독립된 캔버스에 시각화합니다.</p>
+        <div class="controls">
+            <button id="btn-play" disabled>합성 오디오 분리 재생</button>
+            <button id="btn-stop" disabled>정지</button>
+        </div>
+        
+        <div>
+            <h4>트랙 1 시각화 (Left Channel)</h4>
+            <canvas id="canvas-left"></canvas>
+        </div>
+        <div>
+            <h4>트랙 2 시각화 (Right Channel)</h4>
+            <canvas id="canvas-right"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="pipeline.js"></script>
+</body>
+</html>

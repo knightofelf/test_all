@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>매칭비트 + 재귀순서 출력</title>
+</head>
+<body>
+  <h2>매칭비트와 재귀순서로 숫자 찾기</h2>
+  <label>검색 범위 끝: <input id="end" type="number" value="40"></label>
+  <button onclick="generatePattern()">출력</button>
+  <pre id="output"></pre>
+
+  <script>
+    function getMatchBit(n) {
+      if (n === 0n) return "0";
+      if (n % 2n === 1n) return "1";
+      const trailingZeros = n.toString(2).match(/0+$/)[0].length;
+      return "1" + "0".repeat(trailingZeros);
+    }
+
+    function getRecursionLevel(n) {
+      // 재귀 단계는 2의 거듭제곱을 기준으로 증가
+      // 즉, 이진수 길이가 곧 재귀 단계
+      return n.toString(2).length;
+    }
+
+    function generatePattern() {
+      const end = BigInt(document.getElementById("end").value);
+      let result = "";
+
+      for (let n = 0n; n <= end; n++) {
+        const match = getMatchBit(n);
+        const recursionLevel = getRecursionLevel(n);
+        result += `${n.toString().padStart(2,"0")} → ${match} (재귀 단계: ${recursionLevel})\n`;
+      }
+
+      document.getElementById("output").textContent = result;
+    }
+  </script>
+</body>
+</html>

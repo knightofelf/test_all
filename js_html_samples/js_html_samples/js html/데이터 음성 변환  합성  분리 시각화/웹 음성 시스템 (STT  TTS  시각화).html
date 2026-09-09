@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>웹 음성 시스템 (STT / TTS / 시각화)</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        canvas { border: 1px solid #000; background: #222; width: 100%; height: 150px; }
+        button { padding: 10px; margin-right: 5px; cursor: pointer; }
+        textarea { width: 100%; height: 60px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 음성 시각화 및 입력 -->
+    <div class="box">
+        <h3>1. 음성 입력 및 실시간 시각화 (Web Audio API)</h3>
+        <button id="btn-record">마이크 시작</button>
+        <canvas id="visualizer"></canvas>
+    </div>
+
+    <!-- 2. 음성 인식 (STT) -->
+    <div class="box">
+        <h3>2. 음성 인식 (STT: Speech-to-Text)</h3>
+        <button id="btn-stt-start">인식 시작</button>
+        <button id="btn-stt-stop">인식 종료</button>
+        <p><strong>인식 결과:</strong> <span id="stt-result">아래에 결과가 표시됩니다.</span></p>
+    </div>
+
+    <!-- 3. 음성 합성 (TTS) -->
+    <div class="box">
+        <h3>3. 음성 합성 (TTS: Text-to-Speech)</h3>
+        <textarea id="tts-text">안녕하세요. 자바스크립트로 구현한 음성 합성 시스템입니다.</textarea>
+        <button id="btn-tts">말하기</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

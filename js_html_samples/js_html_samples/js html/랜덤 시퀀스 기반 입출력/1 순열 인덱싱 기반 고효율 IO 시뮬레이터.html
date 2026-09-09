@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>순열 인덱싱 기반 고효율 I/O 시뮬레이터</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 30px; background-color: #f5f6fa; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #4a90e2; padding-bottom: 10px; color: #2c3e50; }
+        .control-group { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
+        label { font-weight: bold; }
+        select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; }
+        button { background-color: #4a90e2; color: white; border: none; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: #357abd; }
+        .io-stream { background: #2f3640; color: #f5f6fa; padding: 15px; border-radius: 8px; font-family: monospace; min-height: 50px; word-break: break-all; margin: 15px 0; }
+        .result-box { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e1e8ed; }
+        .highlight { font-weight: bold; color: #e74c3c; }
+        .success { font-weight: bold; color: #2ecc71; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔄 순열 인덱싱 기반 I/O 시뮬레이터</h2>
+    <p>중복 없는 무작위 데이터를 고유 '번호(인덱스 순서)' 하나로 압축하여 송수신(I/O) 합니다.</p>
+
+    <div class="control-group">
+        <label for="rMaxSelect">데이터 길이 (rMAX):</label>
+        <select id="rMaxSelect">
+            <option value="8">8 (기본)</option>
+            <option value="12">12</option>
+            <option value="16">16 (고압축)</option>
+            <option value="32">32 (극대화)</option>
+        </select>
+        <button onclick="runPipeline()">⚡ 무작위 데이터 생성 및 I/O 실행</button>
+    </div>
+
+    <div class="result-box">
+        <!-- 송신측 (Output) -->
+        <div class="box">
+            <h3>📤 송신측 (데이터 생성 및 출력)</h3>
+            <p><strong>1. 생성된 원본 배열:</strong></p>
+            <div id="origArr">-</div>
+            <p><strong>2. 원본 크기:</strong> <span id="origSize" class="highlight">-</span></p>
+        </div>
+
+        <!-- 수신측 (Input) -->
+        <div class="box">
+            <h3>📥 수신측 (데이터 입력 및 복원)</h3>
+            <p><strong>4. 복원된 배열:</strong></p>
+            <div id="reconArr">-</div>
+            <p><strong>5. 복원 검증:</strong> <span id="verifyStatus">-</span></p>
+        </div>
+    </div>
+
+    <!-- 가상의 I/O 버퍼 / 네트워크 / 파일 통로 -->
+    <h3>🌐 가상 I/O 전송 채널 (실제 전송되는 고유 번호 데이터)</h3>
+    <p>배열 대신 아래의 <strong>단 한 개의 번호(값)</strong>만 파일에 쓰이거나 네트워크로 출력(Write)됩니다.</p>
+    <div id="ioChannel" class="io-stream">대기 중...</div>
+    <p><strong>3. 실제 I/O 전송 크기:</strong> <span id="compressedSize" class="success">-</span></p>
+</div>
+
+<script>
+// BigInt 기반 팩토리얼 계산 (매우 큰 rMAX 대응용)
+function factorial(n) {
+    let result = 1n;
+    for (let i = 2n; i <= BigInt(n); i++) result *= i;
+    return result;
+}
+
+// 1. 중복 없는 무작위 배열 생성 (질문하신 C코드 알고리즘 원리)
+function generateRandomPermutation(rMAX) {
+    let used = new Array(rMAX).fill(false);
+    let vv = [];
+    while (vv.length < rMAX) {
+        let randVal = Math.floor(Math.random() * rMAX);
+        if (!used[randVal]) {
+            used[randVal] = true;
+            vv.push(randVal);
+        }
+    }
+    return vv;
+}
+
+// 2. [OUTPUT] 순열 배열 -> 고유 번호(인덱스) 변환 (압축 공정)
+function encodePermutation(arr) {
+    let rMAX = arr.length;
+    let index = 0n;
+    
+    for (let i = 0; i < rMAX; i++) {
+        let count = 0n;
+        for (let j = i + 1; j < rMAX; j++) {
+            if (arr[i] > arr[j]) count++;
+        }
+        index += count * factorial(rMAX - 1 - i);
+    }
+    return index;
+}
+
+// 3. [INPUT] 고유 번호(인덱스) -> 원래 순열 배열 복원 (복호화 공정)
+function decodePermutation(index, rMAX) {
+    let available = Array.from({length: rMAX}, (_, i) => i);
+    let origArr = [];
+    let tempIndex = BigInt(index);
+
+    for (let i = 0; i < rMAX; i++) {
+        let fact = factorial(rMAX - 1 - i);
+        let pos = Number(tempIndex / fact);
+        tempIndex %= fact;
+
+        origArr.push(available[pos]);
+        available.splice(pos, 1); // 사용한 숫자 제거
+    }
+    return origArr;
+}
+
+// 전체 파이프라인 구동 함수
+function runPipeline() {
+    const rMAX = parseInt(document.getElementById('rMaxSelect').value);
+    
+    // --------------------------------------------------
+    // [송신 단계 - OUTPUT]
+    // --------------------------------------------------
+    const originalArray = generateRandomPermutation(rMAX);
+    document.getElementById('origArr').innerText = JSON.stringify(originalArray);
+    
+    // 원본 크기 계산 (1개 원소를 1바이트로 가정 시 rMAX 바이트)
+    document.getElementById('origSize').innerText = `${rMAX} Bytes`;
+
+    // 무작위 데이터를 고유 번호 순서(인덱스)로 변환하여 I/O 출력
+    const compressedIndex = encodePermutation(originalArray);
+    
+    // 가상 I/O 채널(파일/네트워크)에 '번호' 쓰기 (출력)
+    const ioStreamData = compressedIndex.toString();
+    document.getElementById('ioChannel').innerText = ioStreamData;
+
+    // 압축된 실제 데이터 I/O 크기 계산 (BigInt의 바이트 표현 기준 크기)
+    const hexLen = compressedIndex.toString(16).length;
+    const byteLen = Math.max(1, Math.ceil(hexLen / 2));
+    document.getElementById('compressedSize').innerText = `${byteLen} Bytes (인덱스 숫자 1개)`;
+
+    // --------------------------------------------------
+    // [수신 단계 - INPUT]
+    // --------------------------------------------------
+    // I/O 채널에서 번호를 읽어와(입력) 원래 데이터로 복원
+    const receivedIndex = BigInt(document.getElementById('ioChannel').innerText);
+    const reconstructedArray = decodePermutation(receivedIndex, rMAX);
+    document.getElementById('reconArr').innerText = JSON.stringify(reconstructedArray);
+
+    // --------------------------------------------------
+    // [무결성 검증]
+    // --------------------------------------------------
+    const isSuccess = JSON.stringify(originalArray) === JSON.stringify(reconstructedArray);
+    const verifyStatusEl = document.getElementById('verifyStatus');
+    if (isSuccess) {
+        verifyStatusEl.innerText = "정확하게 일치함 (100% 복원 성공)";
+        verifyStatusEl.className = "success";
+    } else {
+        verifyStatusEl.innerText = "복원 실패";
+        verifyStatusEl.className = "highlight";
+    }
+}
+</script>
+</body>
+</html>

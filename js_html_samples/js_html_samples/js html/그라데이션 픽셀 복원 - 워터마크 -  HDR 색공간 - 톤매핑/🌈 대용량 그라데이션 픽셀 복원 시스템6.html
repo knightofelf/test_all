@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG 고효율 압축 및 이미지 파일 복원 시스템</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #111; color: #fff; line-height: 1.5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .btn-group { margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-rand { background: #673ab7; color: white; }
+        .btn-vis { background: #00bcd4; color: white; }
+        .btn-res { background: #e91e63; color: white; }
+        .btn-file { background: #ff9800; color: white; }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: #555 !important; color: #aaa; cursor: not-allowed; }
+        
+        .file-box { background: #222; padding: 12px; border-radius: 6px; border: 1px dashed #555; display: inline-block; }
+        .status-box { background: #222; padding: 15px; border-radius: 6px; margin-bottom: 15px; font-family: monospace; }
+        .canvas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #222; padding: 15px; border-radius: 8px; text-align: center; }
+        canvas { background: #000; width: 400px; height: 400px; display: block; margin: 10px auto 0; }
+        .highlight { color: #00bcd4; font-weight: bold; }
+        .success { color: #4caf50; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📦 고효율 PNG 이미지 파일 변환 및 복원 시스템</h2>
+    <p>그라데이션 인코딩을 통해 랜덤 데이터를 <b>무손실 고압축 PNG 이미지</b>로 저장하고, 이미지 파일로부터 데이터를 복원합니다.</p>
+
+    <div class="status-box">
+        <div>• 현재 데이터 상태: <span id="dataSizeStatus" class="highlight">0 개 (대기 중)</span></div>
+        <div>• 이미지 해상도 크기: <span id="resolutionStatus" class="highlight">-</span></div>
+        <div>• 이미지 분석 복원 결과: <span id="resStatus">-</span></div>
+    </div>
+
+    <!-- 1단계: 난수 생성 -->
+    <div class="btn-group">
+        <button class="btn-rand" onclick="injectRandomData(1048576)">1) 1MB 순수 랜덤 데이터 주입 (1,048,576개)</button>
+    </div>
+
+    <!-- 2단계: 그라데이션 PNG 변환 및 다운로드 -->
+    <div class="btn-group">
+        <button class="btn-vis" id="btnVis" onclick="visualizeGradient()" disabled>2. 그라데이션 이미지 생성 🎨</button>
+        <button class="btn-file" id="btnDownloadImg" onclick="downloadPNG()" disabled>➔ 고압축 그라데이션 PNG 이미지 저장 💾</button>
+    </div>
+
+    <!-- 3단계: 나중에 PNG 파일을 다시 올려서 데이터 복원하기 -->
+    <div class="btn-group">
+        <div class="file-box">
+            <strong>📁 저장했던 그라데이션 PNG 파일 넣기:</strong>
+            <input type="file" id="imgLoader" accept=".png" onchange="restoreFromPNGFile(this)">
+        </div>
+        <button class="btn-file" id="btnDownloadTxt" onclick="downloadTxtFile()" disabled>➔ 복원된 데이터 파일 받기 (.txt)</button>
+    </div>
+
+    <div class="canvas-grid">
+        <div class="card">
+            <h3>그라데이션 인코딩 캔버스 (데이터 매핑 공간)</h3>
+            <canvas id="gradientCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let originalData = [];   // 실시간 생성된 원본 난수
+    let restoredData = [];   // PNG 파일을 분석해 복원해낸 숫자 데이터
+    let loadedDataLength = 0; // 업로드된 이미지에서 판독한 데이터 크기
+
+    // 1. 무작위 랜덤 데이터 생성
+    function injectRandomData(size) {
+        originalData = [];
+        restoredData = [];
+        const buffer = new Uint8Array(size);
+        for (let i = 0; i < size; i++) buffer[i] = Math.floor(Math.random() * 256);
+        originalData = Array.from(buffer);
+
+        const side = Math.ceil(Math.sqrt(size));
+        document.getElementById('dataSizeStatus').innerText = `${size.toLocaleString()} 개의 랜덤 데이터 로드 완료`;
+        document.getElementById('resolutionStatus').innerText = `${side}px × ${side}px`;
+        document.getElementById('resStatus').innerText = "-";
+        
+        document.getElementById('btnVis').disabled = false;
+        document.getElementById('btnDownloadImg').disabled = true;
+        document.getElementById('btnDownloadTxt').disabled = true;
+    }
+
+    // 2. 그라데이션 인코딩 매핑 시각화
+    function visualizeGradient() {
+        if (originalData.length === 0) return;
+        const canvas = document.getElementById('gradientCanvas');
+        const ctx = canvas.getContext('2d');
+        const side = Math.ceil(Math.sqrt(originalData.length));
+        
+        canvas.width = side;
+        canvas.height = side;
+
+        const imgData = ctx.createImageData(side, side);
+        const dataBuffer = imgData.data;
+        const totalLen = originalData.length;
+
+        for (let i = 0; i < totalLen; i++) {
+            const val = originalData[i];
+            const pixelIndex = i * 4;
+            const ratio = i / totalLen;
+
+            dataBuffer[pixelIndex]     = val;                       // Red 채널: 데이터 키 보존 (무작위 난수)
+            dataBuffer[pixelIndex + 1] = Math.floor(ratio * 255);   // Green 채널: 그라데이션 압축 유도용
+            dataBuffer[pixelIndex + 2] = 255 - Math.floor(ratio * 255); // Blue 채널: 그라데이션 압축 유도용
+            dataBuffer[pixelIndex + 3] = 255;                       // Alpha 채널: 불투명
+        }
+        ctx.putImageData(imgData, 0, 0);
+        document.getElementById('btnDownloadImg').disabled = false;
+    }
+
+    // 💾 캔버스 그라데이션 그림을 실제 고압축 무손실 PNG 파일로 다운로드
+    function downloadPNG() {
+        const canvas = document.getElementById('gradientCanvas');
+        const link = document.createElement('a');
+        link.download = 'gradient_secure_key.png';
+        link.href = canvas.toDataURL('image/png'); // 무손실 고압축 PNG 포맷 추출
+        link.click();
+    }
+
+    // 📁 [핵심 복원] 사용자가 업로드한 PNG 파일의 픽셀을 스캔하여 원본 랜덤 데이터 실시간 디코딩
+    function restoreFromPNGFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.getElementById('gradientCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 업로드된 이미지 크기대로 캔버스 정밀 재조정
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // 이미지 전체 픽셀 스캔 시작
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const dataBuffer = imgData.data;
+            restoredData = [];
+
+            // 이미지 픽셀에서 부드러운 흐름 표면(G, B)을 걷어내고 🔴Red 내부 데이터 키만 복구
+            const totalPixels = canvas.width * canvas.height;
+            for (let i = 0; i < totalPixels; i++) {
+                restoredData.push(dataBuffer[i * 4]);
+            }
+
+            document.getElementById('resStatus').innerHTML = 
+                `<span class="success">PNG 이미지 픽셀 스캔 및 복원 완료! ✅</span><br>` +
+                `• 복원된 총 데이터 개수: ${restoredData.length.toLocaleString()} 개<br>` +
+                `• 추출 데이터 샘플(앞 5개): [${restoredData.slice(0, 5).join(', ')}]`;
+            
+            document.getElementById('btnDownloadTxt').disabled = false;
+        };
+        
+        // 업로드한 이미지 파일을 가상 URL로 변환해 이미지 객체에 바인딩
+        img.src = URL.createObjectURL(file);
+    }
+
+    // 복원된 데이터 배열을 다시 .txt 파일로 다운로드
+    function downloadTxtFile() {
+        if (restoredData.length === 0) return;
+        const textContent = restoredData.join(', ');
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "restored_data_from_png.txt";
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+</script>
+
+</body>
+</html>

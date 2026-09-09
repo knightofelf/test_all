@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>염기 합성 시뮬레이션</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; }
+    .output { margin-top: 15px; padding: 10px; border: 1px solid #ccc; min-height: 100px; }
+    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>염기 합성 과정 시뮬레이션</h1>
+  <p>버튼을 누르면 단계별로 합성 과정이 출력됩니다.</p>
+
+  <button onclick="simulatePurine()">퓨린 합성 시작</button>
+  <div id="purineOutput" class="output"></div>
+
+  <button onclick="simulatePyrimidine()">피리미딘 합성 시작</button>
+  <div id="pyrimidineOutput" class="output"></div>
+
+  <script>
+    function simulateProcess(steps, elementId) {
+      let i = 0;
+      const output = document.getElementById(elementId);
+      output.innerHTML = "";
+      const interval = setInterval(() => {
+        if (i < steps.length) {
+          output.innerHTML += (i+1) + ". " + steps[i] + "<br>";
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 1000); // 1초 간격으로 단계 출력
+    }
+
+    function simulatePurine() {
+      const steps = [
+        "리보스-5-인산 → PRPP",
+        "글루타민 질소 첨가",
+        "글리신 결합",
+        "포름산(THF) 첨가",
+        "아스파르트산 질소 첨가",
+        "고리 형성 → IMP",
+        "IMP → AMP 또는 GMP"
+      ];
+      simulateProcess(steps, "purineOutput");
+    }
+
+    function simulatePyrimidine() {
+      const steps = [
+        "글루타민 + CO₂ + ATP → 카바모일 인산",
+        "아스파르트산 결합 → 카바모일 아스파르트산",
+        "고리 닫힘 → 디히드로오로트산",
+        "산화 → 오로트산",
+        "오로트산 + PRPP → OMP",
+        "OMP → UMP",
+        "UMP → CMP, TMP"
+      ];
+      simulateProcess(steps, "pyrimidineOutput");
+    }
+  </script>
+</body>
+</html>

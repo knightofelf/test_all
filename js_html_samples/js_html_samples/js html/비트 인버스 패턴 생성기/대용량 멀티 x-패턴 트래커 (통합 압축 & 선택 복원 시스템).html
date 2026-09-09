@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>대용량 멀티 x-패턴 트래커 (통합 압축 & 선택 복원 시스템)</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 95%;
+            max-width: 1400px;
+        }
+        .section-box {
+            background-color: #1a1a1a;
+            border: 1px solid #00ff66;
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h2, h3 {
+            margin-top: 0;
+            color: #00ff66;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        textarea {
+            background-color: #222;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            width: 60%;
+            height: 50px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .btn-group {
+            width: 40%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        button, input[type="file"]::file-selector-button, select {
+            background-color: #222;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        button:hover, input[type="file"]::file-selector-button:hover {
+            background-color: #00ff66;
+            color: #121212;
+        }
+        input[type="file"] {
+            color: #00ff66;
+            font-family: inherit;
+        }
+        .output-container {
+            background-color: #0a0a0a;
+            border: 1px dashed #ff0055;
+            padding: 15px;
+            overflow: auto;
+            max-height: 500px;
+            position: relative;
+            margin-top: 10px;
+        }
+        pre {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre;
+        }
+        .playlist-box {
+            margin-top: 10px;
+            background: #252525;
+            padding: 10px;
+            border-left: 4px solid #00ff66;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>대용량 멀티 x-패턴 트래커 (통합 압축 및 복원 시스템)</h2>
+
+    <!-- 1구역: 멀티 패턴 연산 및 누적 대형 압축 -->
+    <div class="section-box">
+        <h3>1단계: 여러 비트 패턴 연산 및 하나의 파일로 대통합 압축</h3>
+        <div class="controls">
+            <textarea id="bitInput" placeholder="2진수 비트를 입력하세요."></textarea>
+            <div class="btn-group">
+                <button onclick="generateRandomBits(10000)">1만개 비트 무작위 생성</button>
+                <button onclick="addPatternToBundle()" style="background-color: #0077ff; color: #fff; border: none;">➕ 현재 패턴 연산 후 저장소에 추가</button>
+                <button onclick="downloadBundleFile()" style="background-color: #00ff66; color: #121212; font-weight: bold;">💾 통합 압축 파일 다운로드 (.txt)</button>
+                <button onclick="clearBundle()" style="background-color: #ff3333; color: #fff; border: none;">🗑️ 저장소 비우기</button>
+            </div>
+        </div>
+        <div class="playlist-box">
+            <strong>📦 현재 통합 압축 대기 중인 패턴 목록:</strong>
+            <div id="bundleStatus">추가된 패턴이 없습니다. (여러 개를 계속 추가할 수 있습니다)</div>
+        </div>
+    </div>
+
+    <!-- 2구역: 통합 파일 업로드 및 선택 복원 -->
+    <div class="section-box" style="border-color: #ff0055;">
+        <h3 style="color: #ff0055;">2단계: 통합 압축 파일 불러와서 선택 복원하기</h3>
+        <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">
+            <div>
+                <label>📂 통합 파일 업로드: </label>
+                <input type="file" id="fileUploader" accept=".txt" onchange="loadBundleFile()">
+            </div>
+            <div id="selectArea" style="display: none;">
+                <label>🎯 복원할 패턴 선택: </label>
+                <select id="patternSelector" onchange="restoreSelectedPattern()"></select>
+            </div>
+        </div>
+        
+        <div id="restoreStatus" style="font-size: 14px; margin-bottom: 10px; color: #fff;">통합 압축 파일을 업로드하면 목록이 활성화됩니다.</div>
+        
+        <div class="output-container">
+            <pre id="outputView">통합 파일을 로드한 뒤 패턴을 선택하면 여기에 완벽 복원됩니다.</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+// 여러 개의 패턴 데이터를 모아둘 전역 묶음 배낭
+let bundleDataList = [];
+// 업로드된 파일로부터 복원해낸 데이터 맵 백업 캐시
+let loadedBundleCache = [];
+
+function generateRandomBits(count) {
+    let res = "";
+    for(let i=0; i<count; i++) {
+        res += Math.random() > 0.5 ? "1" : "0";
+    }
+    document.getElementById('bitInput').value = res;
+}
+
+// [멀티 엔진] 패턴을 계산하여 통합 대기열 배열에 누적 저장
+function addPatternToBundle() {
+    const input = document.getElementById('bitInput').value.trim();
+    if (!input) { alert("비트를 먼저 지정해 주세요."); return; }
+    
+    for(let i=0; i<input.length; i++) {
+        if(input[i] !== '0' && input[i] !== '1') { alert("2진수 비트가 아닙니다."); return; }
+    }
+
+    let bitTracker = input.split('');
+    const len = bitTracker.length;
+    let coordsArray = [];
+    
+    let leftBoundary = 0;
+    let rightBoundary = len - 1;
+    let rowCount = 1;
+
+    while (leftBoundary <= rightBoundary) {
+        let targetIdx = -1;
+        for (let i = leftBoundary; i <= rightBoundary; i++) {
+            if (bitTracker[i] === '1') { targetIdx = i; break; }
+        }
+        if (targetIdx === -1) break;
+
+        let currentLeftX = targetIdx;
+        let currentRightX = rightBoundary - (currentLeftX - leftBoundary);
+        if (currentLeftX > currentRightX) break;
+
+        for (let i = currentLeftX; i <= currentRightX; i++) {
+            bitTracker[i] = bitTracker[i] === '1' ? '0' : '1';
+        }
+
+        coordsArray.push({ L: currentLeftX, R: currentRightX, W: rowCount });
+        leftBoundary = currentLeftX + 1;
+        rightBoundary = currentRightX - 1;
+        rowCount++;
+    }
+
+    // 묶음 리스트 객체에 식별 번호와 함께 삽입
+    bundleDataList.push({
+        id: bundleDataList.length + 1,
+        bitLen: len,
+        data: coordsArray
+    });
+
+    updateBundleUI();
+}
+
+function updateBundleUI() {
+    const statusBox = document.getElementById('bundleStatus');
+    if (bundleDataList.length === 0) {
+        statusBox.textContent = "추가된 패턴이 없습니다.";
+        return;
+    }
+    let html = "<ol style='margin: 5px 0 0 20px; padding: 0;'>";
+    bundleDataList.forEach(p => {
+        html += `<li>[비트 길이: ${p.bitLen}] 총 ${p.data.length}개 도면 수집 완료</li>`;
+    });
+    html += "</ol>";
+    statusBox.innerHTML = html;
+}
+
+function clearBundle() {
+    bundleDataList = [];
+    updateBundleUI();
+}
+
+// [통합 압축 내려받기] 헤더 중복을 줄여 초경량 텍스트 포맷 전환
+function downloadBundleFile() {
+    if (bundleDataList.length === 0) { alert("저장소에 보관된 패턴이 존재하지 않습니다."); return; }
+
+    let outputText = `== MULTI_X_PATTERN_BUNDLE ==\nCOUNT:${bundleDataList.length}\n`;
+    
+    bundleDataList.forEach(bundle => {
+        outputText += `START_PATTERN:${bundle.id},LEN:${bundle.bitLen}\n`;
+        bundle.data.forEach(p => {
+            outputText += `${p.L},${p.R},${p.W}\n`;
+        });
+        outputText += `END_PATTERN\n`;
+    });
+
+    const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `multi_pattern_bundle_${bundleDataList.length}_sets.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// [통합 파일 파싱 로드]
+function loadBundleFile() {
+    const fileInput = document.getElementById('fileUploader');
+    if (!fileInput.files || fileInput.files.length === 0) return;
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    document.getElementById('restoreStatus').textContent = "📦 통합 묶음 데이터 해독 처리 중...";
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        
+        loadedBundleCache = [];
+        let currentPattern = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+
+            if (line.startsWith('START_PATTERN:')) {
+                let meta = line.replace('START_PATTERN:', '').split(',');
+                currentPattern = {
+                    id: meta[0].split(':')[1],
+                    bitLen: parseInt(meta[1].split(':')[1]),
+                    data: []
+                };
+            } else if (line === 'END_PATTERN') {
+                if (currentPattern) {
+                    loadedBundleCache.push(currentPattern);
+                    currentPattern = null;
+                }
+            } else if (currentPattern && line.includes(',')) {
+                let parts = line.split(',');
+                currentPattern.data.push({
+                    L: parseInt(parts[0]),
+                    R: parseInt(parts[1]),
+                    W: parseInt(parts[2])
+                });
+            }
+        }
+
+        if (loadedBundleCache.length === 0) {
+            alert("유효한 통합 패턴 파일을 찾지 못했습니다.");
+            return;
+        }
+
+        // 셀렉트 박스 갱신 및 UI 노출
+        const selector = document.getElementById('patternSelector');
+        selector.innerHTML = "";
+        loadedBundleCache.forEach((item, index) => {
+            let opt = document.createElement('option');
+            opt.value = index;
+            opt.textContent = `${index + 1}번 기하 패턴 (비트 수: ${item.bitLen} / 총 ${item.data.length}줄)`;
+            selector.appendChild(opt);
+        });
+
+        document.getElementById('selectArea').style.display = "block";
+        document.getElementById('restoreStatus').textContent = `✅ 총 ${loadedBundleCache.length}개의 통합 패턴 데이터 로드 완료. 복원할 패턴을 우측에서 골라주세요.`;
+
+        restoreSelectedPattern();
+    };
+    reader.readAsText(file);
+}
+
+// [선택형 역연산 복원 엔진]
+function restoreSelectedPattern() {
+    const selectedIdx = parseInt(document.getElementById('patternSelector').value);
+    const targetPattern = loadedBundleCache[selectedIdx];
+    if (!targetPattern) return;
+
+    let restoredArtLines = [];
+    const bitLength = targetPattern.bitLen;
+    
+    restoredArtLines.push(`[Line 1: 복원 완료 - 통합 파일 내부 ${selectedIdx + 1}번 패턴 원형 수렴 지도]`);
+
+    // 좌표 데이터를 기반으로 각 행의 공백과 x 위치를 순차적으로 재복원
+    targetPattern.data.forEach((coord) => {
+        let rowCharArr = new Array(bitLength).fill(' ');
+        rowCharArr[coord.L] = 'x';
+        rowCharArr[coord.R] = 'x';
+        let rightWing = " ".repeat(coord.W * 2) + "x" + " ".repeat(coord.W * 4) + "x";
+        restoredArtLines.push(rowCharArr.join('') + rightWing);
+    });
+
+    // 패턴 최하단 지지대 교차행 공식 적용하여 원상 복구
+    let groundLeft = new Array(bitLength).fill(' ');
+    for(let i=0; i<bitLength; i+=3) {
+        if(i < bitLength) groundLeft[i] = 'x';
+        if(i+1 < bitLength) groundLeft[i+1] = 'x';
+    }
+    let totalWings = targetPattern.data.length + 1;
+    let finalGroundStr = groundLeft.join('') + " ".repeat(totalWings * 2) + "xx";
+    restoredArtLines.push(finalGroundStr);
+
+    // 개행 문자로 조인하여 통합 뷰어 영역에 바인딩 출력
+    document.getElementById('outputView').textContent = restoredArtLines.join('\n');
+}
+</script>
+
+</body>
+</html>

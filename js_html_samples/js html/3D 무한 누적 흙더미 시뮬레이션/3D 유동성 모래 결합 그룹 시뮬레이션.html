@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 유동성 모래 결합 그룹 시뮬레이션</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #161310; font-family: sans-serif; user-select: none; }
+        #info {
+            position: absolute; top: 10px; left: 10px; color: #f0e6d2;
+            pointer-events: none; background: rgba(35,28,22,0.9); 
+            padding: 15px; border-radius: 6px; z-index: 10000;
+            border: 1px solid #7c6753; width: 290px;
+        }
+        h3 { margin: 0 0 5px 0; font-size: 15px; color: #ffe4b5; }
+        p { margin: 0 0 8px 0; font-size: 12px; color: #ccc; }
+        .highlight { font-weight: bold; color: #dfb76c; font-size: 14px; margin-top: 4px; }
+        
+        #rot-box {
+            position: absolute; bottom: 20px; right: 20px; z-index: 10005;
+            background: rgba(35,28,22,0.9); padding: 12px; border-radius: 6px;
+            border: 1px solid #7c6753; display: grid; grid-template-columns: repeat(3, 40px); gap: 5px;
+        }
+        .rot-btn {
+            width: 40px; height: 40px; background: #5c4738; border: 1px solid #947a65;
+            color: #fff; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 14px;
+        }
+        .rot-btn:hover { background: #7c614e; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>유동성 모래 결합 그룹 시스템</h3>
+        <p style="color:#dfb76c; font-weight:bold;">👉 마우스를 누르면 유동성 모래가 투하됩니다!</p>
+        <p style="color:#bfa48a; font-size:11px;">쌓인 모래 무리를 치면 다시 스르륵 흘러내립니다.</p>
+        <div id="live-count">유동 연산 중인 모래: 0 알</div>
+        <div id="static-count" class="highlight">결합 그룹 누적 모래: 0 알</div>
+    </div>
+
+    <div id="rot-box">
+        <div></div><button class="rot-btn" onmousedown="startRotate(0,-0.05)" onmouseup="stopRotate()">▲</button><div></div>
+        <button class="rot-btn" onmousedown="startRotate(-0.06,0)" onmouseup="stopRotate()">◀</button>
+        <button class="rot-btn" onclick="resetView()">🔄</button>
+        <button class="rot-btn" onmousedown="startRotate(0.06,0)" onmouseup="stopRotate()">▶</button>
+        <div></div><button class="rot-btn" onmousedown="startRotate(0,0.05)" onmouseup="stopRotate()">▼</button><div></div>
+    </div>
+
+    <script>
+        let canvas, gl, glProgram, matrixLocation, colorLocation, normalLocation;
+        
+        // [유동성 누적의 핵심: 활성/비활성 그룹 분리]
+        let activeSand = [];       // 현재 움직이거나 흘러내리는 모래 무리
+        let clusterGrid = {};      // 공간을 분할해 모래를 결합 결속하는 무리 격자 지도
+        let totalSandCount = 0;
+
+        // 실제 유체-고체 중간 성질용 모래 알갱이 입자 크기 고정 (부피감 유지)
+        const sizeX = 0.16, sizeY = 0.14, sizeZ = 0.16; 
+        const cellSize = 0.32; // 공간 결합 격자의 크기 (모래알 반경의 2배 수준)
+
+        let theta = 0, phi = Math.PI / 3.8, radius = 7.5;
+        let rotSpeedX = 0, rotSpeedY = 0;
+
+        let isMouseDown = false; 
+        let lastMousePos = { x: 0, y: 0 };
+        let spawnTimer = 0;
+
+        function init() {
+            canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            document.body.appendChild(canvas);
+            gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+
+            if (!gl) {
+                document.body.innerHTML = "<div style='color:white;padding:20px;'>WebGL 미지원 환경입니다.</div>";
+                return;
+            }
+
+            window.addEventListener('mousedown', (e) => { 
+                if (e.clientX > window.innerWidth - 160 && e.clientY > window.innerHeight - 160) return; 
+                isMouseDown = true; 
+                lastMousePos = { x: e.clientX, y: e.clientY };
+                spawnSandAtMouse(e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', (e) => { lastMousePos = { x: e.clientX, y: e.clientY }; });
+            window.addEventListener('mouseup', () => isMouseDown = false);
+            
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('keyup', onKeyUp);
+            window.addEventListener('resize', onWindowResize);
+
+            buildEmbeddedGraphics();
+        }
+
+        // --- 유동 결합 그룹 방식의 물리 충돌 엔진 ---
+        function stepPhysics() {
+            const dt = 0.016; 
+            const nextActive = [];
+
+            // 격자 내 정착한 모래 무리들의 결합 상태 실시간 스캔
+            for (let i = 0; i < activeSand.length; i++) {
+                const s = activeSand[i];
+                
+                // 1) 자연 중력 오프셋 가속
+                s.vy += -10.0 * dt;
+                s.x += s.vx * dt;
+                s.y += s.vy * dt;
+                s.z += s.vz * dt;
+
+                let hasCollision = false;
+
+                // 2) 기본 바닥면과의 마찰 연산 (완전히 고정하지 않고 미끄러짐 허용)
+                if (s.y < sizeY) {
+                    s.y = sizeY;
+                    s.vy = 0;
+                    s.vx *= 0.3; // 지면 마찰에 의한 감속
+                    s.vz *= 0.3;
+                    hasCollision = true;
+                }
+
+                // 3) [핵심 결합 그룹 연산] 주변 격자 무리(Cluster) 탐색 및 산사태 구현
+                const gx = Math.floor(s.x / cellSize);
+                const gy = Math.floor(s.y / cellSize);
+                const gz = Math.floor(s.z / cellSize);
+
+                // 상하좌우 인접 27개 결합 그룹 내부의 조밀 모래들과만 빠르게 물리 충돌 계산
+                for (let xOff = -1; xOff <= 1; xOff++) {
+                    for (let yOff = -1; yOff <= 1; yOff++) {
+                        for (let zOff = -1; zOff <= 1; zOff++) {
+                            const key = `${gx+xOff}_${gy+yOff}_${gz+zOff}`;
+                            const cell = clusterGrid[key];
+                            if (!cell) continue;
+
+                            for (let j = 0; j < cell.length; j++) {
+                                const target = cell[j];
+                                if (s === target) continue;
+
+                                const dx = s.x - target.x;
+                                const dy = s.y - target.y;
+                                const dz = s.z - target.z;
+                                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                                const minDist = sizeX * 1.8;
+
+                                // 모래알 무리에 침범했을 때 밀어내는 구조 연산
+                                if (dist < minDist && dist > 0) {
+                                    const overlap = minDist - dist;
+                                    s.x += (dx / dist) * overlap * 0.4;
+                                    s.y += (dy / dist) * overlap * 0.4;
+                                    s.z += (dz / dist) * overlap * 0.4;
+
+                                    // 안착을 방해하는 경사각이 생기면 스르륵 흘러내리도록 속도 분산 (결합 그룹 유동화)
+                                    s.vx += (dx / dist) * 0.2;
+                                    s.vz += (dz / dist) * 0.2;
+                                    
+                                    // 아래 모래가 흔들리면 위의 모래 그룹도 강제 수면 취소(Unsleeping) 시킴
+                                    if (target.isStatic && dy < 0) {
+                                        wakeUpClusterElement(target, key);
+                                    }
+                                    hasCollision = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4) 움직임이 극도로 줄어든 모래알은 해당 가상 결합 그룹 공간(Grid)에 영구 파킹
+                if (hasCollision && Math.abs(s.vx) < 0.05 && Math.abs(s.vy) < 0.05 && Math.abs(s.vz) < 0.05) {
+                    s.vx = 0; s.vy = 0; s.vz = 0;
+                    if (!s.isStatic) {
+                        s.isStatic = true;
+                        const myKey = `${gx}_${gy}_${gz}`;
+                        if (!clusterGrid[myKey]) clusterGrid[myKey] = [];
+                        clusterGrid[myKey].push(s);
+                    }
+                } else {
+                    // 여전히 속도가 남아있어 구르는 모래들은 결합을 풀고 활성 리스트로 복귀
+                    if (s.isStatic) {
+                        const myKey = `${gx}_${gy}_${gz}`;
+                        removeFromClusterGrid(s, myKey);
+                    }
+                    nextActive.push(s);
+                }
+            }
+            activeSand = nextActive;
+            updateCounters();
+        }
+        // --- 결합 격자 무리에서 모래알을 안전하게 제거(유동화)하는 함수 ---
+        function removeFromClusterGrid(s, key) {
+            s.isStatic = false;
+            if (clusterGrid[key]) {
+                const index = clusterGrid[key].indexOf(s);
+                if (index > -1) {
+                    clusterGrid[key].splice(index, 1);
+                }
+                if (clusterGrid[key].length === 0) {
+                    delete clusterGrid[key];
+                }
+            }
+        }
+
+        // --- 외부 자극 발생 시 고정된 결합 모래를 다시 잠에서 깨우는(Unsleeping) 함수 ---
+        function wakeUpClusterElement(target, key) {
+            removeFromClusterGrid(target, key);
+            activeSand.push(target);
+        }
+
+        // --- 마우스 클릭을 꾹 누르고 있을 때 실시간 유동 모래를 생성하는 함수 ---
+        function spawnSandAtMouse(clientX, clientY) {
+            if (clientX < 320 && clientY < 180) return; // UI 영역 방어
+            
+            // 물리 부하 폭발을 막기 위해 현재 화면 내 활성 연산 모래알은 최대 350알로 조절
+            // (멈추면 격자에 귀속되므로 전체 개수는 무한히 확장 가능)
+            if (activeSand.length >= 350) return; 
+
+            // 1) 마우스 좌표 가상 3D 공간 디코드
+            const ndcX = (clientX / window.innerWidth) * 2 - 1;
+            const ndcY = -(clientY / window.innerHeight) * 2 + 1;
+
+            const cosT = Math.cos(theta); const sinT = Math.sin(theta);
+            const cosP = Math.cos(phi); const sinP = Math.sin(phi);
+
+            const viewWorldX = ndcX * 4.2 * cosT - ndcY * 2.2 * sinT * sinP;
+            const viewWorldZ = ndcX * 4.2 * sinT + ndcY * 2.2 * cosT * sinP;
+
+            const targetX = viewWorldX;
+            const targetZ = viewWorldZ - (radius * 0.15);
+
+            // 2) [격자 기반 고속 높이 스캔] 클릭 지점 격자 주변의 모래 더미 높이 스캔
+            let baseHeight = 0;
+            const gx = Math.floor(targetX / cellSize);
+            const gz = Math.floor(targetZ / cellSize);
+
+            // 해당 지면 수직 격자 기둥 전체를 훑어 가장 높이 쌓인 모래 Y축 찾기
+            for (let gy = 0; gy < 30; gy++) {
+                const key = `${gx}_${gy}_${gz}`;
+                if (clusterGrid[key] && clusterGrid[key].length > 0) {
+                    const topY = (gy * cellSize) + sizeY;
+                    if (topY > baseHeight) baseHeight = topY;
+                }
+            }
+
+            // 흘러내리는 유동성을 위해 이미 쌓인 모래 무리 표면 바로 위로 낙하 오프셋 설정
+            const spawnY = Math.max(baseHeight + 0.3, 3.0 + Math.random() * 0.3);
+
+            // 3) 새로운 유동 모래 입자 등록
+            const sandNode = {
+                x: targetX, y: spawnY, z: targetZ,
+                vx: (Math.random() - 0.5) * 0.2, vy: -1.5, vz: (Math.random() - 0.5) * 0.2,
+                radiusX: sizeX, radiusY: sizeY, radiusZ: sizeZ,
+                rotX: Math.random() * Math.PI,
+                rotY: Math.random() * Math.PI,
+                rotZ: Math.random() * Math.PI,
+                isStatic: false,
+                sleepTimer: 0
+            };
+            activeSand.push(sandNode);
+            totalSandCount++;
+        }
+
+        // --- 상단 UI 텍스트 카운터 실시간 동기화 함수 ---
+        function updateCounters() {
+            let staticCount = 0;
+            for (const key in clusterGrid) {
+                staticCount += clusterGrid[key].length;
+            }
+            document.getElementById('live-count').innerText = `유동 연산 중인 모래: ${activeSand.length} 알`;
+            document.getElementById('static-count').innerText = `결합 그룹 누적 모래: ${staticCount} 알`;
+        }
+        // --- 3D 가속 드로우 루프 및 그래픽 파이프라인 ---
+        let dynamicBuffer, positionLoc, normalLoc;
+        function buildEmbeddedGraphics() {
+            const vs = `#version 300 es
+                in vec3 a_position;
+                in vec3 a_normal;
+                out vec3 v_normal;
+                uniform mat4 u_matrix;
+                void main() { 
+                    gl_Position = u_matrix * vec4(a_position, 1.0); 
+                    v_normal = a_normal;
+                }`;
+
+            const fs = `#version 300 es
+                precision highp float;
+                in vec3 v_normal;
+                out vec4 outColor;
+                uniform vec4 u_color;
+                void main() { 
+                    vec3 lightDir = normalize(vec3(0.4, 0.9, 0.3)); 
+                    float light = max(dot(normalize(v_normal), lightDir), 0.3); 
+                    outColor = vec4(u_color.rgb * light, 1.0); 
+                }`;
+
+            function createShader(gl, type, source) {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                return shader;
+            }
+
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vs);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fs);
+            
+            glProgram = gl.createProgram();
+            gl.attachShader(glProgram, vertexShader);
+            gl.attachShader(glProgram, fragmentShader);
+            gl.linkProgram(glProgram);
+
+            matrixLocation = gl.getUniformLocation(glProgram, "u_matrix");
+            colorLocation = gl.getUniformLocation(glProgram, "u_color");
+            positionLoc = gl.getAttribLocation(glProgram, "a_position");
+            normalLoc = gl.getAttribLocation(glProgram, "a_normal");
+
+            dynamicBuffer = gl.createBuffer();
+        }
+
+        function renderSandNode(s, cosT, sinT, cosP, sinP, isStaticElement) {
+            const localBox = [
+                -sizeX,-sizeY, sizeZ,  sizeX,-sizeY, sizeZ,  sizeX, sizeY, sizeZ, -sizeX,-sizeY, sizeZ,  sizeX, sizeY, sizeZ, -sizeX, sizeY, sizeZ,
+                -sizeX,-sizeY,-sizeZ, -sizeX, sizeY,-sizeZ,  sizeX, sizeY,-sizeZ, -sizeX,-sizeY,-sizeZ,  sizeX, sizeY,-sizeZ,  sizeX,-sizeY,-sizeZ,
+                -sizeX, sizeY,-sizeZ, -sizeX, sizeY, sizeZ,  sizeX, sizeY, sizeZ, -sizeX, sizeY,-sizeZ,  sizeX, sizeY, sizeZ,  sizeX, sizeY,-sizeZ,
+                -sizeX,-sizeY,-sizeZ,  sizeX,-sizeY,-sizeZ,  sizeX,-sizeY, sizeZ, -sizeX,-sizeY,-sizeZ,  sizeX,-sizeY, sizeZ, -sizeX,-sizeY, sizeZ,
+                 sizeX,-sizeY,-sizeZ,  sizeX, sizeY,-sizeZ,  sizeX, sizeY, sizeZ,  sizeX,-sizeY,-sizeZ,  sizeX, sizeY, sizeZ,  sizeX,-sizeY, sizeZ,
+                -sizeX,-sizeY,-sizeZ, -sizeX,-sizeY, sizeZ, -sizeX, sizeY, sizeZ, -sizeX,-sizeY,-sizeZ, -sizeX, sizeY, sizeZ, -sizeX, sizeY,-sizeZ
+            ];
+            const localNormals = [
+                 0,0,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1,  0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+                 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0,  0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0,
+                 1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0, -1,0,0, -1,0,0, -1,0,0, -1,0,0, -1,0,0, -1,0,0
+            ];
+
+            const cX = Math.cos(s.rotX), sX = Math.sin(s.rotX);
+            const cY = Math.cos(s.rotY), sY = Math.sin(s.rotY);
+
+            const rotViewX = s.x * cosT - s.z * sinT;
+            const rotViewZ = s.x * sinT + s.z * cosT;
+            const finalY = (s.y - 1.2) * cosP - rotViewZ * sinP;
+            const finalZ = (s.y - 1.2) * sinP + rotViewZ * cosP;
+
+            const mat = new Float32Array([
+                0.6 * cY * cosT,          0.6 * sX * sY * sinP,     -0.6 * sY * cosP,        0,
+                0.6 * sX * sY,            0.6 * cX * cosP,           0.6 * sX * cY,          0,
+                0.6 * cX * sY * sinT,    -0.6 * sX * sinP,           0.6 * cX * cY * cosT,   0,
+                rotViewX * 0.23,          finalY * 0.23,            -0.5 + (finalZ * 0.15) - (radius * 0.05), 1
+            ]);
+            gl.uniformMatrix4fv(matrixLocation, false, mat);
+
+            // [색상 차별화] 결합 그룹 고정 모래는 진한 황토색, 흘러내리는 역동적 모래는 밝은 사막색 매핑
+            if (isStaticElement) {
+                gl.uniform4fv(colorLocation, new Float32Array([0.55, 0.44, 0.32, 1.0])); 
+            } else {
+                gl.uniform4fv(colorLocation, new Float32Array([0.72, 0.58, 0.44, 1.0])); 
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, dynamicBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(localBox), gl.STREAM_DRAW);
+            gl.enableVertexAttribArray(positionLoc);
+            gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
+
+            const tempNormalBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, tempNormalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(localNormals), gl.STREAM_DRAW);
+            gl.enableVertexAttribArray(normalLoc);
+            gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
+            
+            gl.drawArrays(gl.TRIANGLES, 0, 36);
+            gl.deleteBuffer(tempNormalBuffer);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            stepPhysics();
+
+            // 리모컨 또는 키보드 방향키 시점 제어 회전 가속
+            theta += rotSpeedX;
+            phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.1, phi + rotSpeedY));
+
+            // 마우스 버튼을 연속으로 누르고 있으면 프레임 주기에 맞춰 연속 분사
+            if (isMouseDown) {
+                spawnTimer++;
+                if (spawnTimer % 3 === 0) { 
+                    spawnSandAtMouse(lastMousePos.x, lastMousePos.y);
+                }
+            }
+
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.clearColor(0.1, 0.08, 0.07, 1.0); 
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+
+            gl.useProgram(glProgram);
+
+            const cosT = Math.cos(theta); const sinT = Math.sin(theta);
+            const cosP = Math.cos(phi); const sinP = Math.sin(phi);
+
+            // 1) 가상 결합 격자(Cluster Grid) 공간 내 정착 모래 순회 렌더링
+            for (const key in clusterGrid) {
+                const cell = clusterGrid[key];
+                for (let i = 0; i < cell.length; i++) {
+                    renderSandNode(cell[i], cosT, sinT, cosP, sinP, true);
+                }
+            }
+
+            // 2) 실시간 구르고 흐르는 유동성 활성 모래 순회 렌더링
+            for (let i = 0; i < activeSand.length; i++) {
+                renderSandNode(activeSand[i], cosT, sinT, cosP, sinP, false);
+            }
+        }
+
+        // 리모컨 제어 보조 함수 부
+        function startRotate(x, y) { rotSpeedX = x; rotSpeedY = y; }
+        function stopRotate() { rotSpeedX = 0; rotSpeedY = 0; }
+        function resetView() { theta = 0; phi = Math.PI / 3.8; radius = 7.5; }
+
+        function onKeyDown(e) {
+            if (e.key === "ArrowLeft") rotSpeedX = -0.05;
+            if (e.key === "ArrowRight") rotSpeedX = 0.05;
+            if (e.key === "ArrowUp") rotSpeedY = -0.04;
+            if (e.key === "ArrowDown") rotSpeedY = 0.04;
+        }
+
+        function onKeyUp(e) {
+            if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) stopRotate();
+        }
+
+        function onWindowResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>

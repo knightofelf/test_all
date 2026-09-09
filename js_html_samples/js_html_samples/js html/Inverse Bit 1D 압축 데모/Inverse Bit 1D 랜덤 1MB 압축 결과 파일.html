@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Inverse Bit 1D 랜덤 1MB 압축 결과 파일</title>
+</head>
+<body>
+  <h2>Inverse Bit 1D 랜덤 1MB 압축 결과 파일 생성</h2>
+  <button onclick="runDemo()">결과 파일 만들기</button>
+
+  <script>
+    function generateRandomBits(size) {
+      let bits = "";
+      for (let i = 0; i < size; i++) {
+        bits += Math.random() < 0.5 ? "0" : "1";
+      }
+      return bits;
+    }
+
+    function compressBits(bits) {
+      let changes = 0;
+      for (let i = 1; i < bits.length; i++) {
+        if (bits[i] !== bits[i-1]) {
+          changes++;
+        }
+      }
+      const lastValue = bits[bits.length-1];
+      const compressedLength = changes + 1;
+      const ratio = bits.length / compressedLength;
+      return { changes, lastValue, compressedLength, ratio };
+    }
+
+    function runDemo() {
+      const totalSize = 1024 * 1024 * 8; // 1MB = 8,388,608 비트
+      const bits = generateRandomBits(totalSize);
+      const result = compressBits(bits);
+
+      const outputData =
+        "원본 길이: " + totalSize + "비트\n" +
+        "변화 지점 수(x): " + result.changes + "\n" +
+        "압축 길이: " + result.compressedLength + "비트\n" +
+        "압축률: " + result.ratio.toFixed(2) + "배\n" +
+        "저장 데이터: x위치 개수=" + result.changes + " / 마지막 값=" + result.lastValue;
+
+      const blob = new Blob([outputData], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "InverseBit1D_1MB_Result.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

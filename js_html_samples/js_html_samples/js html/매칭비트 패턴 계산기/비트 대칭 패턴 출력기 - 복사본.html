@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>매칭비트 패턴 계산기</title>
+</head>
+<body>
+  <h2>매칭비트 패턴 계산기 (구글 방식)</h2>
+  <label>항 개수 입력: <input id="count" type="number" value="40"></label>
+  <button onclick="generatePattern()">생성</button>
+  <pre id="output"></pre>
+
+  <script>
+    function generatePattern() {
+      const count = BigInt(document.getElementById("count").value);
+      let result = "";
+
+      for (let n = 0n; n < count; n++) {
+        let match;
+        if (n === 0n) {
+          match = "0";
+        } else if (n % 2n === 1n) {
+          match = "1"; // 홀수 → 항상 1
+        } else {
+          // 짝수 → 끝나는 0의 개수에 따라 출력
+          const trailingZeros = n.toString(2).match(/0+$/)[0].length;
+          match = "1" + "0".repeat(trailingZeros);
+        }
+        result += `${n.toString().padStart(2,"0")} → ${match}\n`;
+      }
+
+      document.getElementById("output").textContent = result;
+    }
+  </script>
+</body>
+</html>

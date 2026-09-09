@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>F1~F98 숫자표 출력</title>
+</head>
+<body>
+  <pre id="output"></pre>
+
+  <script>
+    function generateNumberTable() {
+      let result = "";
+      for (let f = 1; f <= 98; f++) {
+        result += `F${f}\n`;
+        for (let row = 1; row <= 4; row++) {
+          let line = [];
+          for (let col = 1; col <= 4; col++) {
+            line.push(`${f}${row}${col}`);
+          }
+          result += line.join(" ") + "\n";
+        }
+      }
+      return result;
+    }
+
+    document.getElementById("output").textContent = generateNumberTable();
+  </script>
+</body>
+</html>

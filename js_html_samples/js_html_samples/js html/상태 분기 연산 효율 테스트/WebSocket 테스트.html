@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket 테스트</title>
+</head>
+<body>
+  <button onclick="connect()">서버 연결</button>
+  <button onclick="sendMessage()">메시지 보내기</button>
+  <pre id="output"></pre>
+
+  <script>
+    let socket;
+
+    function connect() {
+      socket = new WebSocket("ws://localhost:3000"); // TCP 대신 WebSocket
+      socket.onopen = () => {
+        document.getElementById("output").innerText = "서버 연결됨";
+      };
+      socket.onmessage = (event) => {
+        document.getElementById("output").innerText = "서버 응답: " + event.data;
+      };
+    }
+
+    function sendMessage() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send("안녕하세요 서버!");
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Big Number Transform</title>
+</head>
+<body>
+  <h3>원본 ↔ 변형 ↔ 복구</h3>
+  <input id="inputVal" type="text" value="239853845986982465982639485264569824659843754398523985729835" size="80">
+  <button onclick="transform()">변형</button>
+  <button onclick="restore()">복구</button>
+  
+  <p>변형값: <span id="transformed"></span></p>
+  <p>복구값: <span id="restored"></span></p>
+
+  <script>
+    let transformedValue = null;
+
+    function transform() {
+      const val = BigInt(document.getElementById("inputVal").value);
+      // 예시: 단순히 특정 수를 더하거나 곱하는 방식
+      transformedValue = val * 123456789n + 987654321n;
+      document.getElementById("transformed").textContent = transformedValue.toString();
+    }
+
+    function restore() {
+      if (transformedValue === null) return;
+      // 역연산: (변형값 - 987654321) / 123456789
+      const restored = (transformedValue - 987654321n) / 123456789n;
+      document.getElementById("restored").textContent = restored.toString();
+    }
+  </script>
+</body>
+</html>

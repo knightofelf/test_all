@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랜덤 데이터 실시간 생성 및 그라데이션 복원 시스템</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #111; color: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .btn-group { margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-gen { background: #4caf50; color: white; }
+        .btn-rand { background: #673ab7; color: white; } /* 랜덤 생성 전용 보라색 버튼 */
+        .btn-vis { background: #00bcd4; color: white; }
+        .btn-res { background: #e91e63; color: white; }
+        .btn-file { background: #ff9800; color: white; }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: #555 !important; color: #aaa; cursor: not-allowed; }
+        
+        .file-input-wrapper {
+            background: #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px dashed #666;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .file-input-wrapper input { cursor: pointer; }
+
+        .status-box { background: #222; padding: 15px; border-radius: 6px; margin-bottom: 15px; font-family: monospace; line-height: 1.6; }
+        .canvas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #222; padding: 15px; border-radius: 8px; text-align: center; }
+        canvas { background: #000; width: 400px; height: 400px; display: block; margin: 10px auto 0; image-rendering: pixelated; }
+        .highlight { color: #00bcd4; font-weight: bold; }
+        .success { color: #4caf50; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📂 랜덤 데이터 생성 추가 - 그라데이션 복원 시스템</h2>
+    <p>내 숫자 파일을 불러오거나, 시스템 내부에서 <b>완전 무작위 난수 데이터(Random Data)</b>를 실시간으로 직접 주입할 수 있습니다.</p>
+
+    <div class="status-box">
+        <div>• 로드된 파일 데이터 크기: <span id="dataSizeStatus" class="highlight">0 개 (대기 중)</span></div>
+        <div>• 캔버스 해상도 밀도: <span id="resolutionStatus" class="highlight">-</span></div>
+        <div>• 픽셀 복원 및 파일 검증: <span id="resStatus">-</span></div>
+    </div>
+
+    <!-- 1단계: 데이터 공급 (직접 파일 입력, 템플릿 다운로드, 또는 실시간 무작위 난수 주입) -->
+    <div class="btn-group">
+        <div class="file-input-wrapper">
+            <strong>📁 내 숫자 파일 불러오기:</strong>
+            <input type="file" id="fileLoader" accept=".txt" onchange="loadUserFile(this)">
+        </div>
+        <button class="btn-rand" onclick="injectRandomData(1048576)">🎲 즉시 랜덤 데이터 생성 및 주입 (1MB 스케일)</button>
+        <button class="btn-gen" onclick="generateAndDownloadDummy(1048576)">실험용 그라데이션 파일 다운로드</button>
+    </div>
+
+    <!-- 2단계: 시각화 및 원본 내보내기 -->
+    <div class="btn-group">
+        <button class="btn-vis" id="btnVis" onclick="visualizeGradient()" disabled>2. 그라데이션 시각화 맵 생성 🎨</button>
+        <button class="btn-file" id="btnDownloadOrig" onclick="downloadFile('original')" disabled>➔ 현재 로드된 원본 파일 다운로드 (.txt)</button>
+    </div>
+
+    <!-- 3단계: 복원 및 복원 파일 내보내기 -->
+    <div class="btn-group">
+        <button class="btn-res" id="btnRes" onclick="restoreFromGradient()" disabled>3. 그라데이션 픽셀 스캔 복원 🔍</button>
+        <button class="btn-file" id="btnDownloadRestored" onclick="downloadFile('restored')" disabled>➔ 복원된 데이터 파일 다운로드 (.txt)</button>
+    </div>
+
+    <div class="canvas-grid">
+        <div class="card">
+            <h3>데이터 밀도 전광판 (Pixelated Mapping)</h3>
+            <p style="font-size:12px; color:#aaa;">랜덤 데이터를 시각화하면 노이즈 형태로 표현되며, 복원 단계에서 단 1의 오차 없이 숫자가 역산됩니다.</p>
+            <canvas id="gradientCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let originalData = [];  // 실시간 로드된 원본 데이터 배열
+    let restoredData = [];  // 픽셀 스캔으로 복원한 데이터 배열
+
+    // 🎲 [새로 추가된 기능] 외부 파일 없이 메모리 상에 완전 무작위 랜덤 데이터 즉시 생성 및 공급
+    function injectRandomData(size) {
+        originalData = [];
+        restoredData = [];
+
+        // 초고속 난수 배열 연산을 위해 Uint8Array 활용
+        const buffer = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+            buffer[i] = Math.floor(Math.random() * 256); // 0 ~ 255 사이의 완전 무작위 랜덤 난수 생성
+        }
+        originalData = Array.from(buffer);
+
+        // 인터페이스 최적화 및 업그레이드 알림
+        updateStatusDisplay("실시간 생성된 랜덤 데이터");
+    }
+
+    // 사용자의 외부 숫자 텍스트 파일(.txt) 읽기 및 분석 파싱
+    function loadUserFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const parsed = text.trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n) && n >= 0);
+            
+            if (parsed.length === 0) {
+                alert("파일 내부에 유효한 숫자가 없습니다.");
+                return;
+            }
+
+            originalData = parsed;
+            restoredData = [];
+            
+            updateStatusDisplay("불러온 외부 텍스트 파일 데이터");
+        };
+        reader.readAsText(file);
+    }
+
+    // 실험용 정렬 파일 빌더 및 강제 보관 처리
+    function generateAndDownloadDummy(size) {
+        const buffer = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+            buffer[i] = Math.floor((i / size) * 256);
+        }
+        const textContent = buffer.join(', ');
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "sample_gradient_data.txt";
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // 통합 상태 제어 변경 감지 장치
+    function updateStatusDisplay(dataTypeLabel = "데이터") {
+        const size = originalData.length;
+        const side = Math.ceil(Math.sqrt(size));
+        
+        document.getElementById('dataSizeStatus').innerText = `${size.toLocaleString()} 개의 [${dataTypeLabel}] 로드 완료!`;
+        document.getElementById('resolutionStatus').innerText = `${side}px × ${side}px`;
+        document.getElementById('resStatus').innerText = "-";
+        
+        // 버튼 권한 상태 해제 인터록
+        document.getElementById('btnVis').disabled = false;
+        document.getElementById('btnDownloadOrig').disabled = true;
+        document.getElementById('btnRes').disabled = true;
+        document.getElementById('btnDownloadRestored').disabled = true;
+    }
+
+    // 2. 그라데이션 픽셀 인코딩 시각화
+    function visualizeGradient() {
+        if (originalData.length === 0) return;
+
+        const canvas = document.getElementById('gradientCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const side = Math.ceil(Math.sqrt(originalData.length));
+        
+        canvas.width = side;
+        canvas.height = side;
+
+        const imgData = ctx.createImageData(side, side);
+        const dataBuffer = imgData.data;
+
+        for (let i = 0; i < originalData.length; i++) {
+            const val = originalData[i] % 256; 
+            const pixelIndex = i * 4;
+
+            // R 채널에 데이터 핵심 키를 매핑 보존
+            dataBuffer[pixelIndex]     = val;                                         
+            dataBuffer[pixelIndex + 1] = Math.floor(Math.sin(val / 255 * Math.PI) * 150); 
+            dataBuffer[pixelIndex + 2] = 255 - Math.floor(val * 0.7);                 
+            dataBuffer[pixelIndex + 3] = 255;                                         
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        
+        document.getElementById('btnDownloadOrig').disabled = false;
+        document.getElementById('btnRes').disabled = false;
+    }
+
+    // 3. 화면의 픽셀 이미지에서 데이터 복구 역산 처리
+    function restoreFromGradient() {
+        const canvas = document.getElementById('gradientCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (canvas.width === 0 || originalData.length === 0) return;
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const dataBuffer = imgData.data;
+        restoredData = [];
+
+        const len = originalData.length;
+        for (let i = 0; i < len; i++) {
+            restoredData.push(dataBuffer[i * 4]); 
+        }
+
+        // 완벽 정밀 무결성 전수 조사
+        let isPerfect = true;
+        for (let i = 0; i < len; i++) {
+            if ((originalData[i] % 256) !== restoredData[i]) {
+                isPerfect = false;
+                break;
+            }
+        }
+
+        if (isPerfect) {
+            document.getElementById('resStatus').innerHTML = `<span class="success">정밀도 100% 무결성 데이터 파일 복원 완료! ✅</span>`;
+            document.getElementById('btnDownloadRestored').disabled = false;
+        } else {
+            document.getElementById('resStatus').innerText = "복원 프로세스 정밀 검증 오류 ❌";
+        }
+    }
+
+    // 대용량 청크 어레이 텍스트 다운로드 파일 처리부
+    function downloadFile(type) {
+        const targetArray = (type === 'original') ? originalData : restoredData;
+        const filename = (type === 'original') ? 'source_input_data.txt' : 'decoded_restored_data.txt';
+        
+        if (targetArray.length === 0) return;
+
+        const textContent = targetArray.join(', ');
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url); 
+    }
+</script>
+
+</body>
+</html>

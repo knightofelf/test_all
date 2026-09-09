@@ -1,0 +1,17 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>RSA Demo</title>
+</head>
+<body>
+  <h2>RSA 암호화 데모</h2>
+  <textarea id="message" placeholder="메시지를 입력하세요"></textarea><br>
+  <button onclick="encryptMessage()">암호화</button>
+  <button onclick="decryptMessage()">복호화</button>
+  
+  <p><strong>암호문:</strong> <span id="cipher"></span></p>
+  <p><strong>복호화 결과:</strong> <span id="plain"></span></p>
+
+  <script src="rsa.js"></script>
+</body>
+</html>

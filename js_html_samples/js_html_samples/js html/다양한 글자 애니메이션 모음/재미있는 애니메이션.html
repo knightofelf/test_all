@@ -1,0 +1,38 @@
+<style>
+  @keyframes shake {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    50% { transform: rotate(-5deg); }
+    75% { transform: rotate(5deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .shake span {
+    display: inline-block;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .shake span.show {
+    opacity: 1;
+    animation: shake 0.5s;
+  }
+</style>
+
+<h1 class="shake">재미있는 애니메이션</h1>
+
+<script>
+  const shakeText = document.querySelector(".shake");
+  const chars2 = shakeText.textContent.split("");
+  shakeText.textContent = "";
+  chars2.forEach(c => {
+    const span = document.createElement("span");
+    span.textContent = c;
+    shakeText.appendChild(span);
+  });
+
+  let k = 0;
+  setInterval(() => {
+    const span = shakeText.querySelectorAll("span")[k];
+    if (span) span.classList.add("show");
+    k++;
+  }, 200);
+</script>

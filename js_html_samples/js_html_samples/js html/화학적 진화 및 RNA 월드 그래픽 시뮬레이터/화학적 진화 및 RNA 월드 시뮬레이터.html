@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>화학적 진화 및 RNA 월드 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #1e1e24;
+            color: #ffffff;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #4dabf7; margin-bottom: 5px; }
+        p { color: #adb5bd; margin-top: 0; font-size: 14px; }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .panel {
+            background-color: #2b2c34;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .status-item {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .badge-hcn { background-color: #f03e3e; }
+        .badge-a { background-color: #2b8a3e; }
+        .badge-u { background-color: #e67e22; }
+        .badge-g { background-color: #9c36b5; }
+        .badge-c { background-color: #1098ad; }
+        
+        .btn {
+            background-color: #339af0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #228be6; }
+        .btn:disabled { background-color: #868e96; cursor: not-allowed; }
+        
+        #log-box {
+            height: 300px;
+            background-color: #121214;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ced4da;
+        }
+        .log-reaction { color: #ffd43b; }
+        .log-polymer { color: #63e6be; }
+        .log-replicate { color: #da77f2; }
+        
+        #chain-list {
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .chain-item {
+            background-color: #3b3d46;
+            padding: 4px 8px;
+            margin: 3px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>화학적 진화: 원시 수프 시뮬레이터</h1>
+    <p>영상 속 장홍제 교수의 설명처럼, 무기물에서 유기물질과 최초의 유전사슬이 탄생하는 과정입니다.</p>
+
+    <div class="container">
+        <!-- 대시보드 패널 -->
+        <div class="panel">
+            <h2>원시 수프 상태</h2>
+            <div class="status-item">
+                <span class="badge badge-hcn">HCN 원료</span> <span id="count-hcn">1000</span> 개
+            </div>
+            <div class="status-item">
+                <strong>합성된 자유 염기 목록:</strong>
+                <div style="margin-top: 8px;">
+                    <span class="badge badge-a">A</span> <span id="count-a">0</span>개 |
+                    <span class="badge badge-u">U</span> <span id="count-u">0</span>개 |
+                    <span class="badge badge-g">G</span> <span id="count-g">0</span>개 |
+                    <span class="badge badge-c">C</span> <span id="count-c">0</span>개
+                </div>
+            </div>
+            <div class="status-item">
+                <strong>탄생한 RNA 사슬 수:</strong> <span id="count-chains" style="color:#63e6be; font-weight:bold;">0</span> 개
+                <div id="chain-list"></div>
+            </div>
+            <button id="start-btn" class="btn">시뮬레이션 시작 (시간 가속)</button>
+        </div>
+
+        <!-- 실시간 기록 패널 -->
+        <div class="panel">
+            <h2>분자 반응 실시간 로그 (세대별)</h2>
+            <div id="log-box">원시 지구에 에너지가 공급되기를 기다리는 중...</div>
+        </div>
+    </div>
+
+    <script>
+        // 초기 상태 데이터
+        let state = {
+            epoch: 0,
+            hcn: 500,
+            bases: { A: 0, U: 0, G: 0, C: 0 },
+            rnaChains: []
+        };
+
+        // 매커니즘별 확률 설정
+        const rates = {
+            create: { A: 0.15, U: 0.15, G: 0.10, C: 0.10 }, // 염기 합성 확률
+            polymerize: 0.35,                               // 중합(조립) 확률
+            replicate: 0.25                                 // 자가 복제 확률
+        };
+
+        let intervalId = null;
+
+        // UI 업데이트 함수
+        function updateUI() {
+            document.getElementById('count-hcn').innerText = state.hcn;
+            document.getElementById('count-a').innerText = state.bases.A;
+            document.getElementById('count-u').innerText = state.bases.U;
+            document.getElementById('count-g').innerText = state.bases.G;
+            document.getElementById('count-c').innerText = state.bases.C;
+            document.getElementById('count-chains').innerText = state.rnaChains.length;
+
+            const chainListHtml = state.rnaChains.slice(-5).reverse().map(chain => 
+                `<div class="chain-item">🧬 ${chain}</div>`
+            ).join('');
+            document.getElementById('chain-list').innerHTML = chainListHtml;
+        }
+
+        // 로그 기록 함수
+        function addLog(text, className = '') {
+            const logBox = document.getElementById('log-box');
+            const logItem = document.createElement('div');
+            if(className) logItem.className = className;
+            logItem.innerText = text;
+            logBox.appendChild(logItem);
+            logBox.scrollTop = logBox.scrollHeight; // 스크롤을 항상 아래로
+        }
+
+        // 1단계를 수행하는 함수 (1번의 세대 흐름)
+        function runSimulationStep() {
+            state.epoch++;
+            addLog(`\n[세대 ${state.epoch}] 원시 바다에 에너지가 순환합니다.`);
+
+            // 1단계: HCN 분해 및 염기 합성
+            if (state.hcn > 10) {
+                for (let base in rates.create) {
+                    if (Math.random() < rates.create[base]) {
+                        let amount = Math.floor(Math.random() * 6) + 5; // 5~10개 합성
+                        if (state.hcn >= amount * 2) {
+                            state.hcn -= amount * 2;
+                            state.bases[base] += amount;
+                            addLog(`⚡ [화학 반응] HCN이 분해되어 염기 '${base}'가 ${amount}개 합성되었습니다.`, 'log-reaction');
+                        }
+                    }
+                }
+            }
+
+            // 2단계: 자유 염기들의 자기 조직화 (RNA 중합 반응)
+            // 사용 가능한 염기 종류 필터링
+            let availableBases = Object.keys(state.bases).filter(b => state.bases[b] > 0);
+            if (availableBases.length >= 2 && Math.random() < rates.polymerize) {
+                let chainLength = Math.floor(Math.random() * 4) + 2; // 길이 2~5의 사슬
+                let newChain = "";
+
+                for (let i = 0; i < chainLength; i++) {
+                    let activeBases = Object.keys(state.bases).filter(b => state.bases[b] > 0);
+                    if (activeBases.length === 0) break;
+                    
+                    // 무작위 선택 후 소모
+                    let chosen = activeBases[Math.floor(Math.random() * activeBases.length)];
+                    state.bases[chosen]--;
+                    newChain += chosen;
+                }
+
+                if (newChain.length >= 2) {
+                    state.rnaChains.push(newChain);
+                    addLog(`🔗 [중합 반응] 염기들이 무작위로 결합해 유전 사슬 [${newChain}]이(가) 조립되었습니다!`, 'log-polymer');
+                }
+            }
+
+            // 3단계: RNA 자가 복제 (리보자임 효과)
+            if (state.rnaChains.length > 0) {
+                // 기존 사슬 중 무작위 하나를 선택해 복제 시도
+                let targetChain = state.rnaChains[Math.floor(Math.random() * state.rnaChains.length)];
+                
+                // 필요한 재료 계산
+                let needed = {};
+                for (let char of targetChain) {
+                    needed[char] = (needed[char] || 0) + 1;
+                }
+
+                // 재료가 원시 수프에 충분한지 검증
+                let canReplicate = true;
+                for (let char in needed) {
+                    if ((state.bases[char] || 0) < needed[char]) {
+                        canReplicate = false;
+                        break;
+                    }
+                }
+
+                // 조건이 맞고 복제 확률을 통과한 경우
+                if (canReplicate && Math.random() < rates.replicate) {
+                    for (let char in needed) {
+                        state.bases[char] -= needed[char];
+                    }
+                    state.rnaChains.push(targetChain);
+                    addLog(`✨ [자가 복제] RNA 사슬 [${targetChain}]이 리보자임 촉매 효과로 스스로를 복제했습니다!`, 'log-replicate');
+                }
+            }
+
+            updateUI();
+
+            // 원료가 모두 소모되면 정지
+            if (state.hcn <= 10 && Object.values(state.bases).reduce((a,b)=>a+b, 0) === 0) {
+                clearInterval(intervalId);
+                addLog("\n[시뮬레이션 종료] 원시 원료와 자유 염기가 모두 고갈되어 평형 상태에 도달했습니다.");
+                document.getElementById('start-btn').innerText = "시뮬레이션 완료";
+            }
+        }
+
+        // 버튼 이벤트 리스너
+        document.getElementById('start-btn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerText = "시뮬레이션 진행 중...";
+            document.getElementById('log-box').innerHTML = "[시스템] 에너지가 공급되어 분자 활동이 가속됩니다.<br>";
+            
+            // 600ms(0.6초)마다 1세대씩 진행
+            intervalId = setInterval(runSimulationStep, 600);
+        });
+    </script>
+</body>
+</html>

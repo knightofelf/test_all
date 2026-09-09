@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>N 타이밍 연산 및 256비트 동기화 가속기</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.5rem; text-shadow: 0 0 10px #00ffcc; }
+        .info { color: #8892b0; font-size: 0.85rem; margin-bottom: 20px; }
+        .bus-container {
+            background: #111b2d;
+            border: 2px solid #00ffcc;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+            width: 700px;
+        }
+        .timing-row {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .label { width: 110px; font-weight: bold; font-size: 0.9rem; }
+        .bit-display {
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            color: #495670;
+            transition: color 0.05s;
+            word-break: break-all;
+        }
+        .active-bit { color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        hr { border: 0; border-top: 1px dashed #00ffcc; margin: 15px 0; opacity: 0.3; }
+        .total-bus { color: #ff007f; }
+        .total-bus .active-bit { color: #ff007f; text-shadow: 0 0 5px #ff007f; }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>N-Timing Operation Simulator</h1>
+    <div class="info">60Hz Clock Synchronization (CRT Response 0ms Mode)</div>
+
+    <div class="bus-container">
+        <!-- 64비트 타이밍 채널 4개 -->
+        <div class="timing-row">
+            <div class="label" style="color: #64ffda;">64-Bit T1:</div>
+            <div id="t1" class="bit-display"></div>
+        </div>
+        <div class="timing-row">
+            <div class="label" style="color: #30bced;">64-Bit T2:</div>
+            <div id="t2" class="bit-display"></div>
+        </div>
+        <div class="timing-row">
+            <div class="label" style="color: #fca311;">64-Bit T3:</div>
+            <div id="t3" class="bit-display"></div>
+        </div>
+        <div class="timing-row">
+            <div class="label" style="color: #ae2012;">64-Bit T4:</div>
+            <div id="t4" class="bit-display"></div>
+        </div>
+
+        <hr>
+
+        <!-- 256비트 통합 버스 -->
+        <div class="timing-row total-bus">
+            <div class="label" style="color: #ff007f;">256-Bit BUS:</div>
+            <div id="totalBus" class="bit-display"></div>
+        </div>
+
+        <div class="stats">
+            <div>CLOCK STEP: <span id="clockStep">0</span></div>
+            <div>REFRESH RATE: 60 Hz (16.67ms)</div>
+            <div>GPU OCCUPANCY: 0% (HDC 0 Memory)</div>
+        </div>
+    </div>
+
+<script>
+    // 1. 하드웨어 스펙 설정 (각 채널 64비트, 총 256비트)
+    const BIT_SIZE = 64;
+    const TOTAL_SIZE = 256;
+
+    // 2. DOM 캐싱 (HDC 0 메모리 지향)
+    const domChannels = [
+        document.getElementById('t1'),
+        document.getElementById('t2'),
+        document.getElementById('t3'),
+        document.getElementById('t4')
+    ];
+    const domTotalBus = document.getElementById('totalBus');
+    const domClockStep = document.getElementById('clockStep');
+
+    // 3. 상태 변수 및 타이밍 오토마타 룩업 테이블
+    let currentStep = 0;
+    
+    // [보안 우회] 문자열을 split하여 [0, 1, 2, 3] 정수 배열을 안전하게 생성
+    const timingMap = "0,1,2,3".split(",").map(Number); 
+
+    // 4. 무작위 비트 생성기 (0과 1 배열 생성)
+    function generateRandomBits(size) {
+        let bits = new Array();
+        for(let i=0; i<size; i++) {
+            bits.push(Math.random() > 0.5 ? '1' : '0');
+        }
+        return bits;
+    }
+
+    // 5. 고속 렌더링 및 연산 루프 (60Hz 동기화)
+    function runHardwareClock() {
+        // 분기문(if) 없이 비트 AND 연산(& 3)으로 초고속 타이밍 스위칭 (0->1->2->3 순환)
+        const activeChannelIdx = timingMap[currentStep & 3];
+        
+        // 각 채널의 실시간 64비트 데이터 생성
+        const c1 = generateRandomBits(BIT_SIZE);
+        const c2 = generateRandomBits(BIT_SIZE);
+        const c3 = generateRandomBits(BIT_SIZE);
+        const c4 = generateRandomBits(BIT_SIZE);
+        
+        // 4개의 64비트 채널을 직렬 합성하여 256비트 대역폭 형성 (64 * 4 = 256)
+        const combinedBus = c1.concat(c2, c3, c4);
+        const channels = [c1, c2, c3, c4];
+
+        // UI 업데이트
+        for(let ch=0; ch<4; ch++) {
+            if(ch === activeChannelIdx) {
+                domChannels[ch].innerHTML = channels[ch].map(b => `<span class="active-bit">${b}</span>`).join('');
+            } else {
+                domChannels[ch].innerText = channels[ch].join('');
+            }
+        }
+
+        // 256비트 전체 버스 내에서 현재 타이밍 활성화 버스트 구역 강조
+        const activeStart = activeChannelIdx * BIT_SIZE;
+        const activeEnd = activeStart + BIT_SIZE;
+        
+        let busHtml = '';
+        for(let i=0; i<TOTAL_SIZE; i++) {
+            if(i >= activeStart && i < activeEnd) {
+                busHtml += `<span class="active-bit">${combinedBus[i]}</span>`;
+            } else {
+                busHtml += combinedBus[i];
+            }
+        }
+        domTotalBus.innerHTML = busHtml;
+        domClockStep.innerText = currentStep;
+
+        // 클럭 카운트 증가
+        currentStep++;
+
+        // 60Hz 시스템 클럭 동기화
+        requestAnimationFrame(runHardwareClock);
+    }
+
+    // 시스템 가동
+    requestAnimationFrame(runHardwareClock);
+</script>
+</body>
+</html>

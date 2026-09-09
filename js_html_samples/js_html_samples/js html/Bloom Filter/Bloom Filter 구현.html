@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Bloom Filter 예제</title>
+</head>
+<body>
+  <h2>Bloom Filter 구현</h2>
+  <input id="inputValue" placeholder="값 입력">
+  <button onclick="addValue()">추가</button>
+  <button onclick="checkValue()">존재 확인</button>
+  <pre id="output"></pre>
+
+  <script>
+    class BloomFilter {
+      constructor(size = 1000, hashCount = 3) {
+        this.size = size;
+        this.hashCount = hashCount;
+        this.bits = new Array(size).fill(0);
+      }
+
+      // 간단한 해시 함수들
+      hash1(value) {
+        let hash = 0;
+        for (let char of value) hash = (hash * 31 + char.charCodeAt(0)) % this.size;
+        return hash;
+      }
+
+      hash2(value) {
+        let hash = 0;
+        for (let char of value) hash = (hash * 17 + char.charCodeAt(0)) % this.size;
+        return hash;
+      }
+
+      hash3(value) {
+        let hash = 0;
+        for (let char of value) hash = (hash * 13 + char.charCodeAt(0)) % this.size;
+        return hash;
+      }
+
+      add(value) {
+        const hashes = [this.hash1(value), this.hash2(value), this.hash3(value)];
+        hashes.forEach(h => this.bits[h] = 1);
+      }
+
+      contains(value) {
+        const hashes = [this.hash1(value), this.hash2(value), this.hash3(value)];
+        return hashes.every(h => this.bits[h] === 1);
+      }
+
+      efficiency() {
+        const setBits = this.bits.filter(b => b === 1).length;
+        const usage = (setBits / this.size) * 100;
+        return `비트 사용률: ${usage.toFixed(2)}%`;
+      }
+    }
+
+    const bloom = new BloomFilter();
+
+    function addValue() {
+      const val = document.getElementById('inputValue').value;
+      bloom.add(val);
+      document.getElementById('output').textContent = `${val} 추가됨\n${bloom.efficiency()}`;
+    }
+
+    function checkValue() {
+      const val = document.getElementById('inputValue').value;
+      const result = bloom.contains(val) ? "존재할 가능성이 높음 ✅" : "존재하지 않음 ❌";
+      document.getElementById('output').textContent = `${val}: ${result}\n${bloom.efficiency()}`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>비트열 출력</title>
+<script>
+function processBitsChunk(bits) {
+  let result = [];
+  let current = "";
+
+  // 1 앞에서 줄바꿈
+  for (let i = 0; i < bits.length; i++) {
+    const bit = bits[i];
+    if (bit === "1") {
+      if (current) {
+        result.push(current);
+        current = "";
+      }
+      current = "1";
+    } else {
+      current += "0";
+    }
+  }
+  if (current) result.push(current);
+
+  // 0의 최대 길이 찾기
+  let maxZeros = Math.max(...result.map(seg => seg.length - 1));
+
+  // 1 뒤에 공백을 넣어 0들을 같은 열에 맞춤
+  let formatted = result.map(seg => {
+    let zeros = seg.slice(1);
+    return "1" + " ".repeat(maxZeros - zeros.length) + zeros;
+  });
+
+  return formatted.join("\n");
+}
+
+function processBits() {
+  const bits = document.getElementById("inputBits").value.trim();
+  const chunkSize = 1024; // 1KB 단위
+  let output = [];
+
+  for (let i = 0; i < bits.length; i += chunkSize) {
+    const chunk = bits.slice(i, i + chunkSize);
+    output.push(processBitsChunk(chunk));
+  }
+
+  document.getElementById("output").textContent =
+    bits + "\n" + output.join("\n--- chunk ---\n");
+}
+</script>
+</head>
+<body>
+  <h3>비트열 출력</h3>
+  <textarea id="inputBits" rows="10" cols="80"></textarea><br>
+  <button onclick="processBits()">처리</button>
+  <div id="output"></div>
+</body>
+</html>

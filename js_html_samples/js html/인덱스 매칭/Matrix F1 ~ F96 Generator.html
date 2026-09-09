@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Matrix F1 ~ F96 Generator</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            font-size: 20px;
+            color: #333;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .container {
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Matrix Generator (F1 ~ F96)</h1>
+    <button onclick="downloadTxt()">TXT 파일 다운로드</button>
+    <div id="output" class="container"></div>
+
+    <script>
+        // 4개 요소의 모든 순열(24가지)을 구하는 헬퍼 함수
+        function getPermutations(arr) {
+            let result = [];
+            function permute(current, remaining) {
+                if (remaining.length === 0) {
+                    result.push(current);
+                    return;
+                }
+                for (let i = 0; i < remaining.length; i++) {
+                    permute([...current, remaining[i]], remaining.filter((_, idx) => idx !== i));
+                }
+            }
+            permute([], arr);
+            return result;
+        }
+
+        // 전체 데이터 생성 함수
+        function generateData() {
+            let outputText = "";
+            let fIndex = 1;
+
+            // 1. 11xx부터 44xx까지 총 16개의 기본 숫자 블록 생성
+            for (let i = 1; i <= 4; i++) {
+                for (let j = 1; j <= 4; j++) {
+                    
+                    // 각 블록의 기본 4개 행 세트 정의
+                    let row1 = `${i}${j}11 ${i}${j}12 ${i}${j}13 ${i}${j}14`;
+                    let row2 = `${i}${j}21 ${i}${j}22 ${i}${j}23 ${i}${j}24`;
+                    let row3 = `${i}${j}31 ${i}${j}32 ${i}${j}33 ${i}${j}34`;
+                    let row4 = `${i}${j}41 ${i}${j}42 ${i}${j}43 ${i}${j}44`;
+                    
+                    let baseRows = [row1, row2, row3, row4];
+                    
+                    // 4개 행으로 만들 수 있는 모든 순열 (4! = 24가지)
+                    let allPermutations = getPermutations(baseRows);
+                    
+                    // 중복 순환 방지 규칙 적용 (24 / 4 = 6) -> 6개의 고유 순열 선택
+                    // 인덱스 간격을 뛰어넘어 중복 조합 구성을 고르게 분배
+                    for (let k = 0; k < 6; k++) {
+                        let selectedPermutation = allPermutations[k * 4]; 
+                        
+                        outputText += `F${fIndex}\n`;
+                        outputText += selectedPermutation.join("\n") + "\n\n";
+                        fIndex++;
+                    }
+                }
+            }
+            return outputText.trim();
+        }
+
+        // 화면 출력 실행
+        const finalData = generateData();
+        document.getElementById("output").textContent = finalData;
+
+        // 텍스트 파일 다운로드 기능
+        function downloadTxt() {
+            const blob = new Blob([finalData], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "matrix_F1_F96.txt");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

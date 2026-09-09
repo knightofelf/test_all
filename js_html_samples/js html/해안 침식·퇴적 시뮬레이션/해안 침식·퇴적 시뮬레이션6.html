@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>해안 침식·퇴적 시뮬레이션</title>
+  <style>
+    body { font-family: sans-serif; }
+    canvas { border: 1px solid #333; background: #cceeff; display:block; margin:10px 0; }
+    button, input { margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <h2>해안 침식·퇴적 시뮬레이션 (파도 공식)</h2>
+  <input type="number" id="timeInput" value="10" min="1" style="width:60px;">
+  <button onclick="advanceMultiple()">시간 이동</button>
+  <canvas id="coast" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("coast");
+    const ctx = canvas.getContext("2d");
+
+    let timeStep = 0; // 시간 단계
+    let waveAmplitude = 20; // 파도 높이
+    let waveLength = 100;   // 파도 길이
+    let waveSpeed = 0.1;    // 파도 속도
+
+    // 해안선 높이를 x축에 따라 배열로 저장
+    let coastLine = [];
+    for (let x = 0; x < canvas.width; x += 10) {
+      coastLine.push(300); // 초기 해안선 y값
+    }
+
+    // 모래 입자 초기화
+    let particles = [];
+    for (let i = 0; i < 300; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: 280 + Math.random() * 20,
+        color: "sandybrown"
+      });
+    }
+
+    function drawCoast() {
+      ctx.fillStyle = "green";
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      for (let i = 0; i < coastLine.length; i++) {
+        ctx.lineTo(i * 10, coastLine[i]);
+      }
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 3, 3);
+      });
+    }
+
+    function updateParticles() {
+      particles.forEach(p => {
+        // 파도 공식 적용: 사인 함수로 y 이동
+        let wave = Math.sin((p.x / waveLength) + timeStep * waveSpeed) * waveAmplitude;
+        p.y += wave * 0.05; // 파도 영향
+
+        // 침식: 해안선 아래로 내려가면 바다로 사라짐
+        let coastIndex = Math.floor(p.x / 10);
+        if (coastIndex >= 0 && coastIndex < coastLine.length) {
+          if (p.y > coastLine[coastIndex]) {
+            p.y = coastLine[coastIndex] - Math.random() * 50;
+            p.x = Math.random() * canvas.width;
+          }
+        }
+
+        // 퇴적: 일정 확률로 해안선 근처에 고정
+        if (Math.random() < 0.002) {
+          if (coastIndex >= 0 && coastIndex < coastLine.length) {
+            p.y = coastLine[coastIndex] - 2;
+            p.color = "peru";
+          }
+        }
+      });
+    }
+
+    // 시간 버튼: 해안선 변형
+    function advanceTime() {
+      timeStep++;
+      for (let i = 0; i < coastLine.length; i++) {
+        // 파도 공식에 따라 해안선도 흔들림
+        coastLine[i] = 300 + Math.sin((i * 10 / waveLength) + timeStep * waveSpeed) * waveAmplitude;
+      }
+    }
+
+    // 여러 단계 시간 이동
+    function advanceMultiple() {
+      const steps = parseInt(document.getElementById("timeInput").value);
+      for (let i = 0; i < steps; i++) {
+        advanceTime();
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCoast();
+      updateParticles();
+      drawParticles();
+
+      ctx.fillStyle = "black";
+      ctx.fillText("시간 단계: " + timeStep, 10, 20);
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

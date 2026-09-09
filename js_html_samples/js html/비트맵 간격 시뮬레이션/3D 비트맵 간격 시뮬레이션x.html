@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>3D 비트맵 간격 시뮬레이션</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #info { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: white; 
+            font-family: sans-serif;
+            background: rgba(0,0,0,0.5);
+            padding: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">마우스 드래그: 회전 | 휠: 확대/축소</div>
+
+    <!-- 안정적으로 동작하는 Three.js + OrbitControls CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // 1. 대소문자 오류 수정 (three -> THREE)
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x202020);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // 그리드 중앙을 바라보도록 카메라 초기 위치 조정
+        camera.position.set(20, 20, 40); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement); // appendchild -> appendChild
+
+        // OrbitControls 대소문자 수정 및 target 설정
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(20, 20, 0);
+        controls.update();
+
+        // 픽셀 크기와 간격
+        const pixelSize = 1;
+        const gap = 1;
+        const rows = 20;
+        const cols = 20;
+
+        // 입체감을 위해 조명의 영향을 받는 Standard 재질로 변경
+        const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+        
+        // 20x20 큐브 생성 및 배치
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const geometry = new THREE.BoxGeometry(pixelSize, pixelSize, pixelSize);
+                const cube = new THREE.Mesh(geometry, material);
+                
+                cube.position.set(
+                    x * (pixelSize + gap),
+                    y * (pixelSize + gap),
+                    0
+                );
+                scene.add(cube);
+            }
+        }
+
+        // 조명 추가 (Standard 재질 표현용)
+        const ambientLight = new THREE.AmbientLight(0x666666);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(20, 40, 30);
+        scene.add(dirLight);
+
+        // 애니메이션 루프
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Smooth 조작을 위해 추가
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 창 크기 변경 대응 (addeventlistener -> addEventListener)
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

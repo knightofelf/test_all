@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>16x16 Byte Image Mirror</title>
+<style>
+  canvas { border: 1px solid black; }
+  button { margin: 5px; }
+</style>
+</head>
+<body>
+<h3>16x16 랜덤 바이트 이미지</h3>
+<canvas id="canvas" width="160" height="160"></canvas><br>
+<button onclick="drawOriginal()">원본</button>
+<button onclick="drawMirror()">대칭</button>
+<button onclick="drawInverse()">역함수</button>
+
+<script>
+const size = 16;
+let data = [];
+
+// 랜덤 바이트 배열 생성 (16줄 × 2바이트 = 32바이트)
+for (let i = 0; i < size; i++) {
+  let byte1 = Math.floor(Math.random() * 256);
+  let byte2 = Math.floor(Math.random() * 256);
+  data.push([byte1, byte2]);
+}
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+// 픽셀 그리기 함수
+function drawImage(arr) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < size; y++) {
+    let [b1, b2] = arr[y];
+    let bits = (b1 << 8) | b2; // 16비트 합치기
+    for (let x = 0; x < size; x++) {
+      let bit = (bits >> (15 - x)) & 1;
+      ctx.fillStyle = bit ? "black" : "white";
+      ctx.fillRect(x * 10, y * 10, 10, 10);
+    }
+  }
+}
+
+// 원본
+function drawOriginal() {
+  drawImage(data);
+}
+
+// 대칭 (좌우 반전)
+function drawMirror() {
+  let mirrored = data.map(([b1, b2]) => [b2, b1]);
+  drawImage(mirrored);
+}
+
+// 역함수 (대칭을 한 번 더 → 원본 복원)
+function drawInverse() {
+  drawOriginal();
+}
+
+// 최초 실행: 원본 표시
+drawOriginal();
+</script>
+</body>
+</html>

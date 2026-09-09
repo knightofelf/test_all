@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>대용량 Bloom Filter 확장</title>
+</head>
+<body>
+  <h2>Bloom Filter (N-Gram & Delete 버전)</h2>
+  <input id="inputValue" placeholder="값 입력">
+  <button onclick="addValue()">추가</button>
+  <button onclick="checkValue()">존재 확인</button>
+  <button onclick="addNGram()">N-Gram 추가</button>
+  <button onclick="addDeleteVersion()">Delete 버전 추가</button>
+  <button onclick="insertMany()">100만 개 삽입</button>
+  <pre id="output"></pre>
+
+  <script>
+    class BloomFilter {
+      constructor(size = 2_000_000, hashCount = 7) {
+        this.size = size;
+        this.hashCount = hashCount;
+        this.bits = new Uint8Array(size); // 대용량에서도 효율적
+      }
+
+      hash(value, seed) {
+        let hash = 0;
+        for (let char of value) {
+          hash = (hash * seed + char.charCodeAt(0)) % this.size;
+        }
+        return hash;
+      }
+
+      add(value) {
+        for (let i = 1; i <= this.hashCount; i++) {
+          const h = this.hash(value, 17 + i * 2);
+          this.bits[h] = 1;
+        }
+      }
+
+      contains(value) {
+        for (let i = 1; i <= this.hashCount; i++) {
+          const h = this.hash(value, 17 + i * 2);
+          if (this.bits[h] === 0) return false;
+        }
+        return true; // false positive 가능성 있음
+      }
+
+      efficiency() {
+        let setBits = 0;
+        for (let b of this.bits) if (b === 1) setBits++;
+        const usage = (setBits / this.size) * 100;
+        return `비트 사용률: ${usage.toFixed(2)}%`;
+      }
+    }
+
+    const bloom = new BloomFilter();
+
+    function addValue() {
+      const val = document.getElementById('inputValue').value;
+      bloom.add(val);
+      document.getElementById('output').textContent = `${val} 추가됨\n${bloom.efficiency()}`;
+    }
+
+    function checkValue() {
+      const val = document.getElementById('inputValue').value;
+      const result = bloom.contains(val) ? "존재할 가능성이 높음 ✅" : "존재하지 않음 ❌";
+      document.getElementById('output').textContent = `${val}: ${result}\n${bloom.efficiency()}`;
+    }
+
+    // N-Gram 추가
+    function addNGram() {
+      const val = document.getElementById('inputValue').value;
+      const n = 3; // 3-gram
+      for (let i = 0; i <= val.length - n; i++) {
+        bloom.add(val.slice(i, i + n));
+      }
+      document.getElementById('output').textContent = `${val}의 N-Gram 추가 완료\n${bloom.efficiency()}`;
+    }
+
+    // Delete 버전 추가
+    function addDeleteVersion() {
+      const val = document.getElementById('inputValue').value;
+      for (let i = 0; i < val.length; i++) {
+        const deleted = val.slice(0, i) + val.slice(i + 1);
+        bloom.add(deleted);
+      }
+      document.getElementById('output').textContent = `${val}의 Delete 버전 추가 완료\n${bloom.efficiency()}`;
+    }
+
+    // 대량 삽입
+    function insertMany() {
+      for (let i = 0; i < 1_000_000; i++) {
+        bloom.add("item" + i);
+      }
+      document.getElementById('output').textContent = "100만 개 삽입 완료!\n" + bloom.efficiency();
+    }
+  </script>
+</body>
+</html>

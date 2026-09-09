@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Color Space Windows Logo</title>
+  <style>
+    .logo {
+      display: grid;
+      grid-template-columns: 100px 100px;
+      grid-template-rows: 100px 100px;
+      gap: 5px;
+    }
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h3>윈도우 로고 색차 좌표계 매핑</h3>
+  <div class="logo">
+    <div class="cell" style="background:#ff0000;">xyY</div>
+    <div class="cell" style="background:#00ff00;">Lab</div>
+    <div class="cell" style="background:#0000ff;">Luv</div>
+    <div class="cell" style="background:#ffff00;">HSV</div>
+  </div>
+</body>
+</html>

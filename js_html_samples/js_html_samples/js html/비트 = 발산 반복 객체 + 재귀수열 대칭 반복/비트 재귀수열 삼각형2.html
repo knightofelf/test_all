@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비트 재귀수열 삼각형</title>
+  <style>
+    body { font-family: monospace; background: #f4f4f4; padding: 20px; }
+    .triangle { line-height: 1.6; }
+    .level { margin: 10px 0; }
+    .bit { display: inline-block; margin: 0 8px; }
+    .reduced { color: #007acc; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>비트 재귀수열 삼각형</h2>
+  <label>최대 숫자 입력: <input type="number" id="maxNum" value="15"></label>
+  <button onclick="generateTriangle()">생성</button>
+
+  <div id="output" class="triangle"></div>
+
+  <script>
+    // 접두사 제거 함수
+    function removePrefix(bits) {
+      if (bits.length <= 1) return bits;
+      // 앞자리 동일한 접두사 제거
+      let prefix = bits[0];
+      for (let i = 1; i < bits.length; i++) {
+        if (bits[i] !== prefix) {
+          return bits.slice(i); // 접두사 제거 후 남은 부분
+        }
+      }
+      return bits.slice(-1); // 전부 같으면 마지막만 남김
+    }
+
+    function generateTriangle() {
+      const maxNum = parseInt(document.getElementById("maxNum").value, 10);
+      const output = document.getElementById("output");
+      output.innerHTML = "";
+
+      let start = 1;
+      while (start <= maxNum) {
+        const end = Math.min(start * 2 - 1, maxNum);
+        const div = document.createElement("div");
+        div.className = "level";
+
+        for (let i = start; i <= end; i++) {
+          const bit = i.toString(2);
+          const reduced = removePrefix(bit);
+
+          const span = document.createElement("span");
+          span.className = "bit";
+          span.innerHTML = `${bit} <span class="reduced">(${reduced})</span>`;
+          div.appendChild(span);
+        }
+
+        output.appendChild(div);
+        start *= 2;
+      }
+    }
+
+    // 초기 실행
+    generateTriangle();
+  </script>
+</body>
+</html>

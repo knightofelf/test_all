@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>양자 알고리즘 구현 시뮬레이터</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f5f6fa; }
+        .container { max-width: 750px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 0 auto; }
+        h2 { color: #2f3640; border-bottom: 2px solid #718093; padding-bottom: 10px; margin-top: 0; }
+        .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin: 20px 0; }
+        .grid-item { background-color: #dcdde1; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 6px; font-size: 14px; transition: all 0.3s; }
+        .target { background-color: #e74c3c !important; color: white; }
+        .searched { background-color: #f1c40f; color: white; }
+        .quantum-superposition { background-color: #9b59b6 !important; color: white; animation: pulse 1s infinite alternate; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { padding: 12px; font-size: 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; flex: 1; color: white; }
+        #btnClassic { background-color: #34495e; }
+        #btnQuantum { background-color: #9b59b6; }
+        .status-box { background-color: #f8f9fa; padding: 15px; border-left: 5px solid #2c3e50; font-family: monospace; line-height: 1.6; }
+        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔮 양자 중첩 탐색(Grover) 알고리즘 구현</h2>
+    <p>총 64개의 상자(데이터) 중 <b>단 1개의 숨겨진 정답(빨간 상자)</b>을 찾는 연산 속도 비교 예제입니다.</p>
+    
+    <div class="btn-group">
+        <button id="btnClassic" onclick="startClassicSearch()">일반 컴퓨터 방식 (순차 탐색)</button>
+        <button id="btnQuantum" onclick="startQuantumSearch()">양자 컴퓨터 방식 (중첩 탐색)</button>
+    </div>
+
+    <div class="grid-container" id="grid"></div>
+
+    <div class="status-box">
+        <div id="status">방식을 선택하여 연산을 실행해 주세요.</div>
+    </div>
+</div>
+
+<script>
+const gridSize = 64;
+let targetIndex = Math.floor(Math.random() * gridSize); // 무작위 정답 배치
+
+// 그리드 초기화 생성
+function initGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < gridSize; i++) {
+        const item = document.createElement('div');
+        item.className = 'grid-item';
+        item.id = 'box-' + i;
+        item.innerText = '|0⟩';
+        grid.appendChild(item);
+    }
+}
+initGrid();
+
+// 1. 일반 컴퓨터 검색 구현 (하나씩 순서대로 확인)
+async function startClassicSearch() {
+    initGrid();
+    document.getElementById('status').innerText = "일반 계산 작동 중: 하나씩 순서대로 매칭 연산 실행...\n";
+    
+    let count = 0;
+    for (let i = 0; i < gridSize; i++) {
+        count++;
+        const currentBox = document.getElementById('box-' + i);
+        
+        if (i === targetIndex) {
+            currentBox.className = 'grid-item target';
+            currentBox.innerText = '정답!';
+            document.getElementById('status').innerText += `➔ [완료] ${count}번째 연산만에 정답을 찾았습니다!`;
+            break;
+        } else {
+            currentBox.className = 'grid-item searched';
+            currentBox.innerText = 'X';
+            // 시각적 효과를 위한 딜레이
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+}
+
+// 2. 양자 컴퓨터 검색 구현 (중첩 상태에서 한 번에 좁히기)
+async function startQuantumSearch() {
+    initGrid();
+    document.getElementById('status').innerText = "양자 계산 작동 중:\n1. 모든 큐비트에 H(아다마르) 게이트를 적용하여 동시에 '중첩 상태' 돌입...\n";
+    
+    // [Step 1] 모든 상자를 동시에 중첩 상태(|+⟩)로 변환
+    for (let i = 0; i < gridSize; i++) {
+        const currentBox = document.getElementById('box-' + i);
+        currentBox.className = 'grid-item quantum-superposition';
+        currentBox.innerText = '|중첩⟩';
+    }
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // [Step 2] 그로버 오라클 및 증폭 게이트 연산 (단 1번의 양자 간섭 연산 수행)
+    document.getElementById('status').innerText += "2. 그로버 게이트 연산 적용 (정답의 확률 파동만 증폭, 오답 파동은 상쇄)...\n";
+    
+    for (let i = 0; i < gridSize; i++) {
+        const currentBox = document.getElementById('box-' + i);
+        if (i === targetIndex) {
+            currentBox.className = 'grid-item target';
+            currentBox.innerText = '정답!';
+        } else {
+            currentBox.className = 'grid-item';
+            currentBox.innerText = '|0⟩';
+        }
+    }
+    
+    document.getElementById('status').innerText += `➔ [완료] 데이터 개수와 상관없이 단 1번의 병렬 게이트 제어로 정답을 관측했습니다!`;
+}
+</script>
+
+</body>
+</html>

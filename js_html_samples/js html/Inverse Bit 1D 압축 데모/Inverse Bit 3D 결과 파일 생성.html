@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Inverse Bit 3D 결과 파일</title>
+</head>
+<body>
+  <h2>Inverse Bit 3D 결과 파일 생성</h2>
+  <button onclick="run3D()">3D 결과 파일 만들기</button>
+
+  <script>
+    function run3D() {
+      const size = 64;
+      let volume = Array.from({length: size}, () =>
+        Array.from({length: size}, () =>
+          Array.from({length: size}, () => Math.random() < 0.5 ? "0" : "1")
+        )
+      );
+
+      let layers = volume.map(layer => {
+        return layer.map(row => {
+          let prev = row[0];
+          return row.map(bit => {
+            const mark = bit !== prev ? "x" : " ";
+            prev = bit;
+            return mark;
+          }).join("");
+        }).join("\n");
+      });
+
+      const lastValue = volume[size - 1][size - 1][size - 1];
+      const outputData = layers.join("\n\n") + "\n\n마지막 값: " + lastValue;
+
+      const blob = new Blob([outputData], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "InverseBit3D_Result.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그래픽 원시 수프 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #121214;
+            color: #ffffff;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #4dabf7; margin-bottom: 5px; }
+        .desc { color: #adb5bd; font-size: 14px; margin-top: 0; text-align: center; }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .control-panel {
+            background-color: #1e1e24;
+            border-radius: 12px;
+            padding: 20px;
+            flex: 1;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .view-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1e1e24;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        canvas {
+            background-color: #0b0c10;
+            border: 2px solid #45f3ff;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(69, 243, 255, 0.2);
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: #2b2c34;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .bg-hcn { background-color: #ff6b6b; color: white; }
+        .bg-a { background-color: #51cf66; color: white; }
+        .bg-u { background-color: #fcc419; color: black; }
+        .bg-g { background-color: #cc5de8; color: white; }
+        .bg-c { background-color: #20c997; color: white; }
+        
+        .btn {
+            background-color: #339af0;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #228be6; transform: translateY(-2px); }
+        .btn-zap { background-color: #fcc419; color: #121214; }
+        .btn-zap:hover { background-color: #fab005; }
+        
+        #chain-box {
+            background-color: #121214;
+            border-radius: 6px;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .chain-tag {
+            background: #3b3d46;
+            padding: 2px 6px;
+            margin: 3px 0;
+            border-radius: 4px;
+            border-left: 4px solid #63e6be;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>비주얼 화학적 진화 시뮬레이터</h1>
+    <p class="desc">물 분자와 에너지가 가득한 원시 바다 구획을 모사했습니다. <br>입자들이 무작위로 움직이고 충돌하며 더 고차원의 생명 유전 물질로 거듭나는 과정을 관찰하세요.</p>
+
+    <div class="main-layout">
+        <!-- 제어 패널 -->
+        <div class="control-panel">
+            <h2>대사 데이터</h2>
+            <div class="stat-grid">
+                <div><span class="badge bg-hcn">HCN 무기물</span> <span id="val-hcn">120</span></div>
+                <div><span class="badge bg-a">염기 A</span> <span id="val-a">0</span></div>
+                <div><span class="badge bg-u">염기 U</span> <span id="val-u">0</span></div>
+                <div><span class="badge bg-g">염기 G</span> <span id="val-g">0</span></div>
+                <div><span class="badge bg-c">염기 C</span> <span id="val-c">0</span></div>
+                <div style="grid-column: span 2; color:#63e6be;">🧬 합성된 RNA 사슬: <span id="val-chains" style="font-weight:bold;">0</span>개</div>
+            </div>
+
+            <button id="zap-btn" class="btn btn-zap">⚡ 원시 지구에 번개 주입 (HCN 분해)</button>
+            
+            <h2>탄생한 RNA 월드 목록</h2>
+            <div id="chain-box">우연한 충돌 조립을 기다리는 중...</div>
+        </div>
+
+        <!-- 비주얼 화면 패널 -->
+        <div class="view-panel">
+            <canvas id="soupCanvas" width="600" height="450"></canvas>
+            <p style="font-size: 12px; color:#868e96; margin-top: 10px;">● 빨강: HCN | ● 초록: A | ● 노랑: U | ● 보라: G | ● 청록: C</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('soupCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 상태 데이터 관리
+        let counts = { hcn: 120, A: 0, U: 0, G: 0, C: 0, chains: [] };
+        let particles = [];
+        const baseTypes = ['A', 'U', 'G', 'C'];
+        const colors = { HCN: '#ff6b6b', A: '#51cf66', U: '#fcc419', G: '#cc5de8', C: '#20c997' };
+
+        // 입자 객체 정의
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // HCN, A, U, G, C
+                this.radius = type === 'HCN' ? 4 : 6;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+            }
+
+            move() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 벽면 튕기기 제어
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -1;
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = colors[this.type];
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        // 초기 수프에 HCN 입자 뿌리기
+        function initSoup() {
+            for (let i = 0; i < counts.hcn; i++) {
+                particles.push(new Particle(
+                    Math.random() * (canvas.width - 20) + 10,
+                    Math.random() * (canvas.height - 20) + 10,
+                    'HCN'
+                ));
+            }
+            updateDOM();
+        }
+
+        // 수치 새로고침
+        function updateDOM() {
+            document.getElementById('val-hcn').innerText = counts.hcn;
+            document.getElementById('val-a').innerText = counts.A;
+            document.getElementById('val-u').innerText = counts.U;
+            document.getElementById('val-g').innerText = counts.G;
+            document.getElementById('val-c').innerText = counts.C;
+            document.getElementById('val-chains').innerText = counts.chains.length;
+
+            if(counts.chains.length > 0) {
+                const box = document.getElementById('chain-box');
+                box.innerHTML = counts.chains.map(c => `<div class="chain-tag">🧬 사슬 체인: ${c}</div>`).reverse().join('');
+            }
+        }
+
+        // 강한 자외선/전기 자극으로 HCN을 유기 염기로 강제 치환
+        document.getElementById('zap-btn').addEventListener('click', () => {
+            let zappedCount = 0;
+            particles.forEach(p => {
+                if (p.type === 'HCN' && zappedCount < 15) {
+                    const nextType = baseTypes[Math.floor(Math.random() * baseTypes.length)];
+                    p.type = nextType;
+                    p.radius = 6; // 염기는 분자 크기가 더 큼
+                    counts.hcn--;
+                    counts[nextType]++;
+                    zappedCount++;
+                }
+            });
+            updateDOM();
+        });
+
+        // 두 입자 간의 거리 계산
+        function getDistance(p1, p2) {
+            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        }
+
+        // 실시간 충돌 검사 및 중합 반응 연산
+        function checkCollisions() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p1 = particles[i];
+                    let p2 = particles[j];
+
+                    // 서로 다른 유기 유제 염기가 정면 충돌했을 때 (HCN 제외)
+                    if (p1.type !== 'HCN' && p2.type !== 'HCN' && p1.type !== p2.type) {
+                        if (getDistance(p1, p2) < p1.radius + p2.radius) {
+                            // 확률적으로 두 염기가 링크 결합하여 무작위 사슬 코드를 형성
+                            if (Math.random() < 0.08) { 
+                                const newChain = p1.type + p2.type + baseTypes[Math.floor(Math.random() * baseTypes.length)];
+                                counts.chains.push(newChain);
+                                
+                                // 사슬화에 소모된 입자는 소프계에서 흡수 처리 후 새로운 기본 HCN으로 순환
+                                counts[p1.type]--;
+                                counts[p2.type]--;
+                                
+                                p1.type = 'HCN'; p1.radius = 4; counts.hcn++;
+                                p2.type = 'HCN'; p2.radius = 4; counts.hcn++;
+                                
+                                updateDOM();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 메인 애니메이션 루프 구동
+        function mainLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.move();
+                p.draw();
+            });
+
+            checkCollisions();
+            requestAnimationFrame(mainLoop);
+        }
+
+        // 실행
+        initSoup();
+        mainLoop();
+    </script>
+</body>
+</html>

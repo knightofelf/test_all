@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>양자 계산기 시뮬레이터</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 40px; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    #log { margin-top: 20px; font-size: 18px; white-space: pre-line; }
+  </style>
+</head>
+<body>
+  <h1>⚛️ 양자 계산기 (Grover 알고리즘 흉내)</h1>
+  <p>중첩 → 오라클 → 디퓨저 → 측정 과정을 체험해보세요!</p>
+  <button onclick="runGrover()">실행하기</button>
+  <div id="log"></div>
+
+  <script>
+    function runGrover() {
+      let log = "";
+
+      // 초기 상태 |00>
+      let state = [1,0,0,0];
+      log += "초기 상태: " + JSON.stringify(state) + "\n";
+
+      // Hadamard 적용 → 모든 상태 중첩
+      state = [0.5,0.5,0.5,0.5];
+      log += "Hadamard 적용: " + JSON.stringify(state) + "\n";
+
+      // 오라클: 정답 |10>의 부호 반전
+      state[2] *= -1;
+      log += "오라클 적용 (|10> 반전): " + JSON.stringify(state) + "\n";
+
+      // 디퓨저: 평균값 기준으로 증폭
+      let avg = (state[0]+state[1]+state[2]+state[3])/4;
+      state = state.map(x => 2*avg - x);
+      log += "디퓨저 적용: " + JSON.stringify(state) + "\n";
+
+      // 측정: 가장 큰 확률 상태 선택
+      let probs = state.map(x => x*x);
+      let maxIndex = probs.indexOf(Math.max(...probs));
+      let outcomes = ["|00>", "|01>", "|10>", "|11>"];
+      log += "측정 결과: " + outcomes[maxIndex];
+
+      document.getElementById("log").innerText = log;
+    }
+  </script>
+</body>
+</html>

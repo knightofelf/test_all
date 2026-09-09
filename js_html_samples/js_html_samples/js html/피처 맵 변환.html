@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>피처 맵 변환</title>
+  <style>
+    .grid {
+      display: grid;
+      gap: 2px;
+    }
+    .cell {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #ccc;
+    }
+    .low {
+      grid-template-columns: repeat(8, 20px); /* 저해상도 8x8 */
+    }
+    .high {
+      grid-template-columns: repeat(32, 10px); /* 고해상도 32x32 */
+    }
+  </style>
+</head>
+<body>
+  <h2>저해상도 피처 맵 (8x8)</h2>
+  <div class="grid low" id="lowRes"></div>
+
+  <h2>고해상도 피처 맵 (32x32)</h2>
+  <div class="grid high" id="highRes"></div>
+
+  <script>
+    function createFeatureMap(container, size, cellSize) {
+      for (let i = 0; i < size * size; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const intensity = Math.floor(Math.random() * 255);
+        cell.style.backgroundColor = `rgb(${intensity}, ${200-intensity}, ${255-intensity})`;
+        container.appendChild(cell);
+      }
+    }
+
+    createFeatureMap(document.getElementById("lowRes"), 8, 20);   // 저해상도
+    createFeatureMap(document.getElementById("highRes"), 32, 10); // 고해상도
+  </script>
+</body>
+</html>

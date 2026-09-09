@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>랜덤 데이터로 토러스 모양</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const numPoints = 10000;
+    const positions = new Float32Array(numPoints * 3);
+
+    const R = 40; // 큰 반지름
+    const r = 10; // 작은 반지름
+
+    for (let i = 0; i < numPoints; i++) {
+      const theta = Math.random() * 2 * Math.PI; // 도넛 둘레 각도
+      const phi = Math.random() * 2 * Math.PI;   // 단면 원 각도
+
+      const x = (R + r * Math.cos(phi)) * Math.cos(theta);
+      const y = (R + r * Math.cos(phi)) * Math.sin(theta);
+      const z = r * Math.sin(phi);
+
+      positions[i*3]   = x;
+      positions[i*3+1] = y;
+      positions[i*3+2] = z;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({ color: 0x3399ff, size: 0.2 });
+    const pointCloud = new THREE.Points(geometry, material);
+    scene.add(pointCloud);
+
+    camera.position.z = 120;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      pointCloud.rotation.y += 0.002;
+      pointCloud.rotation.x += 0.001;
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

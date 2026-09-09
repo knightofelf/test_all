@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>랜덤 데이터 G2P 그룹 파일 생성</title>
+</head>
+<body>
+  <h2>1MB 랜덤 데이터 → G2P 그룹 파일 생성</h2>
+  <label>그룹 크기 (KB): <input type="number" id="groupSize" value="256"></label>
+  <button id="generateBtn">생성</button>
+
+  <script>
+    // 랜덤 텍스트 데이터 생성 (영문/숫자)
+    function generateRandomText(size) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let result = "";
+      for (let i = 0; i < size; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function generateAndSplit() {
+      const totalSize = 1024 * 1024; // 1MB
+      const groupKB = parseInt(document.getElementById("groupSize").value, 10);
+      const groupSize = groupKB * 1024; // 바이트 단위
+
+      // 전체 랜덤 텍스트 생성
+      const randomText = generateRandomText(totalSize);
+
+      // 그룹 단위로 분할 저장
+      let fileIndex = 1;
+      for (let i = 0; i < totalSize; i += groupSize) {
+        const chunk = randomText.slice(i, i + groupSize);
+        downloadFile(chunk, `random_group_${fileIndex}.g2p`);
+        fileIndex++;
+      }
+    }
+
+    document.getElementById("generateBtn").addEventListener("click", generateAndSplit);
+  </script>
+</body>
+</html>

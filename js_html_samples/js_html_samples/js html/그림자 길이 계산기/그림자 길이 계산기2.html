@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>그림자 계산기</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    label { display: block; margin-top: 10px; }
+    input { padding: 5px; margin-top: 5px; width: 250px; }
+    button { margin-top: 15px; padding: 8px 12px; }
+    #result { margin-top: 20px; font-weight: bold; color: darkblue; }
+  </style>
+</head>
+<body>
+  <h2>그림자 길이 계산기</h2>
+  
+  <label>물체 높이 (m):</label>
+  <input type="number" id="objectHeight" value="5982437598274359872345">
+
+  <label>빛-물체 거리 (m):</label>
+  <input type="number" id="lightToObject" value="3">
+
+  <label>빛-바닥 거리 (m):</label>
+  <input type="number" id="lightToGround" value="9">
+
+  <label>그림자 길이 (m) [역계산용]:</label>
+  <input type="number" id="shadowLength" value="0">
+
+  <button onclick="calculateShadow()">그림자 길이 계산</button>
+  <button onclick="calculateObject()">물체 높이 역계산</button>
+
+  <div id="result"></div>
+
+  <script>
+    // 그림자 길이 계산
+    function calculateShadow() {
+      const h = Number(document.getElementById('objectHeight').value);
+      const d1 = Number(document.getElementById('lightToObject').value);
+      const d2 = Number(document.getElementById('lightToGround').value);
+
+      if (d1 === 0) {
+        document.getElementById('result').innerText = "빛-물체 거리는 0이 될 수 없습니다.";
+        return;
+      }
+
+      const shadowLength = h * (d2 / d1);
+      document.getElementById('result').innerText = 
+        "그림자 길이: " + Math.round(shadowLength) + " m (정수)";
+    }
+
+    // 물체 높이 역계산
+    function calculateObject() {
+      const s = Number(document.getElementById('shadowLength').value);
+      const d1 = Number(document.getElementById('lightToObject').value);
+      const d2 = Number(document.getElementById('lightToGround').value);
+
+      if (d2 === 0) {
+        document.getElementById('result').innerText = "빛-바닥 거리는 0이 될 수 없습니다.";
+        return;
+      }
+
+      const objectHeight = s * (d1 / d2);
+      document.getElementById('result').innerText = 
+        "물체 높이: " + Math.round(objectHeight) + " m (정수)";
+    }
+  </script>
+</body>
+</html>

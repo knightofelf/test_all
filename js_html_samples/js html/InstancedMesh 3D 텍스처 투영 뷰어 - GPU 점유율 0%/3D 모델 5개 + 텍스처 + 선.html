@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 모델 5개 + 텍스처 + 선</title>
+  <style>canvas { display:block; }</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const loader = new THREE.TextureLoader();
+  const textures = [
+    "https://threejs.org/examples/textures/brick_diffuse.jpg",
+    "https://threejs.org/examples/textures/uv_grid_opengl.jpg",
+    "https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg",
+    "https://threejs.org/examples/textures/terrain/grasslight-big.jpg",
+    "https://threejs.org/examples/textures/water.jpg"
+  ];
+
+  const models = [];
+  for (let i=0; i<5; i++) {
+    const geometry = new THREE.BoxGeometry(1,1,1);
+    const material = new THREE.MeshBasicMaterial({ map: loader.load(textures[i]) });
+    const mesh = new THREE.Mesh(geometry, material);
+
+    // 선(EdgesGeometry) 추가
+    const edges = new THREE.EdgesGeometry(geometry);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+    mesh.add(line);
+
+    mesh.position.x = i*2 - 4;
+    scene.add(mesh);
+    models.push(mesh);
+  }
+
+  // 원 3겹 생성 (선만 표시)
+  for (let i=1; i<=3; i++) {
+    const circleGeo = new THREE.CircleGeometry(i*3, 64);
+    const circleEdges = new THREE.EdgesGeometry(circleGeo);
+    const circleLine = new THREE.LineSegments(circleEdges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+    circleLine.rotation.x = -Math.PI/2;
+    scene.add(circleLine);
+  }
+
+  camera.position.z = 12;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    models.forEach(m => {
+      m.rotation.x += 0.01;
+      m.rotation.y += 0.01;
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

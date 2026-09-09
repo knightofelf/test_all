@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>동적 바이트 인덱스 실제 처리</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
+    .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    .log { background: #222; color: #2ecc71; padding: 10px; border-radius: 5px; font-family: monospace; height: 250px; overflow-y: auto; }
+    button { margin-top: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Dynamic Byte Index - 실제 처리 단계</h2>
+  <textarea id="inputText" style="width:100%;height:100px;">
+서울 데이터, 경기 데이터, 서울 데이터, 부산 데이터, 경기 데이터, 서울 데이터, 부산 데이터, 인천 데이터
+  </textarea>
+  <button onclick="runProcess()">실제 처리 실행</button>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+function runProcess() {
+  const text = document.getElementById('inputText').value;
+  const words = text.split(',').map(s => s.trim());
+  const log = document.getElementById('log');
+  log.innerHTML = "";
+
+  // 1. 원본 저장
+  const rawSize = text.length * 2;
+  log.innerHTML += `[1단계] 원본 저장: ${rawSize} bytes\n`;
+
+  // 2. 사전화 (Dictionary)
+  const dictionary = [...new Set(words)];
+  const dictMap = {};
+  dictionary.forEach((val, idx) => dictMap[val] = idx);
+  const dictSize = dictionary.join('').length * 2;
+  log.innerHTML += `[2단계] 사전화 생성: ${dictionary.length}개 항목, ${dictSize} bytes\n`;
+
+  // 3. ID 매핑
+  const idList = words.map(w => dictMap[w]);
+  const idSize = idList.length * 2;
+  log.innerHTML += `[3단계] ID 매핑 완료: ${idList.length}개, ${idSize} bytes\n`;
+
+  // 4. 그룹 인덱스
+  const GROUP_SIZE = 3;
+  const groupCount = Math.ceil(idList.length / GROUP_SIZE);
+  const groupOverhead = groupCount * 4;
+  log.innerHTML += `[4단계] 그룹 인덱스 생성: ${groupCount}개 그룹, 오버헤드 ${groupOverhead} bytes\n`;
+
+  // 5. 최종 계층 인덱스
+  const totalIndexedSize = dictSize + idSize + groupOverhead;
+  const efficiency = ((1 - (totalIndexedSize / rawSize)) * 100).toFixed(1);
+  log.innerHTML += `[5단계] 최종 계층 인덱스 용량: ${totalIndexedSize} bytes\n`;
+  log.innerHTML += `→ 압축 효율: 약 ${efficiency}% 절감\n`;
+}
+</script>
+</body>
+</html>

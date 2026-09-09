@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>군집 패턴 검색 데모</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .cluster { margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h2>군집 패턴 기반 추천 검색</h2>
+  <input type="text" id="searchBox" placeholder="검색어 입력..." />
+  <button onclick="search()">검색</button>
+
+  <div id="results"></div>
+  <div id="clusters"></div>
+<script>
+  // 검색 로그: {term, time}
+  const searchLogs = [];
+
+  function getClusters(logs, query) {
+    const freq = {};
+    const now = Date.now();
+
+    logs.forEach(({term, time}) => {
+      if (term.includes(query)) {
+        freq[term] = freq[term] || {count:0, recent:0};
+        freq[term].count++;
+        // 최근 5분 내 검색이면 recent 증가
+        if (now - time < 5*60*1000) {
+          freq[term].recent++;
+        }
+      }
+    });
+
+    // 변화량 계산: 최근 증가율
+    return Object.entries(freq).map(([term, data]) => {
+      const changeRate = (data.recent / data.count * 100).toFixed(1);
+      return {term, count:data.count, changeRate};
+    }).sort((a,b)=>b.count-a.count);
+  }
+
+  function search() {
+    const query = document.getElementById("searchBox").value;
+    searchLogs.push({term:query, time:Date.now()});
+    document.getElementById("results").innerHTML = `<p>검색 결과: <b>${query}</b></p>`;
+
+    const clusters = getClusters(searchLogs, query);
+    let html = "<h3>추천 검색어 (군집 패턴 + 변화량)</h3>";
+    if (clusters.length === 0) {
+      html += "<div>관련 추천 없음</div>";
+    } else {
+      clusters.slice(0,5).forEach(c=>{
+        html += `<div class="cluster">${c.term} (${c.count}회, 최근 변화율 ${c.changeRate}%)</div>`;
+      });
+    }
+    document.getElementById("clusters").innerHTML = html;
+  }
+</script>
+
+
+</body>
+</html>

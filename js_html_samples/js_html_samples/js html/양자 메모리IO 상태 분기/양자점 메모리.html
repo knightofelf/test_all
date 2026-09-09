@@ -1,0 +1,24 @@
+<h3>양자점 메모리</h3>
+<input type="number" id="qdInput" placeholder="강도(0~10)">
+<button onclick="storeQD()">저장</button>
+<button onclick="readQD()">읽기</button>
+<p id="qdOutput"></p>
+
+<script>
+  let quantumDotMemory = [];
+
+  function storeQD() {
+    let val = document.getElementById("qdInput").value;
+    quantumDotMemory.push(val);
+    document.getElementById("qdOutput").innerText = "저장됨: " + val;
+  }
+
+  function readQD() {
+    if (quantumDotMemory.length > 0) {
+      let val = quantumDotMemory.shift();
+      document.getElementById("qdOutput").innerText = "읽음: " + val;
+    } else {
+      document.getElementById("qdOutput").innerText = "메모리 비어있음";
+    }
+  }
+</script>

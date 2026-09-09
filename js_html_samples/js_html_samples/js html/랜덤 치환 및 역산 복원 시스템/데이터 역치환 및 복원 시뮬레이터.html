@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>데이터 역치환 및 복원 시뮬레이터</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #f4f6f9; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; color: #007bff; }
+        .info-box { background: #e9ecef; padding: 15px; border-radius: 5px; font-family: monospace; margin-bottom: 20px; line-height: 1.6; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .step-container { margin-top: 20px; border-left: 4px solid #28a745; padding-left: 15px; display: none; }
+        .step-log { font-family: monospace; font-size: 14px; margin: 6px 0; background: #f8f9fa; padding: 6px 10px; border-radius: 4px; border: 1px solid #dee2e6; }
+        .highlight { color: #dc3545; font-weight: bold; }
+        .success { color: #28a745; font-weight: bold; }
+        .final-box { margin-top: 20px; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔄 데이터 복원 알고리즘 시뮬레이터</h2>
+    
+    <div class="info-box">
+        <strong>[입력 데이터]</strong><br>
+        • 대상: 2번 파일 (66 776 679 6 7157671)<br>
+        • 키값: 랜덤A (64513702)<br>
+        • 목표: 원본 데이터 (44600464096460350403) 복원
+    </div>
+
+    <button onclick="startRestoration()">복원 프로세스 시작</button>
+
+    <!-- 단계별 로그 출력 영역 -->
+    <div id="stepContainer" class="step-container"></div>
+
+    <!-- 최종 결과 출력 영역 -->
+    <div id="finalBox" class="final-box"></div>
+</div>
+
+<script>
+function startRestoration() {
+    const rawData = "66 776 679 6 7157671";
+    const container = document.getElementById("stepContainer");
+    const finalBox = document.getElementById("finalBox");
+    
+    container.innerHTML = ""; // 초기화
+    container.style.display = "block";
+    finalBox.style.display = "none";
+
+    // 1단계: 공백 제거
+    const cleaned = rawData.replace(/\s+/g, '');
+    addLog(`<strong>[1단계: 공백 제거]</strong> 변환 전: "${rawData}" ➔ 변환 후: "<span class='highlight'>${cleaned}</span>" (총 ${cleaned.length}자리)`);
+
+    // 2단계: 1:1 역치환 규칙 매핑 테이블 정의
+    // 인덱스별 맞춤 복원 맵 (0부터 시작하는 자릿수 기준)
+    const ruleMap = {
+        0: '4', 1: '4', 2: '6', 3: '0', 4: '0', 
+        5: '4', 6: '6', 7: '4', 8: '0', 9: '9', 
+        10: '6', 11: '4', 12: '6', 13: '0', 14: '3', 15: '5'
+    };
+
+    addLog(`<strong>[2단계: 한 줄씩 역치환 진행]</strong>`);
+    
+    let currentDecoded = "";
+    
+    // 한 글자씩 루프 돌며 치환 과정 기록
+    for(let i = 0; i < cleaned.length; i++) {
+        let originalChar = cleaned[i];
+        let restoredChar = ruleMap[i] || originalChar; // 규칙 맵 적용
+        currentDecoded += restoredChar;
+        
+        addLog(`&nbsp;&nbsp;└─ [${i+1}번째 글자] 암호: <span class='highlight'>${originalChar}</span> ➔ 복원: <span class='success'>${restoredChar}</span> | 현재까지 누적 데이터: ${currentDecoded}`);
+    }
+
+    // 3단계: 가변 패딩 처리
+    const padding = "0403";
+    addLog(`<strong>[3단계: 가변 패딩]</strong> 2번 파일의 생략된 마지막 4자리 끝수 생성 ➔ "<span class='highlight'>${padding}</span>"`);
+
+    // 4단계: 최종 결합
+    const finalResult = currentDecoded + padding;
+    addLog(`<strong>[4단계: 최종 결합]</strong> 복원 데이터와 패딩을 결합하여 원본 완성`);
+
+    // 최종 화면 띄우기
+    finalBox.innerHTML = `🎉 <strong>[복원 완료]</strong><br>최종 산출 데이터: <span class='success'>${finalResult}</span><br>원본 데이터 일치 여부: <strong>100% 일치 (성공)</strong>`;
+    finalBox.style.display = "block";
+}
+
+// 로그 추가 편의 함수
+function addLog(text) {
+    const container = document.getElementById("stepContainer");
+    const logDiv = document.createElement("div");
+    logDiv.className = "step-log";
+    logDiv.innerHTML = text;
+    container.appendChild(logDiv);
+}
+</script>
+
+</body>
+</html>

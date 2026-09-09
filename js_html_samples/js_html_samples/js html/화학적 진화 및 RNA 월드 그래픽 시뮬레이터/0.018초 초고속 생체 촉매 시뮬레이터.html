@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0.018초 초고속 생체 촉매 시뮬레이터</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #121214;
+            color: #ffffff;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #fcc419; margin-bottom: 5px; }
+        .desc { color: #adb5bd; font-size: 14px; margin-top: 0; text-align: center; }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .control-panel {
+            background-color: #1e1e24;
+            border-radius: 12px;
+            padding: 20px;
+            flex: 1;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .view-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1e1e24;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        canvas {
+            background-color: #0b0c10;
+            border: 2px solid #fcc419;
+            border-radius: 8px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            background: #2b2c34;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .btn {
+            background-color: #339af0;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #228be6; }
+        .btn-toggle { background-color: #37b24d; }
+        .btn-toggle.active { background-color: #f03e3e; }
+        
+        #chain-box {
+            background-color: #121214;
+            border-radius: 6px;
+            padding: 8px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .chain-tag {
+            background: #3b3d46;
+            padding: 2px 6px;
+            margin: 3px 0;
+            border-radius: 4px;
+            border-left: 4px solid #63e6be;
+        }
+        .mutation { color: #ff8787; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>속도 순서 기반 화학적 진화 시뮬레이터</h1>
+    <p class="desc">가장 빠른 반응 속도를 유도하는 환경 요인 순서대로 시스템을 개량했습니다.</p>
+
+    <div class="main-layout">
+        <div class="control-panel">
+            <h2>대사 및 환경 제어</h2>
+            <div class="stat-grid">
+                <div>무기물(HCN): <span id="val-hcn">150</span></div>
+                <div>유기염기 총합: <span id="val-bases">0</span></div>
+                <div style="grid-column: span 2; color:#63e6be;">🧬 생성된 RNA 사슬: <span id="val-chains">0</span>개</div>
+            </div>
+
+            <!-- 속도 순 정렬 버튼 -->
+            <button id="membrane-btn" class="btn btn-toggle">1. 세포막 활성화 (속도 최상: 0.018초 폭발 가속)</button>
+            <button id="vent-btn" class="btn btn-toggle">2. 열수분출구 대류 가동 (속도 상: 열에너지)</button>
+            <button id="clay-btn" class="btn btn-toggle">3. 광물 표면 생성 (속도 중: 분자 고정)</button>
+            <button id="replicate-btn" class="btn btn-toggle">4. 자가복제/돌연변이 작동 (속도 하: 유전 생장)</button>
+
+            <h2>탄생한 RNA 사슬 (돌연변이 추적)</h2>
+            <div id="chain-box">1번 버튼을 누르면 0.018초 초고속 촉매가 일어납니다.</div>
+        </div>
+
+        <div class="view-panel">
+            <canvas id="evolutionCanvas" width="600" height="450"></canvas>
+            <p style="font-size: 12px; color:#868e96; margin-top: 5px; text-align: center;">
+                🫧 큰 투명 원: 세포막 구획 | 🟥 하단 빨간 영역: 심해 열수 분출구 (대류 발생)<br>
+                🟩 중앙 격자 네모: 광물 표면 (속도 저하 및 결합 유도)
+            </p>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('evolutionCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 시스템 활성화 상태 플래그
+        let env = { membrane: false, vent: false, clay: false, replicate: false };
+        let counts = { hcn: 150, A: 0, U: 0, G: 0, C: 0, chains: [] };
+        let particles = [];
+        const baseTypes = ['A', 'U', 'G', 'C'];
+        const colors = { HCN: '#ff6b6b', A: '#51cf66', U: '#fcc419', G: '#cc5de8', C: '#20c997' };
+
+        // 초고속 효소 가동을 위한 제어 변수
+        let isEnzymeCatalyzed = false;
+
+        // 환경 요소 위치 데이터
+        const membraneCell = { x: 300, y: 225, r: 110 };    // 1. 세포막 구획
+        const clayZone = { x: 230, y: 180, w: 140, h: 90 }; // 3. 광물 지대
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = type === 'HCN' ? 4 : 5;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+            }
+
+            move() {
+                // 효소 촉매 가동 시 50배 초고속 대류 적용 (0.018초 연출용)
+                let speedMultiplier = isEnzymeCatalyzed ? 50 : 1;
+
+                // 2. 심해 열수구 작동 시 하단에서 상승 대류풍 적용
+                if (env.vent && this.y > canvas.height - 60 && !isEnzymeCatalyzed) {
+                    this.vy -= 0.4; 
+                    this.vx += (Math.random() - 0.5) * 2;
+                }
+
+                // 3. 광물 점토 표면에 닿으면 분자가 부착되어 속도가 느려짐
+                if (env.clay && this.x > clayZone.x && this.x < clayZone.x + clayZone.w &&
+                    this.y > clayZone.y && this.y < clayZone.y + clayZone.h && !isEnzymeCatalyzed) {
+                    this.x += this.vx * 0.2;
+                    this.y += this.vy * 0.2;
+                } else {
+                    this.x += this.vx * speedMultiplier;
+                    this.y += this.vy * speedMultiplier;
+                }
+
+                // 1. 세포막 내부 입자들이 밖으로 나가지 못하게 제어
+                if (env.membrane) {
+                    let dist = Math.hypot(this.x - membraneCell.x, this.y - membraneCell.y);
+                    if (dist < membraneCell.r - this.radius && dist > membraneCell.r - this.radius - 8) {
+                        let nx = (this.x - membraneCell.x) / dist;
+                        let ny = (this.y - membraneCell.y) / dist;
+                        let dot = this.vx * nx + this.vy * ny;
+                        if (dot > 0) {
+                            this.vx -= 2 * dot * nx;
+                            this.vy -= 2 * dot * ny;
+                        }
+                    }
+                }
+
+                // 외부 벽면 반사
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -1;
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = colors[this.type];
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        function init() {
+            // 초기 수프에 HCN 및 무작위 염기 배치
+            for (let i = 0; i < counts.hcn; i++) {
+                let insideMembrane = Math.random() < 0.4;
+                let x = insideMembrane ? membraneCell.x + (Math.random()-0.5)*120 : Math.random() * canvas.width;
+                let y = insideMembrane ? membraneCell.y + (Math.random()-0.5)*120 : Math.random() * canvas.height;
+                
+                let type = Math.random() < 0.25 ? baseTypes[Math.floor(Math.random()*4)] : 'HCN';
+                if(type !== 'HCN') { counts.hcn--; counts[type]++; }
+                particles.push(new Particle(x, y, type));
+            }
+            updateDOM();
+        }
+
+        function updateDOM() {
+            let totalBases = counts.A + counts.U + counts.G + counts.C;
+            document.getElementById('val-hcn').innerText = counts.hcn;
+            document.getElementById('val-bases').innerText = totalBases;
+            document.getElementById('val-chains').innerText = counts.chains.length;
+
+            if(counts.chains.length > 0) {
+                const box = document.getElementById('chain-box');
+                box.innerHTML = counts.chains.map(c => {
+                    let isMutated = c.includes('(*)');
+                    return `<div class="chain-tag"> 사슬: <span class="${isMutated?'mutation':''}">${c}</span></div>`
+                }).reverse().join('');
+            }
+        }
+
+        // 물리 충돌 및 화학 합성 처리 루틴
+        function processReactions() {
+            let baseJoinRate = isEnzymeCatalyzed ? 0.95 : 0.02; // 효소 작동 시 결합 확률 폭등
+            if (env.membrane && !isEnzymeCatalyzed) baseJoinRate += 0.12; 
+            if (env.clay && !isEnzymeCatalyzed) baseJoinRate += 0.05;
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p1 = particles[i];
+                    let p2 = particles[j];
+
+                    if (p1.type !== 'HCN' && p2.type !== 'HCN' && p1.type !== p2.type) {
+                        let dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                        if (dist < p1.radius + p2.radius) {
+                            if (Math.random() < baseJoinRate) {
+                                let chain = p1.type + p2.type + baseTypes[Math.floor(Math.random()*4)];
+                                
+                                if (env.replicate && Math.random() < 0.20 && !isEnzymeCatalyzed) {
+                                    chain = p1.type + 'X' + baseTypes[Math.floor(Math.random()*4)] + '(*)';
+                                }
+                                
+                                counts.chains.push(chain);
+                                counts[p1.type]--; counts[p2.type]--;
+                                p1.type = 'HCN'; p2.type = 'HCN';
+                                counts.hcn += 2;
+                                updateDOM();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 0.018초 초고속 효소 가속 메커니즘 활성화
+        function trigger018SecEnzyme() {
+            isEnzymeCatalyzed = true;
+            const startTime = performance.now();
+            const duration = 18; // 정확히 18밀리초(0.018초) 동안 유지
+
+            function fastLoop(timestamp) {
+                let elapsed = timestamp - startTime;
+
+                if (elapsed < duration) {
+                    // 1프레임 안에서 수백 번의 물리적 연속 연산 강제 수행 (Batch Processing)
+                    let microSteps = 150;
+                    while(microSteps > 0) {
+                        particles.forEach(p => p.move());
+                        processReactions();
+                        microSteps--;
+                    }
+                    requestAnimationFrame(fastLoop);
+                } else {
+                    // 0.018초 경과 시점에 남은 모든 유기물을 100% 강제 합성 완료 처리
+                    let activeBases = particles.filter(p => p.type !== 'HCN');
+                    while(activeBases.length >= 3) {
+                        let b1 = activeBases.pop(); let b2 = activeBases.pop(); let b3 = activeBases.pop();
+                        counts.chains.push(b1.type + b2.type + b3.type);
+                        counts[b1.type]--; counts[b2.type]--; counts[b3.type]--;
+                        b1.type = 'HCN'; b2.type = 'HCN'; b3.type = 'HCN';
+                        counts.hcn += 3;
+                    }
+                    isEnzymeCatalyzed = false;
+                    updateDOM();
+                    
+                    const btn = document.getElementById('membrane-btn');
+                    btn.classList.remove('active');
+                    btn.innerText = "1. 세포막 활성화 (속도 최상: 0.018초 폭발 가속)";
+                }
+            }
+            requestAnimationFrame(fastLoop);
+        }
+
+        function drawEnvironment() {
+            if (isEnzymeCatalyzed) {
+                ctx.fillStyle = 'rgba(11, 114, 133, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            if (env.vent) {
+                ctx.fillStyle = 'rgba(230, 73, 73, 0.2)';
+                ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = '12px sans-serif';
+                ctx.fillText("🔥 심해 열수구 대류 구역 (가속 중)", 15, canvas.height - 25);
+            }
+            if (env.clay) {
+                ctx.strokeStyle = 'rgba(166, 142, 110, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(clayZone.x, clayZone.y, clayZone.w, clayZone.h);
+                ctx.fillStyle = 'rgba(166, 142, 110, 0.15)';
+                ctx.fillRect(clayZone.x, clayZone.y, clayZone.w, clayZone.h);
+            }
+            if (env.membrane) {
+                ctx.beginPath();
+                ctx.arc(membraneCell.x, membraneCell.y, membraneCell.r, 0, Math.PI*2);
+                ctx.strokeStyle = 'rgba(69, 243, 255, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = 'rgba(69, 243, 255, 0.04)';
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        function loop() {
+            if (!isEnzymeCatalyzed) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            drawEnvironment();
+            particles.forEach(p => { 
+                if (!isEnzymeCatalyzed) p.move();
+                p.draw(); 
+            });
+            if (!isEnzymeCatalyzed) processReactions();
+            requestAnimationFrame(loop);
+        }
+
+        document.getElementById('membrane-btn').addEventListener('click', function() {
+            env.membrane = true;
+            this.classList.add('active');
+            this.innerText = "⚡ 효소 촉매 폭발 가동 중 (0.018초) ⚡";
+            trigger018SecEnzyme();
+
+        });
+
+        // 2, 3, 4번 토글 버튼들의 이벤트를 시스템 플래그에 바인딩하는 함수
+        function bindBtn(id, key) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('click', () => {
+                env[key] = !env[key]; // 환경 상태 온/오프 스위칭
+                btn.classList.toggle('active', env[key]); // CSS 활성화 스타일 반영
+            });
+        }
+
+        // 각각의 버튼 ID와 매칭되는 환경 변수 키 등록
+        bindBtn('vent-btn', 'vent');
+        bindBtn('clay-btn', 'clay');
+        bindBtn('replicate-btn', 'replicate');
+
+        // 최초 캔버스 내부 원시 입자 배치 및 애니메이션 루프 실행
+        init();
+        loop();
+    </script>
+</body>
+</html>
+
+
+
+
+

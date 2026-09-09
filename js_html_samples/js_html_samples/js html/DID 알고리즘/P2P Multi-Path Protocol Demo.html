@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Multi-Path Protocol Demo</title>
+  <style>
+    .node {
+      border: 1px solid #333;
+      padding: 10px;
+      margin: 5px;
+      display: inline-block;
+      width: 120px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>P2P 멀티 패스 프로토콜 시뮬레이션</h2>
+  <div id="network"></div>
+
+  <script>
+    // 노드 정의
+    const nodes = ["PC1", "PC2", "PC3"];
+    const headers = ["HEADER1", "HEADER2", "HEADER3"];
+
+    // 네트워크 UI 생성
+    const networkDiv = document.getElementById("network");
+    nodes.forEach((node, i) => {
+      const div = document.createElement("div");
+      div.className = "node";
+      div.id = node;
+      div.innerHTML = `<strong>${node}</strong><br>처리 대기중...`;
+      networkDiv.appendChild(div);
+    });
+
+    // 멀티 패스 전송 시뮬레이션
+    function multiPathProtocol(headers, nodes) {
+      headers.forEach((header, i) => {
+        const targetNode = document.getElementById(nodes[i]);
+        setTimeout(() => {
+          targetNode.innerHTML = `<strong>${nodes[i]}</strong><br>${header} 처리 완료 ✅`;
+        }, 1000 * (i+1)); // 순차적 지연 (동시성 시뮬레이션)
+      });
+    }
+
+    // 실행
+    multiPathProtocol(headers, nodes);
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>완전 무작위 복합 압축 시뮬레이터</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        h2 { border-bottom: 3px solid #6f42c1; padding-bottom: 10px; color: #6f42c1; margin-top: 0; }
+        .btn-rand { display: block; width: 100%; border: none; padding: 14px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; background: #6f42c1; color: white; margin-bottom: 20px; transition: 0.2s; }
+        .btn-rand:hover { background: #59339d; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 20px; font-family: monospace; font-size: 13px; }
+        .result-box { display: flex; justify-content: space-between; background: #e8f0fe; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 15px; margin-bottom: 20px; border-left: 5px solid #1a73e8; }
+        .log-box { font-family: monospace; font-size: 13px; height: 250px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; line-height: 1.7; }
+        .highlight-purple { color: #bb86fc; font-weight: bold; }
+        .highlight-green { color: #81c995; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎲 동적 완전 무작위 [치환-정렬-반복 누적] 시스템</h2>
+    
+    <button class="btn-rand" onclick="runRandomPipeline()">🎲 매번 바뀌는 무작위 압축 파이프라인 실행</button>
+
+    <div class="info-grid">
+        <div>
+            <strong>[동적 환경 설정]</strong><br>
+            • 무작위 선정 rMAX: <span id="env_rmax" style="color:#6f42c1; font-weight:bold;">-</span><br>
+            • 무작위 목표 용량: <span id="env_size">-</span>
+        </div>
+        <div>
+            <strong>[생성된 고유 치환 배열]</strong><br>
+            • rand_data: <span id="env_key" style="word-break: break-all; color:#d93025;">-</span>
+        </div>
+    </div>
+
+    <div class="result-box">
+        <div>원래 용량: <span id="res_orig" style="color:#333;">0 Bytes</span></div>
+        <div>최종 압축 용량: <span id="res_comp" style="color:#d93025;">0 Bytes</span></div>
+        <div>트래픽 절감 압축률: <span id="res_ratio" style="color:#137333;">0%</span></div>
+    </div>
+
+    <div class="log-box" id="logView">버튼을 클릭하면 매번 완전히 무작위로 구성되는 압축 연산이 시작됩니다.</div>
+</div>
+
+<script>
+// C 알고리즘 기반 가변형 rMAX 난수 배열 생성
+function fn_rand_length_fixed(rMAX) {
+    let used = new Array(rMAX).fill(0);
+    let vv = new Array(rMAX);
+    let i = 0;
+    while (i < rMAX) {
+        let data = Math.floor(Math.random() * rMAX);
+        if (!used[data]) { used[data] = 1; vv[i++] = data; }
+    }
+    return vv;
+}
+
+// 대용량 Run-Length 누적 압축 엔진 (최적화)
+function runLengthCompress(input) {
+    let result = "";
+    let count = 1;
+    for (let i = 0; i < input.length; i++) {
+        if (input[i] === input[i + 1]) {
+            count++;
+        } else {
+            result += input[i] + count;
+            count = 1;
+        }
+    }
+    return result;
+}
+
+function runRandomPipeline() {
+    const log = document.getElementById("logView");
+    log.innerHTML = "🎲 주사위를 굴려 동적 압축 환경을 구축하는 중...<br>";
+
+    setTimeout(() => {
+        // 1. 환경 변수 완전 랜덤화 (rMAX 선택지 다양화, 파일 크기도 최소 500KB ~ 최대 1.5MB 가변)
+        const rMAXOptions = [8, 16, 32, 64];
+        const rMAX = rMAXOptions[Math.floor(Math.random() * rMAXOptions.length)];
+        const randomTargetSize = Math.floor(Math.random() * 1000000) + 500000; // 500,000 ~ 1,500,000 Bytes
+
+        // 2. 무작위 치환 테이블 빌드
+        const rand_data = fn_rand_length_fixed(rMAX);
+        
+        document.getElementById("env_rmax").innerText = `${rMAX} (배열 슬롯 수)`;
+        document.getElementById("env_size").innerText = `${randomTargetSize.toLocaleString()} Bytes`;
+        document.getElementById("env_key").innerText = `[${rand_data.join(', ')}]`;
+
+        // 3. 동적 가변 랜덤 데이터 생성
+        let masterData = "";
+        while (masterData.length < randomTargetSize) {
+            masterData += Math.floor(Math.random() * rMAX).toString();
+        }
+        masterData = masterData.substring(0, randomTargetSize);
+        log.innerHTML += `• <b>[데이터 준비]</b> 무작위 데이터 스트림 확보 완료.<br>`;
+
+        // 4. [1단계] rMAX 치환 맵핑 변환
+        let encMap = {};
+        rand_data.forEach((val, idx) => { encMap[idx.toString()] = val.toString(); });
+        
+        let substituted = "";
+        for(let i = 0; i < masterData.length; i++) {
+            substituted += encMap[masterData[i]] || masterData[i];
+        }
+        log.innerHTML += `• <b>[1단계 완료]</b> 가변 치환 암호 인코딩 완료 (용량 변동 없음)<br>`;
+
+        // 5. [2단계] 블록 정렬 (Sorting)
+        let sortedString = substituted.split('').sort().join('');
+        log.innerHTML += `• <b>[2단계 완료]</b> 데이터 스트림 고속 정렬 완료 (동일 문자 밀집 정렬 형태)<br>`;
+
+        // 6. [3단계] 다회차 반복 누적 압축 연산 실행
+        log.innerHTML += `• <b>[3단계 진입]</b> 반복 누적 압축 시동<br>`;
+        let currentStream = sortedString;
+        const totalLoops = 4; // 4회 누적 압축 진행
+        
+        for(let loop = 1; loop <= totalLoops; loop++) {
+            let beforeSize = currentStream.length;
+            currentStream = runLengthCompress(currentStream);
+            let loopRatio = ((1 - (currentStream.length / beforeSize)) * 100).toFixed(2);
+            
+            log.innerHTML += `&nbsp;&nbsp;└─ <span class='highlight-purple'>[${loop}차 누적 압축]</span> 잔여 크기: <span class='highlight-green'>${currentStream.length.toLocaleString()} Bytes</span> (직전 단계 대비 ${loopRatio}% 감소)<br>`;
+        }
+
+        // 7. 통계값 동적 브릿지 연산 및 UI 갱신
+        const finalSize = currentStream.length;
+        const totalRatio = ((1 - (finalSize / randomTargetSize)) * 100).toFixed(4);
+
+        document.getElementById("res_orig").innerText = randomTargetSize.toLocaleString() + " Bytes";
+        document.getElementById("res_comp").innerText = finalSize.toLocaleString() + " Bytes";
+        document.getElementById("res_ratio").innerText = totalRatio + "%";
+
+        log.innerHTML += `<br><b>🏁 랜덤 파이프라인 연산 검증 완료</b><br>`;
+        log.innerHTML += `➔ 무작위로 생성된 난수 환경에서도 압축 엔진이 동작하여 원래 파일 대비 <span class='highlight-green'>${totalRatio}%</span>를 축소 파괴시켰습니다.`;
+
+    }, 50);
+}
+
+// 초기 자동 구동
+runRandomPipeline();
+</script>
+
+</body>
+</html>

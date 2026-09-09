@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Rand Length IO Demo</title>
+</head>
+<body>
+<h2>랜덤 시퀀스 기반 입출력</h2>
+<button onclick="generateRandSeq()">랜덤 시퀀스 생성</button>
+<button onclick="writeData()">데이터 쓰기</button>
+<button onclick="readData()">데이터 읽기</button>
+
+<p id="randSeq"></p>
+<p id="output"></p>
+
+<script>
+const rMAX = 8;
+let randSeq = [];
+let buffer = [];
+
+// 랜덤 시퀀스 생성 (중복 없는 순서)
+function generateRandSeq() {
+    let used = Array(rMAX).fill(false);
+    randSeq = [];
+    while (randSeq.length < rMAX) {
+        let n = Math.floor(Math.random() * rMAX);
+        if (!used[n]) {
+            used[n] = true;
+            randSeq.push(n);
+        }
+    }
+    document.getElementById("randSeq").innerText = "랜덤 시퀀스: " + randSeq.join(", ");
+}
+
+// 데이터 쓰기 (랜덤 시퀀스 순서대로 저장)
+function writeData() {
+    buffer = [];
+    for (let i = 0; i < randSeq.length; i++) {
+        buffer.push("DATA" + randSeq[i]); // 예시 데이터
+    }
+    document.getElementById("output").innerText = "버퍼에 저장됨: " + buffer.join(" | ");
+}
+
+// 데이터 읽기 (랜덤 시퀀스 순서대로 출력)
+function readData() {
+    let readOut = buffer.map((val, idx) => `[${randSeq[idx]}] ${val}`);
+    document.getElementById("output").innerText = "읽은 데이터: " + readOut.join(" | ");
+}
+</script>
+</body>
+</html>

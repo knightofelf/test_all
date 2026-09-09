@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>로컬 이미지 소용돌이 복구 테스트</title>
+    <style>
+        body { text-align: center; font-family: sans-serif; padding: 20px; }
+        canvas { border: 2px solid #333; margin-top: 10px; max-width: 100%; height: auto; }
+        .controls { background: #eee; padding: 15px; border-radius: 8px; display: inline-block; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>이미지 소용돌이 변형 & 복원 (로컬 파일용)</h2>
+    
+    <div class="controls">
+        <!-- 로컬 파일 선택 -->
+        <input type="file" id="upload" accept="image/*"><br><br>
+        <button onclick="transform(5)">변형 (Swirl +)</button>
+        <button onclick="transform(-5)">복원 (Restore -)</button>
+        <button onclick="reset()">초기화</button>
+    </div>
+    <br>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const upload = document.getElementById('upload');
+        let originalImageData = null;
+
+        // 파일 업로드 처리
+        upload.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+ function transform(strength) {
+    if (!originalImageData) return alert("이미지를 먼저 업로드하세요!");
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const sourceData = ctx.getImageData(0, 0, width, height);
+    const targetData = ctx.createImageData(width, height);
+    
+    const src = sourceData.data;
+    const dst = targetData.data;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // 이미지 전체(대각선 끝)를 커버하는 반지름 설정
+    const maxRadius = Math.sqrt(centerX**2 + centerY**2); 
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const idx = (y * width + x) * 4;
+
+            // 모든 픽셀에 대해 소용돌이 연산 적용 (if문 제거)
+            // 외곽으로 갈수록 힘을 조절하고 싶지 않다면 (distance / maxRadius) 비율을 빼면 됩니다.
+            const angle = strength * (maxRadius - distance) / maxRadius;
+            const sinA = Math.sin(angle);
+            const cosA = Math.cos(angle);
+
+            const srcX = Math.floor(centerX + dx * cosA + dy * sinA);
+            const srcY = Math.floor(centerY - dx * sinA + dy * cosA);
+
+            if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+                const srcIdx = (srcY * width + srcX) * 4;
+                dst[idx] = src[srcIdx];
+                dst[idx+1] = src[srcIdx+1];
+                dst[idx+2] = src[srcIdx+2];
+                dst[idx+3] = src[srcIdx+3];
+            }
+        }
+    }
+    ctx.putImageData(targetData, 0, 0);
+}
+
+        function reset() {
+            if (originalImageData) ctx.putImageData(originalImageData, 0, 0);
+        }
+    </script>
+</body>
+</html>

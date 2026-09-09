@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>평균 샘플링 + 보간</title>
+  <style>
+    canvas { border: 1px solid black; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h3>이미지 파일 선택 후 평균 샘플링</h3>
+  <input type="file" id="fileInput" accept="image/*">
+  <br>
+  <canvas id="original" width="300" height="300"></canvas>
+  <canvas id="sampled" width="300" height="300"></canvas>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const origCtx = document.getElementById("original").getContext("2d");
+        const sampledCtx = document.getElementById("sampled").getContext("2d");
+
+        // 원본 출력
+        origCtx.drawImage(img, 0, 0, 300, 300);
+
+        // 원본 픽셀 데이터 읽기
+        const origData = origCtx.getImageData(0, 0, 300, 300);
+
+        // 샘플링 비율 (예: 1/4)
+        const scale = 4;
+        const newW = Math.floor(300 / scale);
+        const newH = Math.floor(300 / scale);
+
+        // 다운샘플링된 픽셀 저장용 배열
+        const smallData = sampledCtx.createImageData(newW, newH);
+
+        // 평균값 샘플링
+        for (let y = 0; y < newH; y++) {
+          for (let x = 0; x < newW; x++) {
+            let r = 0, g = 0, b = 0, a = 0;
+            let count = 0;
+
+            // 원본 블록 영역 평균
+            for (let dy = 0; dy < scale; dy++) {
+              for (let dx = 0; dx < scale; dx++) {
+                const origX = x * scale + dx;
+                const origY = y * scale + dy;
+                const idx = (origY * 300 + origX) * 4;
+                r += origData.data[idx];
+                g += origData.data[idx + 1];
+                b += origData.data[idx + 2];
+                a += origData.data[idx + 3];
+                count++;
+              }
+            }
+
+            const idxSmall = (y * newW + x) * 4;
+            smallData.data[idxSmall] = r / count;
+            smallData.data[idxSmall + 1] = g / count;
+            smallData.data[idxSmall + 2] = b / count;
+            smallData.data[idxSmall + 3] = a / count;
+          }
+        }
+
+        // 다운샘플링된 이미지 그리기
+        let offCanvas = document.createElement("canvas");
+        offCanvas.width = newW;
+        offCanvas.height = newH;
+        let offCtx = offCanvas.getContext("2d");
+        offCtx.putImageData(smallData, 0, 0);
+
+        // 다시 확대하면서 보간
+        sampledCtx.imageSmoothingEnabled = true; // bilinear 보간
+        sampledCtx.drawImage(offCanvas, 0, 0, 300, 300);
+      };
+    });
+  </script>
+</body>
+</html>

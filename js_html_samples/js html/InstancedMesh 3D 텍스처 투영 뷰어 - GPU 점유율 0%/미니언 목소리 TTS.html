@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>미니언 TTS</title>
+</head>
+<body>
+  <h2>미니언 목소리 TTS</h2>
+  <input type="text" id="textInput" value="Bananaaa! Bello!">
+  <button onclick="speak()">재생</button>
+
+  <script>
+    function speak() {
+      const text = document.getElementById('textInput').value;
+      const utterance = new SpeechSynthesisUtterance(text);
+
+      // 목소리 톤 조절
+      utterance.pitch = 10.0;   // 기본 1.0, 높일수록 미니언 같은 고음
+      utterance.rate = 1.5;  // 기본 1.0, 빠르게 말하도록 설정
+
+      // 브라우저 기본 음성 사용
+      speechSynthesis.speak(utterance);
+    }
+  </script>
+
+
+<input type="file" id="fileInput" accept="audio/*">
+<button id="playBtn">재생</button>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const playBtn = document.getElementById('playBtn');
+
+  playBtn.addEventListener('click', async () => {
+    if (!fileInput.files[0]) return alert("오디오 파일을 선택하세요!");
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await fileInput.files[0].arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.playbackRate.value = 1.5; // 빠르고 높게 → 미니언풍
+
+    source.connect(audioContext.destination);
+    source.start();
+  });
+</script>
+
+
+<input type="text" id="textInput" value="Bananaaa! Bello!">
+<button onclick="speak()">재생</button>
+
+<script>
+  function speak() {
+    const text = document.getElementById('textInput').value;
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    utterance.pitch = 2;   // 고음
+    utterance.rate = 1.5;  // 빠른 속도
+
+    speechSynthesis.speak(utterance);
+  }
+</script>
+
+
+
+<audio id="minionAudio" controls></audio>
+<script>
+  async function playMinionVoice(text) {
+    const response = await fetch("YOUR_TTS_API_ENDPOINT", {
+      method: "POST",
+      body: JSON.stringify({ text })
+    });
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    document.getElementById("minionAudio").src = audioUrl;
+  }
+
+  playMinionVoice("Bananaaa! Bello!");
+</script>
+
+
+
+</body>
+</html>
